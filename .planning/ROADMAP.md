@@ -26,7 +26,13 @@
   3. The benchmark harness executes point-lookup, 2-hop traversal, aggregate, and ordered pagination against 100k and 1M node datasets in CI, and publishes results that can be compared phase-over-phase.
   4. A scheduled CI job performs `pg_dump` followed by `pg_restore` against a seeded AGE database and validates the restored graph is queryable — the major-upgrade runbook is proven, not assumed.
   5. Testcontainers-based integration tests run green against `apache/age:PG16_latest` from a fresh checkout.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 00-01-PLAN.md — Maven multi-module scaffold (parent POM + 5 modules + Wrapper + hygiene + LICENSE/NOTICE/CONTRIBUTING)
+- [ ] 00-02-PLAN.md — docker-compose with sha256 digest-pinned apache/age + README quick-start
+- [ ] 00-03-PLAN.md — Flyway V1 + HikariCP init + Testcontainers helper + 4 ITs + TenantContext + ArchUnit module-direction + image-pin tests
+- [ ] 00-04-PLAN.md — JMH benchmark harness (SeedGenerator + 4 bench classes + JmhRunner + regression script + 100k baseline)
+- [ ] 00-05-PLAN.md — dump/restore rehearsal script + GitHub Actions ci.yml + nightly.yml
 
 ### Phase 1: Graph Core, Schema Registry, Validation, Rules
 **Goal**: Deliver the two spines of Tessera — the Schema Registry and the Event Log + Outbox — wrapped by a single transactional write funnel that enforces tenant isolation, SHACL validation, and priority-based reconciliation rules. No projections, no connectors; just a trustworthy graph core.
