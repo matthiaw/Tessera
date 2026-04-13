@@ -1,0 +1,117 @@
+# Roadmap: Tessera
+
+**Milestone:** 1 — MVP through first real consumer
+**Created:** 2026-04-13
+**Granularity:** standard
+**Core Value:** The graph is the truth; everything else is a projection.
+
+## Phases
+
+- [ ] **Phase 0: Foundations & Risk Burndown** - Scaffold, pin AGE, benchmark harness, dump/restore rehearsal, tenant primitives
+- [ ] **Phase 1: Graph Core, Schema Registry, Validation, Rules** - The two spines (Schema Registry + Event Log/Outbox) plus SHACL and rule engine
+- [ ] **Phase 2: REST Projection, Connector Framework, First Connector, Security Baseline** - Runtime-routed REST, generic REST poller, Vault, TLS, RBAC
+- [ ] **Phase 3: MCP Projection (Flagship Differentiator)** - Spring AI MCP tools driven by the Schema Registry, read-only by default, audited
+- [ ] **Phase 4: SQL View + Kafka Projections, Hash-Chained Audit** - Aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
+- [ ] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention
+
+## Phase Details
+
+### Phase 0: Foundations & Risk Burndown
+**Goal**: Establish a reproducible, pinned environment for PostgreSQL 16 + Apache AGE 1.6 and prove (via benchmarks and a dump/restore rehearsal) that the highest-risk technology behaves acceptably before any feature work begins.
+**Depends on**: Nothing (first phase)
+**Requirements**: FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06
+**Success Criteria** (what must be TRUE):
+  1. A developer can clone the repo and bring up the full local environment (Docker Compose with PG16 + AGE pinned to digest) in one command, with Flyway baseline applied and AGE session init working through HikariCP.
+  2. `mvn verify` runs a multi-module build (`fabric-core`, `fabric-rules`, `fabric-projections`, `fabric-connectors`, `fabric-app`) with Maven enforcer and ArchUnit blocking illegal upward dependencies and raw Cypher outside `graph.internal`.
+  3. The benchmark harness executes point-lookup, 2-hop traversal, aggregate, and ordered pagination against 100k and 1M node datasets in CI, and publishes results that can be compared phase-over-phase.
+  4. A scheduled CI job performs `pg_dump` followed by `pg_restore` against a seeded AGE database and validates the restored graph is queryable — the major-upgrade runbook is proven, not assumed.
+  5. Testcontainers-based integration tests run green against `apache/age:PG16_latest` from a fresh checkout.
+**Plans**: TBD
+
+### Phase 1: Graph Core, Schema Registry, Validation, Rules
+**Goal**: Deliver the two spines of Tessera — the Schema Registry and the Event Log + Outbox — wrapped by a single transactional write funnel that enforces tenant isolation, SHACL validation, and priority-based reconciliation rules. No projections, no connectors; just a trustworthy graph core.
+**Depends on**: Phase 0
+**Requirements**: CORE-01, CORE-02, CORE-03, CORE-04, CORE-05, CORE-06, CORE-07, CORE-08, SCHEMA-01, SCHEMA-02, SCHEMA-03, SCHEMA-04, SCHEMA-05, SCHEMA-06, SCHEMA-07, SCHEMA-08, VALID-01, VALID-02, VALID-03, VALID-04, VALID-05, EVENT-01, EVENT-02, EVENT-03, EVENT-04, EVENT-05, EVENT-06, EVENT-07, RULE-01, RULE-02, RULE-03, RULE-04, RULE-05, RULE-06, RULE-07, RULE-08
+**Success Criteria** (what must be TRUE):
+  1. Every mutation flows through `GraphService.apply()` as a single Postgres transaction covering auth → rules → SHACL → Cypher → event log → outbox; an ArchUnit test fails the build if any caller bypasses it or executes raw Cypher outside `graph.internal`.
+  2. An operator can define a node type, its properties, and edge types through the Schema Registry API, version the schema, rename a property via alias without breaking reads, and observe the change picked up by SHACL validation without restart.
+  3. A mutation that violates a SHACL shape or a business rule is rejected at commit time with a tenant-filtered `ValidationReport` — the test suite includes fuzz tests proving no code path can read or write across `model_id` boundaries.
+  4. Given a node UUID and a past timestamp, the system reconstructs that node's state via event-log replay; given a node, the full mutation history with cause attribution (`origin_connector_id`, `origin_change_id`) is retrievable.
+  5. With two connectors configured on conflicting properties, the per-tenant authority matrix deterministically resolves the winner, the loser is recorded in `reconciliation_conflicts`, and the write-amplification circuit breaker halts a runaway connector before a conflict storm.
+**Plans**: TBD
+
+### Phase 2: REST Projection, Connector Framework, First Connector, Security Baseline
+**Goal**: Expose the graph through a dynamically-generated REST projection and ingest real data through the first concrete connector (generic REST polling), with TLS, Vault-managed secrets, row/field-level access control, and fail-closed endpoint defaults. Decide explicitly on field-level encryption: ship fully or keep feature-flagged off.
+**Depends on**: Phase 1
+**Requirements**: REST-01, REST-02, REST-03, REST-04, REST-05, REST-06, REST-07, CONN-01, CONN-02, CONN-03, CONN-04, CONN-05, CONN-06, CONN-07, CONN-08, SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06
+**Success Criteria** (what must be TRUE):
+  1. A developer declares a new node type in the Schema Registry and, without touching controller code or redeploying, can `GET/POST/PUT/DELETE /api/v1/{model}/entities/{typeSlug}` through a single `GenericEntityController`, with the new endpoint visible in `/v3/api-docs`.
+  2. Newly generated endpoints are deny-all until an explicit `exposure` policy is declared; a test proves an undeclared type returns 403/404 and never 200, and that error responses cannot leak other tenants' data.
+  3. A generic REST poller connector configured via a `MappingDefinition` pulls rows from a mock REST endpoint, applies ETag / `Last-Modified` delta detection, lands them as graph nodes through `GraphService.apply()`, and exposes sync status (last success, DLQ count, events processed) per `(connector_id, model_id)`.
+  4. All consumer-facing HTTP traffic is TLS 1.3 with HSTS; connector credentials are loaded from HashiCorp Vault via Spring Cloud Vault Config Data API and never appear in config files or the fabric DB; row-level and field-level access control filters responses based on caller role.
+  5. The field-level encryption decision is recorded and enforced: either the feature flag is off (and writes to encrypted-marked properties are rejected at startup), or the full machinery (per-tenant blind index, multi-version DEKs, fail-closed writes on KMS outage, KMS chaos test in CI) is green.
+**Plans**: TBD
+
+### Phase 3: MCP Projection (Flagship Differentiator)
+**Goal**: Make Tessera usable as durable, typed shared memory for LLM agents through a Spring AI MCP Server whose tool surface is dynamically registered from the Schema Registry, read-only by default, audited per invocation, and hardened against prompt injection and schema-mutation abuse.
+**Depends on**: Phase 2
+**Requirements**: SEC-07, SEC-08, MCP-01, MCP-02, MCP-03, MCP-04, MCP-05, MCP-06, MCP-07, MCP-08, MCP-09
+**Success Criteria** (what must be TRUE):
+  1. An MCP-capable agent connects to the server and can invoke `list_entity_types`, `describe_type`, `query_entities`, `get_entity`, `traverse`, `find_path`, and `get_state_at` scoped to its tenant — with the temporal tool answering "state at timestamp T" directly from the event log.
+  2. Adding a new node type via the Schema Registry surfaces new MCP tools without a redeploy (or, if Spring AI blocks runtime registration, triggers a documented restart-on-schema-change fallback that is observable in the audit log).
+  3. Agents are read-only by default; any write attempt from an agent without an explicit per-agent write quota is rejected, and no MCP tool is exposed that can mutate the Schema Registry.
+  4. MCP tool responses wrap source-system content in `<data>...</data>` markers; a prompt-injection test suite proves the wrapper is applied consistently and that embedded instructions in source data do not alter tool behavior.
+  5. Every MCP tool invocation is recorded in an audit log with agent identity, tool name, arguments, and outcome, and an operator can query the log per-tenant.
+**Plans**: TBD
+
+### Phase 4: SQL View + Kafka Projections, Hash-Chained Audit
+**Goal**: Add the two remaining projections required for real-world consumption — SQL views for BI tools (bypassing the AGE aggregation cliff) and Kafka topics for downstream event fan-out via Debezium — plus optional hash-chained audit integrity for compliance-driven tenants. The write path must not change.
+**Depends on**: Phase 3
+**Requirements**: SQL-01, SQL-02, SQL-03, KAFKA-01, KAFKA-02, KAFKA-03, AUDIT-01, AUDIT-02
+**Success Criteria** (what must be TRUE):
+  1. A Metabase / Looker / PowerBI user can point at per-tenant per-type SQL views (`v_{model}_{typeSlug}`) and run aggregate queries that are measurably faster than the equivalent Cypher, reading AGE label tables directly; views are regenerated on schema change and survive restart.
+  2. Debezium 3.4 with Outbox Event Router SMT replaces the in-process outbox poller and publishes one topic per `(model_id, typeSlug)` — crucially, nothing on the write path changes (same `graph_outbox` rows, same `GraphService.apply` transaction).
+  3. Replication slot lag and `max_slot_wal_keep_size` are monitored, with alerts firing before WAL bloat threatens the primary.
+  4. For a tenant with audit integrity enabled, each event row records the hash of the previous event plus its own payload; an on-demand verification job (also runnable in CI) detects any tampering and reports the first broken link.
+**Plans**: TBD
+
+### Phase 5: Circlead Integration & Production Hardening
+**Goal**: Prove the whole stack against the first real consumer (circlead) without a big-bang migration, and harden operations with observability, snapshots, retention, and a rehearsed DR drill so Tessera is safe to run on IONOS VPS.
+**Depends on**: Phase 4
+**Requirements**: CIRC-01, CIRC-02, CIRC-03, OPS-01, OPS-02, OPS-03, OPS-04, OPS-05
+**Success Criteria** (what must be TRUE):
+  1. circlead reads Role, Circle, and Activity data from Tessera via REST and MCP projections in parallel with its own JPA model; a documented mapping round-trips cleanly, and circlead continues to function (gracefully degraded) when Tessera is unavailable.
+  2. An operator can view Prometheus / OpenTelemetry metrics for ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, and SHACL validation time, and the Spring Boot Actuator health endpoint reports the status of Postgres, AGE, Vault, and every registered connector.
+  3. An operator can configure per-tenant event-log retention and trigger a per-tenant snapshot that compacts the event log while preserving the ability to answer temporal queries above the snapshot boundary.
+  4. A full DR drill (dump → restore → replay → consumer smoke test against circlead) is rehearsed end-to-end and documented, and the whole milestone-1 scope (all prior phases) remains green on CI.
+**Plans**: TBD
+**UI hint**: yes
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 0. Foundations & Risk Burndown | 0/0 | Not started | - |
+| 1. Graph Core, Schema Registry, Validation, Rules | 0/0 | Not started | - |
+| 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
+| 3. MCP Projection | 0/0 | Not started | - |
+| 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/0 | Not started | - |
+| 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
+
+## Coverage
+
+- v1 requirements: 87
+- Mapped: 87
+- Unmapped: 0
+
+All v1 requirements map to exactly one phase. See REQUIREMENTS.md Traceability table.
+
+## Notes
+
+- **Phase ordering is strictly bottom-up.** Schema Registry before projections; outbox before in-process events; MCP cannot move earlier because it depends on the full read path + access control.
+- **Parallelism inside Phase 2.** REST projection and connector framework can develop in parallel once Phase 1 lands.
+- **Research flags** (from research/SUMMARY.md) to revisit during plan-phase: Phase 1 SHACL perf + Postgres RLS on AGE label tables; Phase 2 connector SPI shape + SpringDoc dynamic OpenAPI lifecycle; Phase 3 Spring AI MCP dynamic tool registration semantics (high priority); Phase 4 Debezium Outbox Router with multi-tenant partitioning.
+- **UI indicator** on Phase 5 reflects operator dashboards (sync status, conflict register, metrics); earlier phases are backend-only.
+
+---
+*Roadmap created: 2026-04-13*

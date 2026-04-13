@@ -313,8 +313,8 @@ Explicitly excluded. Documented to prevent scope creep.
 | OPS-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 87 total
-- Mapped to phases: 87
+- v1 requirements: 90 total
+- Mapped to phases: 90
 - Unmapped: 0 ✓
 
 ---
