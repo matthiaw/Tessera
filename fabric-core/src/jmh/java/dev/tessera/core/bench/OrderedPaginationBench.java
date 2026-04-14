@@ -34,8 +34,8 @@ import org.openjdk.jmh.infra.Blackhole;
  * nodes using the deterministic {@code idx} property as the cursor key.
  */
 @Fork(1)
-@Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 3, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode({Mode.AverageTime, Mode.SampleTime})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Thread)

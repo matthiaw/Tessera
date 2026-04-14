@@ -115,17 +115,25 @@
                                 <id>run-jmh</id>
                                 <phase>verify</phase>
                                 <goals>
-                                    <goal>java</goal>
+                                    <goal>exec</goal>
                                 </goals>
                                 <configuration>
-                                    <mainClass>dev.tessera.core.bench.JmhRunner</mainClass>
+                                    <!--
+                                      JMH forks a child JVM for each benchmark. `exec:java` runs the
+                                      main class in-process which means the fork only inherits the
+                                      parent JVM's java.class.path (no test scope) and JMH's
+                                      ForkedMain is not on it. `exec:exec` drives a real `java`
+                                      process and lets us pass `%classpath` plus the project test
+                                      classpath explicitly.
+                                    -->
+                                    <executable>java</executable>
                                     <classpathScope>test</classpathScope>
-                                    <systemProperties>
-                                        <systemProperty>
-                                            <key>jmh.dataset</key>
-                                            <value>${jmh.dataset}</value>
-                                        </systemProperty>
-                                    </systemProperties>
+                                    <arguments>
+                                        <argument>-Djmh.dataset=${jmh.dataset}</argument>
+                                        <argument>-classpath</argument>
+                                        <classpath/>
+                                        <argument>dev.tessera.core.bench.JmhRunner</argument>
+                                    </arguments>
                                 </configuration>
                             </execution>
                         </executions>

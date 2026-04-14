@@ -16,6 +16,7 @@
 package dev.tessera.core.bench;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -98,90 +99,144 @@ public final class SeedGenerator {
                 // graph did not exist
             }
             s.execute("SELECT create_graph('" + GRAPH_NAME + "')");
+            // Pre-create the vertex + edge labels so the tables exist for direct INSERTs.
+            for (String label : LABELS) {
+                s.execute("SELECT create_vlabel('" + GRAPH_NAME + "', '" + label + "')");
+            }
+            s.execute("SELECT create_elabel('" + GRAPH_NAME + "', '" + EDGE_LABEL + "')");
         }
 
-        // Insert nodes in batches of 1000. MIN-1: literals embedded in Cypher
-        // text — no JDBC parameter binding for agtype values.
-        final int batch = 1000;
-        for (int start = 0; start < nodeCount; start += batch) {
-            int end = Math.min(start + batch, nodeCount);
-            StringBuilder cypher = new StringBuilder(64 * (end - start));
-            cypher.append("SELECT * FROM cypher('")
-                    .append(GRAPH_NAME)
-                    .append("', $$ CREATE ");
-            for (int i = start; i < end; i++) {
-                if (i > start) {
-                    cypher.append(", ");
+        // MIN-1/performance note: driving 100k node inserts through Cypher
+        // `CREATE` statements is prohibitively slow because AGE parses the
+        // entire CREATE clause per statement. Instead we insert directly into
+        // AGE's vertex label tables via plain SQL `INSERT ... VALUES` — much
+        // faster and still 100% valid AGE data because `create_vlabel` set up
+        // the label table with the standard `(id graphid, properties agtype)`
+        // schema. Same approach for edges: the internal vertex id is looked
+        // up from the default id sequence `_label_id_seq` after each insert.
+        //
+        // We fetch the generated vertex ids per insert via `RETURNING id` so
+        // the edge phase can wire start_id/end_id without a MATCH pass.
+        // graphid values are stored as raw text (not parsed to long) because
+        // AGE does not allow bigint->graphid casts; re-inserting into the edge
+        // table needs the original textual form quoted as '<n>'::graphid.
+        String[] vertexIds = new String[nodeCount];
+
+        for (String label : LABELS) {
+            // Build a single multi-row INSERT per label (round-robin buckets).
+            List<Integer> indices = new ArrayList<>(nodeCount / LABELS.size() + 1);
+            for (int i = 0; i < nodeCount; i++) {
+                if (LABELS.get(i % LABELS.size()).equals(label)) {
+                    indices.add(i);
                 }
-                String label = LABELS.get(i % LABELS.size());
-                String uuidStr = uuids.get(i).toString();
-                String name = label + "-" + i;
-                cypher.append("(:")
+            }
+            if (indices.isEmpty()) {
+                continue;
+            }
+            // Chunk to keep any single INSERT under Postgres' statement size ceiling.
+            final int chunk = 2000;
+            for (int off = 0; off < indices.size(); off += chunk) {
+                int to = Math.min(off + chunk, indices.size());
+                StringBuilder sql = new StringBuilder();
+                sql.append("INSERT INTO ")
+                        .append(GRAPH_NAME)
+                        .append(".\"")
                         .append(label)
-                        .append(" {uuid: ")
-                        .append(cypherString(uuidStr))
-                        .append(", idx: ")
-                        .append(i)
-                        .append(", name: ")
-                        .append(cypherString(name))
-                        .append("})");
-            }
-            cypher.append(" $$) AS (n agtype)");
-            try (Statement s = c.createStatement()) {
-                s.execute(cypher.toString());
-            }
-        }
-
-        // Insert edges: deterministic stride. AGE Cypher does not allow chaining
-        // multiple top-level MATCH...CREATE statements in one query, so we drive
-        // the batch through UNWIND over a literal list of [src,tgt] pairs.
-        for (int start = 0; start < nodeCount; start += batch) {
-            int end = Math.min(start + batch, nodeCount);
-            StringBuilder pairs = new StringBuilder();
-            pairs.append('[');
-            boolean first = true;
-            for (int i = start; i < end; i++) {
-                String srcUuid = uuids.get(i).toString();
-                for (int k = 0; k < edgesPerNode; k++) {
-                    int targetIdx = (int) (((long) i * 31L + k) % nodeCount);
-                    if (targetIdx == i) {
-                        // skip self-loop — deterministic dedup
-                        continue;
+                        .append("\" (properties) VALUES ");
+                for (int k = off; k < to; k++) {
+                    if (k > off) {
+                        sql.append(',');
                     }
-                    String tgtUuid = uuids.get(targetIdx).toString();
-                    if (!first) {
-                        pairs.append(',');
-                    }
-                    first = false;
-                    pairs.append('[')
-                            .append(cypherString(srcUuid))
-                            .append(',')
-                            .append(cypherString(tgtUuid))
-                            .append(']');
+                    int i = indices.get(k);
+                    String json = "{\"uuid\": \"" + uuids.get(i) + "\", \"idx\": " + i
+                            + ", \"name\": \"" + label + "-" + i + "\"}";
+                    // agtype literal: single-quoted JSON cast to agtype.
+                    sql.append("('").append(json.replace("'", "''")).append("'::agtype)");
                 }
-            }
-            pairs.append(']');
-            if (first) {
-                continue; // no edges in this slice
-            }
+                sql.append(" RETURNING id");
 
-            String cypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$"
-                    + " UNWIND " + pairs + " AS pair"
-                    + " MATCH (a {uuid: pair[0]}), (b {uuid: pair[1]})"
-                    + " CREATE (a)-[:" + EDGE_LABEL + "]->(b)"
-                    + " RETURN 1 $$) AS (n agtype)";
-            try (Statement s = c.createStatement()) {
-                s.execute(cypher);
+                try (Statement s = c.createStatement();
+                        ResultSet rs = s.executeQuery(sql.toString())) {
+                    int k = off;
+                    while (rs.next()) {
+                        // Keep raw textual form — graphid re-insert must go
+                        // through text cast to avoid bigint->graphid error.
+                        vertexIds[indices.get(k)] = rs.getString(1);
+                        k++;
+                    }
+                    if (k != to) {
+                        throw new SQLException(
+                                "label " + label + " INSERT RETURNING returned " + (k - off) + " ids, expected "
+                                        + (to - off));
+                    }
+                }
             }
         }
 
         // MIN-2 workaround: AGE does NOT create indexes on label tables by
-        // default. Without these GIN indexes on the properties column, point
-        // lookups are sequential scans and the bench numbers are meaningless.
+        // default. Add GIN indexes on the properties column so point lookups
+        // by `{uuid: ...}` run through the index once the benches are live.
         try (Statement s = c.createStatement()) {
             for (String label : LABELS) {
                 s.execute("CREATE INDEX IF NOT EXISTS bench_" + label.toLowerCase() + "_props_gin ON "
                         + GRAPH_NAME + ".\"" + label + "\" USING gin (properties)");
+            }
+        }
+
+        // Insert edges directly into the RELATES edge label table. Edge rows
+        // need (start_id, end_id, properties); the id column autoincrements
+        // from the label's default sequence. Same chunking strategy.
+        final int edgeChunk = 4000;
+        List<String[]> edgePairs = new ArrayList<>(nodeCount * edgesPerNode);
+        for (int i = 0; i < nodeCount; i++) {
+            String srcId = vertexIds[i];
+            for (int k = 0; k < edgesPerNode; k++) {
+                int targetIdx = (int) (((long) i * 31L + k) % nodeCount);
+                if (targetIdx == i) {
+                    continue; // deterministic self-loop dedup
+                }
+                edgePairs.add(new String[] {srcId, vertexIds[targetIdx]});
+            }
+        }
+        for (int off = 0; off < edgePairs.size(); off += edgeChunk) {
+            int to = Math.min(off + edgeChunk, edgePairs.size());
+            StringBuilder sql = new StringBuilder();
+            sql.append("INSERT INTO ")
+                    .append(GRAPH_NAME)
+                    .append(".\"")
+                    .append(EDGE_LABEL)
+                    .append("\" (start_id, end_id, properties) VALUES ");
+            for (int k = off; k < to; k++) {
+                if (k > off) {
+                    sql.append(',');
+                }
+                String[] pair = edgePairs.get(k);
+                sql.append("('")
+                        .append(pair[0])
+                        .append("'::graphid, '")
+                        .append(pair[1])
+                        .append("'::graphid, '{}'::agtype)");
+            }
+            try (Statement s = c.createStatement()) {
+                s.execute(sql.toString());
+            }
+        }
+
+        // Edge table indexes (MIN-2 extension): AGE does NOT create btree
+        // indexes on start_id / end_id by default. Without them, every
+        // `MATCH (n)-[:RELATES]->(m)` traversal degrades to a sequential
+        // scan of the edge table — which on 100k nodes × 4 edges is 400k
+        // rows per outbound hop. These indexes unlock reasonable traversal
+        // performance for the TwoHopTraversalBench and any Phase 1 workload
+        // that touches edges.
+        try (Statement s = c.createStatement()) {
+            s.execute("CREATE INDEX IF NOT EXISTS bench_relates_start ON "
+                    + GRAPH_NAME + ".\"" + EDGE_LABEL + "\" (start_id)");
+            s.execute("CREATE INDEX IF NOT EXISTS bench_relates_end ON "
+                    + GRAPH_NAME + ".\"" + EDGE_LABEL + "\" (end_id)");
+            s.execute("ANALYZE " + GRAPH_NAME + ".\"" + EDGE_LABEL + "\"");
+            for (String label : LABELS) {
+                s.execute("ANALYZE " + GRAPH_NAME + ".\"" + label + "\"");
             }
         }
 

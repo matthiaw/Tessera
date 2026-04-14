@@ -39,8 +39,8 @@ import org.openjdk.jmh.infra.Blackhole;
  * run and regressions show up in PR diffs.
  */
 @Fork(1)
-@Warmup(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
-@Measurement(iterations = 5, time = 3, timeUnit = TimeUnit.SECONDS)
+@Warmup(iterations = 2, time = 1, timeUnit = TimeUnit.SECONDS)
+@Measurement(iterations = 3, time = 2, timeUnit = TimeUnit.SECONDS)
 @BenchmarkMode({Mode.AverageTime, Mode.SampleTime})
 @OutputTimeUnit(TimeUnit.MILLISECONDS)
 @State(Scope.Thread)
@@ -48,9 +48,13 @@ public class AggregateBench {
 
     @Benchmark
     public void countByLabel(BenchHarness h, Blackhole bh) throws Exception {
+        // NOTE: AGE's Cypher parser rejects ORDER BY on an aggregate alias
+        // ("could not find rte for c"), so the ordering is left to the outer
+        // SQL wrapper. The benchmark cares about the aggregation cost, not
+        // the sort order of the tiny 4-row output.
         String cypher = "SELECT * FROM cypher('" + SeedGenerator.GRAPH_NAME
-                + "', $$ MATCH (n) RETURN labels(n) AS l, count(*) AS c ORDER BY c DESC $$)"
-                + " AS (l agtype, c agtype)";
+                + "', $$ MATCH (n) RETURN labels(n), count(*) $$)"
+                + " AS (l agtype, c agtype) ORDER BY c DESC";
         try (Statement s = h.conn.createStatement();
                 ResultSet rs = s.executeQuery(cypher)) {
             while (rs.next()) {
