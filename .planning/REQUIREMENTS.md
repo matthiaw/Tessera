@@ -88,6 +88,19 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 - [ ] **CONN-07**: First concrete connector — **generic REST polling** with ETag / `Last-Modified` delta detection — reads from a configured REST endpoint and lands rows as graph nodes
 - [ ] **CONN-08**: First connector is **read-only** (no write-back to source system) — bidirectional propagation is explicitly deferred
 
+### Unstructured Ingestion & Entity Extraction (EXTR)
+
+Extends the Connector Framework with a second mode — LLM-based extraction of typed entities and relationships from free text — so that unstructured sources land as first-class graph data through the same rule engine, SHACL validation, and reconciliation pipeline as structured connectors. Lives in Phase 2.5.
+
+- [ ] **EXTR-01**: `Connector` SPI supports two modes — structured (`StructuredConnector` with `MappingDefinition` as today) and unstructured (`UnstructuredTextConnector` producing raw text + metadata). Both converge on a single `CandidateMutation` shape consumed by the Rule Engine; the Rule Engine cannot tell the two paths apart downstream of the connector boundary.
+- [ ] **EXTR-02**: Text chunking stage with configurable strategy (paragraph, sentence, token-based with overlap) and a default that keeps chunks within the target LLM's context budget. Chunk boundaries are deterministic for a given input + config.
+- [ ] **EXTR-03**: LLM-based entity + relationship extractor using Spring AI structured output (with LangChain4j as a documented fallback), where the target JSON schema is **derived automatically from the Schema Registry** for the tenant's active node and edge types. Adding a new type in the registry must make it available to extractors without redeploy.
+- [ ] **EXTR-04**: Every extracted candidate carries complete provenance on the event log: `source_document_id`, `source_chunk_range` (offset+length or line span), `extractor_version`, `llm_model_id`, and `extraction_confidence` (0.0–1.0). Provenance survives replay.
+- [ ] **EXTR-05**: Entity Resolution Service in `fabric-rules` decides whether a candidate matches an existing graph entity. First-line: deterministic name + type match. Second-line: `pgvector` embedding similarity above a configurable threshold. Third-line: rule-engine-invoked fuzzy match. Output is either "new entity" or "merge into existing entity with confidence C".
+- [ ] **EXTR-06**: Resolved candidates flow through the **same** `GraphService.apply()` write funnel, rule engine, SHACL validation, source authority matrix, and conflict register as structured-connector candidates. An ArchUnit test proves the extraction path cannot bypass this funnel.
+- [ ] **EXTR-07**: Candidates with confidence below a per-tenant configurable threshold are routed to an `extraction_review_queue` table instead of auto-merging; an operator can accept, reject, or rewrite them. Rejected candidates are recorded with the reason so future extractors can learn.
+- [ ] **EXTR-08**: The `pgvector` extension is installed via a Flyway migration that runs after the AGE baseline; embedding columns are optional per entity type and declared in the Schema Registry. At least one concrete unstructured connector (Markdown folder / Obsidian-vault shape) ships as a reference implementation and is green end-to-end against Testcontainers (AGE + pgvector in the same container).
+
 ### Security (SEC)
 
 - [ ] **SEC-01**: TLS 1.3 minimum on all consumer-facing HTTP endpoints (REST, MCP, WebSocket); HSTS enabled
@@ -278,6 +291,14 @@ Explicitly excluded. Documented to prevent scope creep.
 | CONN-06 | Phase 2 | Pending |
 | CONN-07 | Phase 2 | Pending |
 | CONN-08 | Phase 2 | Pending |
+| EXTR-01 | Phase 2.5 | Pending |
+| EXTR-02 | Phase 2.5 | Pending |
+| EXTR-03 | Phase 2.5 | Pending |
+| EXTR-04 | Phase 2.5 | Pending |
+| EXTR-05 | Phase 2.5 | Pending |
+| EXTR-06 | Phase 2.5 | Pending |
+| EXTR-07 | Phase 2.5 | Pending |
+| EXTR-08 | Phase 2.5 | Pending |
 | SEC-01 | Phase 2 | Pending |
 | SEC-02 | Phase 2 | Pending |
 | SEC-03 | Phase 2 | Pending |
@@ -313,10 +334,10 @@ Explicitly excluded. Documented to prevent scope creep.
 | OPS-05 | Phase 5 | Pending |
 
 **Coverage:**
-- v1 requirements: 90 total
-- Mapped to phases: 90
+- v1 requirements: 98 total
+- Mapped to phases: 98
 - Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-04-13*
-*Last updated: 2026-04-13 after initial definition*
+*Last updated: 2026-04-14 — added Phase 2.5 (EXTR-01..08) for unstructured ingestion & entity extraction*

@@ -10,6 +10,7 @@
 - [ ] **Phase 0: Foundations & Risk Burndown** - Scaffold, pin AGE, benchmark harness, dump/restore rehearsal, tenant primitives
 - [ ] **Phase 1: Graph Core, Schema Registry, Validation, Rules** - The two spines (Schema Registry + Event Log/Outbox) plus SHACL and rule engine
 - [ ] **Phase 2: REST Projection, Connector Framework, First Connector, Security Baseline** - Runtime-routed REST, generic REST poller, Vault, TLS, RBAC
+- [ ] **Phase 2.5: Unstructured Ingestion & Entity Extraction** - LLM-based entity extraction from free text, pgvector-backed entity resolution, first unstructured connector
 - [ ] **Phase 3: MCP Projection (Flagship Differentiator)** - Spring AI MCP tools driven by the Schema Registry, read-only by default, audited
 - [ ] **Phase 4: SQL View + Kafka Projections, Hash-Chained Audit** - Aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
 - [ ] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention
@@ -58,6 +59,18 @@ Plans:
   5. The field-level encryption decision is recorded and enforced: either the feature flag is off (and writes to encrypted-marked properties are rejected at startup), or the full machinery (per-tenant blind index, multi-version DEKs, fail-closed writes on KMS outage, KMS chaos test in CI) is green.
 **Plans**: TBD
 
+### Phase 2.5: Unstructured Ingestion & Entity Extraction
+**Goal**: Extend the connector framework with a second mode — LLM-based extraction of typed entities and relationships from unstructured text — so that free-text sources (wikis, notes, chat logs, emails, code commentary) land as first-class graph data that flows through the same rule engine, SHACL validation, reconciliation, and source authority matrix as structured connectors. Extracted candidates must be indistinguishable from REST-polled candidates downstream of the connector boundary.
+**Depends on**: Phase 2
+**Requirements**: EXTR-01, EXTR-02, EXTR-03, EXTR-04, EXTR-05, EXTR-06, EXTR-07, EXTR-08
+**Success Criteria** (what must be TRUE):
+  1. A text document ingested by an `UnstructuredTextConnector` is chunked, run through an LLM extractor whose output schema is derived from the Schema Registry, and lands candidate entities and relationships that pass through `GraphService.apply()` — an ArchUnit test proves the extraction path cannot bypass the same write funnel used by the REST polling connector.
+  2. Every extracted node carries complete provenance recorded on the event log: `source_document_id`, `source_chunk_range`, `extractor_version`, `llm_model_id`, and `extraction_confidence`; these are queryable per node and survive replay.
+  3. Entity Resolution against existing graph state is deterministic and reproducible: for a given `(name, type, optional embedding)`, running resolution twice on the same DB state returns the same merge decision; a test proves that matches above the configured threshold merge into the existing node and matches below land in a review queue.
+  4. Reconciliation between extracted and structured-source entities honors the per-tenant authority matrix: when an extraction says a property value is X and a structured connector says Y, the matrix picks the winner, the loser is logged in `reconciliation_conflicts` with the extraction metadata intact, and the conflict is queryable per source type.
+  5. The `pgvector` extension is installed via Flyway migration, embeddings are optional per entity type (configured in the Schema Registry), and at least one concrete unstructured connector (Markdown folder / Obsidian-vault shape) is green end-to-end against a Testcontainers-seeded AGE + pgvector database.
+**Plans**: TBD
+
 ### Phase 3: MCP Projection (Flagship Differentiator)
 **Goal**: Make Tessera usable as durable, typed shared memory for LLM agents through a Spring AI MCP Server whose tool surface is dynamically registered from the Schema Registry, read-only by default, audited per invocation, and hardened against prompt injection and schema-mutation abuse.
 **Depends on**: Phase 2
@@ -100,14 +113,15 @@ Plans:
 | 0. Foundations & Risk Burndown | 0/0 | Not started | - |
 | 1. Graph Core, Schema Registry, Validation, Rules | 0/0 | Not started | - |
 | 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
+| 2.5. Unstructured Ingestion & Entity Extraction | 0/0 | Not started | - |
 | 3. MCP Projection | 0/0 | Not started | - |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/0 | Not started | - |
 | 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
 
 ## Coverage
 
-- v1 requirements: 87
-- Mapped: 87
+- v1 requirements: 98
+- Mapped: 98
 - Unmapped: 0
 
 All v1 requirements map to exactly one phase. See REQUIREMENTS.md Traceability table.
@@ -116,8 +130,9 @@ All v1 requirements map to exactly one phase. See REQUIREMENTS.md Traceability t
 
 - **Phase ordering is strictly bottom-up.** Schema Registry before projections; outbox before in-process events; MCP cannot move earlier because it depends on the full read path + access control.
 - **Parallelism inside Phase 2.** REST projection and connector framework can develop in parallel once Phase 1 lands.
-- **Research flags** (from research/SUMMARY.md) to revisit during plan-phase: Phase 1 SHACL perf + Postgres RLS on AGE label tables; Phase 2 connector SPI shape + SpringDoc dynamic OpenAPI lifecycle; Phase 3 Spring AI MCP dynamic tool registration semantics (high priority); Phase 4 Debezium Outbox Router with multi-tenant partitioning.
-- **UI indicator** on Phase 5 reflects operator dashboards (sync status, conflict register, metrics); earlier phases are backend-only.
+- **Phase 1 forward-commitment for Phase 2.5.** The Rule Engine in Phase 1 must accept candidate entities from *any* connector mode — structured (REST-polled, JDBC, CDC) or extraction-based (LLM-extracted from text). This is achieved by designing the rule engine input contract around a generic `CandidateMutation` shape that carries provenance metadata (source_type, source_id, confidence, extractor_version) rather than assuming structured field mappings. Phase 2.5 then adds the extraction pipeline as a new connector mode without touching the rule engine.
+- **Research flags** (from research/SUMMARY.md) to revisit during plan-phase: Phase 1 SHACL perf + Postgres RLS on AGE label tables + generic `CandidateMutation` contract for extraction forward-compatibility; Phase 2 connector SPI shape + SpringDoc dynamic OpenAPI lifecycle; Phase 2.5 pgvector-on-AGE coexistence + LLM structured-output libraries (Spring AI vs LangChain4j) + entity-resolution algorithms; Phase 3 Spring AI MCP dynamic tool registration semantics (high priority); Phase 4 Debezium Outbox Router with multi-tenant partitioning.
+- **UI indicator** on Phase 5 reflects operator dashboards (sync status, conflict register, metrics, extraction review queue); earlier phases are backend-only.
 
 ---
 *Roadmap created: 2026-04-13*
