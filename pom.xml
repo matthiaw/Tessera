@@ -208,7 +208,7 @@
                                 <version>2.50.0</version>
                             </palantirJavaFormat>
                             <licenseHeader>
-                                <file>${maven.multiModuleProjectDirectory}/.mvn/license-header.txt</file>
+                                <file>${maven.multiModuleProjectDirectory}/.mvn/license-header-java.txt</file>
                             </licenseHeader>
                         </java>
                     </configuration>
