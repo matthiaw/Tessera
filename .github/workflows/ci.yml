@@ -1,0 +1,88 @@
+# Tessera push CI — FOUND-04 / D-04 / D-11
+#
+# Fast loop that runs on every push and PR to main:
+#   1. `./mvnw -B -ntp verify` — Spotless + license + enforcer + Surefire +
+#      Failsafe + JaCoCo.
+#   2. `./mvnw ... -Pjmh -Djmh.dataset=100000 verify` — JMH harness on the
+#      100k dataset.
+#   3. `scripts/check_regression.sh 100000` — hard-fails if any bench's p95
+#      regresses by more than REGRESSION_THRESHOLD_PCT (default 25%) against
+#      `.planning/benchmarks/baseline-100000.json`.
+#
+# The heavier 1M JMH run and the dump/restore rehearsal live in nightly.yml
+# (D-04: keep the push CI loop fast; anything expensive is a nightly concern).
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: build + verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Corretto)
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: '21'
+          cache: maven
+
+      - name: Maven verify
+        run: ./mvnw -B -ntp verify
+
+      - name: Upload JaCoCo reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco
+          path: '**/target/site/jacoco/**'
+          if-no-files-found: ignore
+
+  benchmark-100k:
+    name: JMH 100k + regression check
+    runs-on: ubuntu-latest
+    needs: verify
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Corretto)
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: '21'
+          cache: maven
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run JMH (100k dataset)
+        run: ./mvnw -B -ntp -pl fabric-core -Pjmh -Djmh.dataset=100000 verify
+
+      - name: Regression check (+25% p95 hard-fail)
+        run: scripts/check_regression.sh 100000
+
+      - name: Upload benchmark JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-100k
+          path: .planning/benchmarks/*-100000.json
+          if-no-files-found: ignore
