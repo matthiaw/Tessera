@@ -301,6 +301,16 @@ Explicit "we do not ship this, use X" statements for the roadmap and docs.
 5. DQ rule authoring format — SHACL shapes only, or a higher-level DSL layered on top?
 6. Tenant model — one `model_id` per customer, or per "domain within a customer"? Affects schema registry scope.
 
+## Visual Inspiration Sources (v2+ Operator UI)
+
+Not architectural references. Ideas to revisit **only** when the deferred operator / graph-explorer UI is revisited in v2+ (see anti-feature A14). Tracked here so they are not forgotten.
+
+| Source | What to borrow | What NOT to borrow | Notes |
+|--------|----------------|---------------------|-------|
+| **NeuroLinked** (`~/Downloads/NeuroLinked-Release`, Python + Three.js, reviewed 2026-04-14) | Entity-type color coding, signal-particle flows along edges (good for visualizing connector ingestion + MCP tool invocations), bloom/glow on "hot" nodes for recent-activity emphasis, "maturity stage" metaphor applied to graph evolution (first nodes → reconciliation kicks in → rule engine fires → conflicts surface) | 3D force-directed layout with fixed regions — collapses past ~10k nodes. The Three.js code is a single-purpose demo (~950 LOC), not a graph explorer. The "neuromorphic brain" framing is marketing gloss; the architecture is a spiking-neuron simulation, not a knowledge graph. | Tessera's operator UI, when built, should use **2D + WebGL** (Sigma.js or Cytoscape.js) with typed-entity filtering, not 3D. NeuroLinked is inspiration for *aesthetic vocabulary*, not layout strategy. |
+
+---
+
 ## Sources
 
 - [10 Data Fabric Tools for 2026 (Features & Benefits) — Domo](https://www.domo.com/learn/article/best-data-fabric-tools)
