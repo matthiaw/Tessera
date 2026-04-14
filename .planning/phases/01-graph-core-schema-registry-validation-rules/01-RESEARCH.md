@@ -685,32 +685,32 @@ CREATE TABLE graph_events_y2026m04 PARTITION OF graph_events
 
 **Risk consolidation:** A1 and A5 are the load-bearing assumptions. Plan MUST include a JMH regression that measures real write-pipeline p95 latency against the Phase 0 baseline and fails nightly if it exceeds `baseline × 2` for any of the four query shapes.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Real per-mutation SHACL p95 at Tessera shape**
    - What we know: Jena SHACL-Core is fast; cached shapes avoid the compile cost.
    - What's unclear: Actual number at 5–10 property shapes with 2–3 constraints each on typical Tessera payloads.
-   - Recommendation: Phase 1 includes `ShaclValidationBench` JMH class (Wave 1, before the write funnel wires SHACL in) measuring compile-once + validate-many. Add to nightly regression.
+   - RESOLVED: Wave-3 `ShaclValidationBench` JMH class (plan 01-W3-01) measures real p95 on first nightly; tentative target < 2 ms p95 cached-shape per CONTEXT.md D-C1 perf budget. JMH skeleton exists from Wave 0 (01-W0-03) so Wave 3 only fills the body.
 
 2. **pg_partman vs hand-rolled monthly partition creation**
    - What we know: EVENT-01 requires monthly partitioning; partition creation must happen.
    - What's unclear: Whether to pull `pg_partman` extension or write a small `@Scheduled` job that runs `CREATE TABLE ... PARTITION OF ...`.
-   - Recommendation: Hand-rolled `@Scheduled` job. Avoids another extension ownership (CRIT-1/2 risk multiplies per extension). ~30 lines of SQL.
+   - RESOLVED: hand-rolled monthly partition creation via a Spring `@Scheduled` task in plan 01-W2-02; `pg_partman` deliberately avoided to minimize CRIT-1/2 extension-upgrade risk multiplication.
 
 3. **Routing outcome semantics (D-C1 ROUTE chain)**
    - What we know: ROUTE chain exists; it tags outbox rows with downstream consumer hints.
    - What's unclear: What exactly the `route(target)` outcome encodes when there's no projection yet (Phase 1 ships no consumers).
-   - Recommendation: Phase 1 ROUTE rules write a `routing_hints JSONB` column on `graph_outbox` rows. Phase 2+ projections read it. Phase 1 ROUTE chain is allowed to be empty (no built-in rules).
+   - RESOLVED: ROUTE outcomes write to a `graph_outbox.routing_hints` JSONB column (V3 migration in 01-W0-01); the ROUTE chain may be empty in Phase 1 but the plumbing is present so Phase 2+ projections consume without write-path changes.
 
 4. **jqwik seed strategy for reproducible failures**
    - What we know: jqwik prints the seed on failure; re-running with `@Seed(...)` reproduces.
    - What's unclear: Should each property pin a stable seed for CI?
-   - Recommendation: CI runs unseeded (full randomness); failing seeds get promoted to `@Example` regression tests. Locally: developers can re-run with the printed seed.
+   - RESOLVED: unseeded in CI (jqwik's default random seed); failing seeds are promoted to `@Example` regression tests as permanent records. A comment in `TenantBypassPropertyIT` documents this policy.
 
 5. **Circuit breaker cold-start grace window**
    - What we know: `AtomicLongArray` state is in-process only; restarts zero it.
    - What's unclear: Do we grant a grace period on startup before the breaker can trip?
-   - Recommendation: Default 60s grace window. First 60s of rate samples are recorded but not evaluated against threshold. Configurable via `application.yml` (`tessera.circuit.startup-grace`).
+   - RESOLVED: 60-second startup grace window configurable via `tessera.circuit.startup-grace` in `application.yml`, default `60000` ms. During the grace window the breaker accumulates rate data but does not trip. Enforced in plan 01-W3-03.
 
 ## Environment Availability
 

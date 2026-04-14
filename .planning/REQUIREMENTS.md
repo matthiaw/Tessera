@@ -58,10 +58,12 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 
 ### Rule Engine (RULE)
 
-- [ ] **RULE-01**: Custom chain-of-responsibility rule executor sorts rules by priority (DESC), short-circuits on match
-- [ ] **RULE-02**: `ReconciliationRule` interface with `priority()`, `matches(event)`, `apply(event)` → `RuleResult`
-- [ ] **RULE-03**: Rule actions: `ACCEPT_SOURCE`, `REJECT`, `FLAG_FOR_REVIEW`, `MERGE`, `TRANSFORM`, `DEFER`
-- [ ] **RULE-04**: Rules are stored in `reconciliation_rules` table and reloaded on change; per-tenant configuration
+**Phase 1 contract authoritative source:** `.planning/adr/ADR-7-rule-engine-contract.md` (RULE-01..04 updated via ADR-7 on 2026-04-14 after `/gsd-discuss-phase 1` surfaced four-chain structure + Phase 2.5 forward-commit).
+
+- [ ] **RULE-01**: Custom chain-of-responsibility rule executor sorts rules by priority **DESC** (higher runs first), short-circuits on REJECT. Four named chains run in fixed pipeline order per ADR-7: VALIDATE → RECONCILE → ENRICH → ROUTE.
+- [ ] **RULE-02**: `Rule` interface (ADR-7 override of original `ReconciliationRule` naming) with `id()`, `chain()`, `priority()`, `applies(RuleContext)`, `evaluate(RuleContext) → RuleOutcome`. `RuleContext` carries `TenantContext`, schema descriptor, current node state, and incoming `GraphMutation`.
+- [ ] **RULE-03**: Rule outcomes (ADR-7 override): `COMMIT`, `REJECT`, `MERGE`, `OVERRIDE`, `ADD`, `ROUTE`. The original `FLAG_FOR_REVIEW` and `DEFER` outcomes are moved to a Phase 2.5 pre-funnel layer per CONTEXT D-A2 (review queue routes low-confidence extractions BEFORE the rule engine sees them).
+- [ ] **RULE-04**: **Hybrid rule storage** (ADR-7): rule logic as Java classes discovered via Spring DI; per-tenant activation/priority-override/parameters stored in `reconciliation_rules` table with Caffeine cache and hot-reload via internal admin endpoint `POST /admin/rules/reload/{model_id}`.
 - [ ] **RULE-05**: Per-tenant source authority matrix supports per-property authority (not just per-entity), with property-wildcard fallback and entity-wildcard fallback
 - [ ] **RULE-06**: `reconciliation_conflicts` register records unresolved conflicts with graph value, source value, source system, rule chain, status (OPEN / RESOLVED / IGNORED)
 - [ ] **RULE-07**: Write-amplification circuit breaker: per-entity write-rate threshold halts a connector and raises an alert before a conflict storm

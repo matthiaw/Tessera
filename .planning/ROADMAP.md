@@ -45,7 +45,12 @@ Plans:
   3. A mutation that violates a SHACL shape or a business rule is rejected at commit time with a tenant-filtered `ValidationReport` — the test suite includes fuzz tests proving no code path can read or write across `model_id` boundaries.
   4. Given a node UUID and a past timestamp, the system reconstructs that node's state via event-log replay; given a node, the full mutation history with cause attribution (`origin_connector_id`, `origin_change_id`) is retrievable.
   5. With two connectors configured on conflicting properties, the per-tenant authority matrix deterministically resolves the winner, the loser is recorded in `reconciliation_conflicts`, and the write-amplification circuit breaker halts a runaway connector before a conflict storm.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 01-W0-PLAN.md — Wave 0 scaffolding: jqwik, Flyway V2..V8, GraphMutation/GraphService/GraphSession contracts, ArchUnit raw-Cypher ban (CORE-02), test shells, JMH skeletons
+- [ ] 01-W1-PLAN.md — Wave 1 graph core + tenant safety: GraphServiceImpl + single-TX write funnel, GraphSession raw-Cypher executor, per-tenant SEQUENCE allocator, event log + outbox writers, jqwik TenantBypassPropertyIT (CORE-03), WritePipelineBench baseline
+- [ ] 01-W2-PLAN.md — Wave 2 two spines: Schema Registry CRUD + event-sourced versioning + aliases + Caffeine cache, event log hardening (partitioning, provenance, temporal replay, audit history), outbox poller with @Scheduled + ShedLock + ApplicationEventPublisher
+- [ ] 01-W3-PLAN.md — Wave 3 SHACL + Rule Engine + circuit breaker: Jena SHACL validator + shape cache + tenant-filtered ValidationReport, four-chain rule engine (VALIDATE/RECONCILE/ENRICH/ROUTE), source authority matrix + conflict register + echo-loop suppression, write-amplification circuit breaker + DLQ + admin reset, ShaclValidationBench < 2ms, WritePipelineBench < 11ms
 
 ### Phase 2: REST Projection, Connector Framework, First Connector, Security Baseline
 **Goal**: Expose the graph through a dynamically-generated REST projection and ingest real data through the first concrete connector (generic REST polling), with TLS, Vault-managed secrets, row/field-level access control, and fail-closed endpoint defaults. Decide explicitly on field-level encryption: ship fully or keep feature-flagged off.
