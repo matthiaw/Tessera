@@ -29,14 +29,23 @@ OUT="${1:?usage: verify_queries.sh <output-file>}"
 : "${PGDATABASE:=tessera}"
 export PGPASSWORD="${PGPASSWORD:-tessera}"
 
+# PSQL can be overridden to e.g. `docker exec -i <container> psql` so this
+# script works identically on a host with psql installed OR from a host that
+# only has docker and shells into the running AGE container.
+PSQL="${PSQL:-psql}"
 PSQL_ARGS=(-h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" -At -X -q -v ON_ERROR_STOP=1)
+
+run_psql() {
+  # shellcheck disable=SC2086
+  $PSQL "${PSQL_ARGS[@]}" "$@"
+}
 
 run_cypher() {
   # Prime AGE session and run a Cypher fragment. LOAD 'age' is per-session,
   # so every psql invocation must re-prime before hitting ag_catalog.
   local cypher="$1"
   local return_spec="$2"
-  psql "${PSQL_ARGS[@]}" <<SQL
+  run_psql <<SQL
 LOAD 'age';
 SET search_path = ag_catalog, "\$user", public;
 SELECT * FROM cypher('tessera_bench', \$\$ ${cypher} \$\$) AS (${return_spec});
@@ -52,13 +61,13 @@ SQL
   run_cypher "MATCH ()-[r:RELATES]->() RETURN count(r) AS c" "c agtype"
 
   echo "# Q3: deterministic point-lookup — first 10 Person nodes by idx"
-  run_cypher "MATCH (n:Person) RETURN n.idx AS i ORDER BY i ASC LIMIT 10" "i agtype"
+  run_cypher "MATCH (n:Person) RETURN n.idx AS i ORDER BY n.idx ASC LIMIT 10" "i agtype"
 
   echo "# Q4: 2-hop reach from node idx=0 (Person)"
   run_cypher "MATCH (n:Person {idx: 0})-[:RELATES]->()-[:RELATES]->(m) RETURN count(DISTINCT m) AS c" "c agtype"
 
   echo "# Q5: graph metadata (tessera_bench must exist)"
-  psql "${PSQL_ARGS[@]}" -c "SELECT name FROM ag_catalog.ag_graph WHERE name = 'tessera_bench'"
+  run_psql -c "SELECT name FROM ag_catalog.ag_graph WHERE name = 'tessera_bench'"
 } > "$OUT"
 
 echo "verify_queries.sh: wrote $OUT ($(wc -l < "$OUT") lines)"
