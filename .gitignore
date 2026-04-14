@@ -1,1 +1,8 @@
+target/
+.idea/
+*.iml
+.vscode/
+.DS_Store
+*.log
+openjdk.jdk
 .claude/
