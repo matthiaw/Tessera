@@ -1,0 +1,84 @@
+# Tessera nightly CI — FOUND-04 / FOUND-05 / CRIT-1 / D-04 / D-07
+#
+# Runs at 03:00 UTC daily (and on-demand via workflow_dispatch). Two jobs:
+#
+#   benchmark-1m:         the heavy JMH harness on the 1M dataset plus the
+#                         regression gate against baseline-1000000.json.
+#   dump-restore-rehearsal: end-to-end AGE DR runbook (FOUND-05 / CRIT-1).
+#                         Per D-07, divergence between pre-dump and
+#                         post-restore query suites is a hard fail.
+#
+# Both jobs upload their artifacts even on failure so a broken nightly is
+# debuggable by next morning without needing to re-run the workflow.
+
+name: Nightly
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+jobs:
+  benchmark-1m:
+    name: JMH 1M dataset + regression check
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Corretto)
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: '21'
+          cache: maven
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Run JMH (1M dataset)
+        run: ./mvnw -B -ntp -pl fabric-core -Pjmh -Djmh.dataset=1000000 verify
+
+      - name: Regression check vs baseline-1000000
+        run: scripts/check_regression.sh 1000000
+
+      - name: Upload benchmark JSON
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-1m
+          path: .planning/benchmarks/*-1000000.json
+          if-no-files-found: ignore
+
+  dump-restore-rehearsal:
+    name: pg_dump / pg_restore rehearsal (FOUND-05, CRIT-1)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Corretto)
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: '21'
+          cache: maven
+
+      - name: Run dump/restore rehearsal (D-07 hard-fail on divergence)
+        run: scripts/dump_restore_rehearsal.sh
+
+      - name: Capture container logs on failure
+        if: failure()
+        run: |
+          docker logs tessera-dump-src || true
+          docker logs tessera-dump-dst || true
+          docker ps -a || true
