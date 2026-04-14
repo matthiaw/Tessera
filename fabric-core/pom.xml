@@ -87,4 +87,51 @@
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!--
+          JMH benchmark profile. Opt-in via `./mvnw -pl fabric-core -Pjmh -Djmh.dataset=100000 verify`.
+          Default `./mvnw verify` does NOT run benchmarks — the CI hot loop must stay fast (D-04).
+          The dependencies and `src/jmh/java` test source root are wired unconditionally above so
+          that Surefire tests under `src/test/java/dev/tessera/core/bench/` can import bench classes
+          (cross-source-root visibility); only the execution of `JmhRunner` is profile-gated.
+        -->
+        <profile>
+            <id>jmh</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <properties>
+                <jmh.dataset>100000</jmh.dataset>
+            </properties>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <version>3.4.1</version>
+                        <executions>
+                            <execution>
+                                <id>run-jmh</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>java</goal>
+                                </goals>
+                                <configuration>
+                                    <mainClass>dev.tessera.core.bench.JmhRunner</mainClass>
+                                    <classpathScope>test</classpathScope>
+                                    <systemProperties>
+                                        <systemProperty>
+                                            <key>jmh.dataset</key>
+                                            <value>${jmh.dataset}</value>
+                                        </systemProperty>
+                                    </systemProperties>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
