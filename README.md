@@ -251,18 +251,45 @@ Later milestones (v2+): GraphQL projection, LLM-assisted ontology evolution, vis
 | ADR-5 | Schema Registry co-located with graph DB | Schema change and data validation in one transaction |
 | ADR-6 | circlead stays standalone, consumes via REST/MCP | No big-bang migration; parallel operation during transition |
 
-## Getting Started
+## Quick start
 
-> Phase 0 scaffolding is not yet in place — come back once Phase 0 lands, or follow along in `.planning/ROADMAP.md`.
-
-Planned dev loop (target state after Phase 0):
+Prerequisites: Docker (Compose v2), JDK 21.
 
 ```bash
 git clone https://github.com/matthiaw/Tessera.git
 cd Tessera
-docker compose up -d          # Postgres 16 + Apache AGE 1.6, pinned to digest
-mvn verify                    # Multi-module build with ArchUnit + benchmark harness
+docker compose up -d        # Starts Postgres 16 + Apache AGE 1.6
+./mvnw -B verify            # Builds all 5 modules (fabric-core, fabric-rules,
+                            # fabric-projections, fabric-connectors, fabric-app)
+                            # and runs tests
 ```
+
+Status: **Phase 0 — Foundations & Risk Burndown** (pre-alpha). See `.planning/ROADMAP.md` for the milestone plan.
+
+## Image pinning
+
+The Apache AGE container is **pinned by sha256 digest**, not by a floating tag, per Phase 0 decision D-09:
+
+```
+apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed
+```
+
+This digest appears in three enforcement sites — bumping it requires updating all three:
+
+1. `docker-compose.yml` (local dev stack)
+2. `fabric-core/src/test/java/dev/tessera/core/support/AgePostgresContainer.java` (Testcontainers helper, plan 00-03)
+3. This README section
+
+To resolve the current digest for the AGE 1.6.0 PG16 release tag:
+
+```bash
+docker pull apache/age:release_PG16_1.6.0
+docker image inspect --format '{{index .RepoDigests 0}}' apache/age:release_PG16_1.6.0
+```
+
+> Note: the planner's reference command used `apache/age:PG16_latest`, but upstream no longer
+> publishes that floating tag — the actual 1.6.0 PG16 tag on Docker Hub is `release_PG16_1.6.0`.
+> The pinning guarantee (digest, not tag) is unchanged.
 
 ## Project Structure
 
