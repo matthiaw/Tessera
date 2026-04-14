@@ -1,0 +1,36 @@
+# Tessera local dev stack — Phase 0 (FOUND-02)
+#
+# Single service: Postgres 16 + Apache AGE 1.6.0 (PG16 branch), pinned by sha256 digest.
+# Vault is deferred to Phase 2 (Phase 0 D-08). No app service yet — Phase 0 only stands up
+# the DB substrate. AGE extension creation lives in Flyway V1 (plan 00-03 D-10), NOT here:
+# no command override, no init-SQL bind mount.
+#
+# D-09: The image digest below is one of THREE enforcement sites. Bumping it requires
+# updating all three:
+#   1. docker-compose.yml (this file)
+#   2. fabric-core/src/test/java/dev/tessera/core/support/AgePostgresContainer.java (plan 00-03)
+#   3. README.md "Image pinning" section
+
+services:
+  postgres-age:
+    image: apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed
+    container_name: tessera-postgres-age
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-tessera}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-tessera}
+      POSTGRES_DB: ${POSTGRES_DB:-tessera}
+    ports:
+      - "5432:5432"
+    volumes:
+      - tessera-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tessera} -d ${POSTGRES_DB:-tessera}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  tessera-pgdata:
+    driver: local
