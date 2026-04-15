@@ -51,10 +51,14 @@ public class RawCypherBanTest {
     static final ArchRule only_graph_internal_may_touch_pgjdbc = noClasses()
             .that()
             .resideOutsideOfPackage("dev.tessera.core.graph.internal..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.events..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")
-            .because("CORE-02: only graph.internal may execute raw Cypher or touch pgJDBC directly")
+            .because("CORE-02: only graph.internal (Cypher) and events (plain SQL to graph_events/graph_outbox)"
+                    + " may touch pgJDBC directly. Cypher strings are still forbidden outside graph.internal by"
+                    + " the secondary no_cypher_strings_outside_internal rule below.")
             .allowEmptyShould(true);
 
     @ArchTest

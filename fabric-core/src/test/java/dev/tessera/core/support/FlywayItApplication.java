@@ -17,11 +17,21 @@ package dev.tessera.core.support;
 
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 /**
  * Minimal Spring Boot configuration for fabric-core integration tests that
  * need a DataSource + Flyway but must NOT pull fabric-app onto the classpath.
+ *
+ * <p>Component scan is rooted at {@code dev.tessera.core} so Wave 1 picks up
+ * {@code GraphServiceImpl}, {@code EventLog}, {@code Outbox},
+ * {@code SequenceAllocator}, and the {@code GraphCoreConfig} {@code @Bean}
+ * methods. {@link EnableTransactionManagement} is required for
+ * {@code @Transactional} on {@code GraphServiceImpl.apply} to take effect.
  */
 @SpringBootConfiguration
 @EnableAutoConfiguration
+@EnableTransactionManagement
+@ComponentScan(basePackages = "dev.tessera.core")
 public class FlywayItApplication {}
