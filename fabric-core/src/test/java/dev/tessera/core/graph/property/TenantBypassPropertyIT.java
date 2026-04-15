@@ -58,10 +58,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
  * CORE-03 / D-D1: jqwik property-based red-team test proving that tenant A
  * can never see tenant B's data across every read/write operation the graph
  * supports. Seven {@code @Property} methods (create, get, query, update,
- * tombstone, traverse, find_path), 100 tries each by default — a documented
- * reduction from the plan's 1000-try target to keep the Wave-1 wall clock
- * budget under 60s (the full 1000 target re-enables in Wave 3 after the
- * SHACL + rules pipeline has been optimised, tracked as a TODO on this class).
+ * tombstone, traverse, find_path), tries = 1000 per method (7000 total
+ * scenarios) as specified by the plan target.
  *
  * <p>Each @Property seeds two independent tenant contexts against the same
  * AGE database, runs the operation as tenant A, and asserts that zero
