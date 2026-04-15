@@ -6,3 +6,4 @@ target/
 *.log
 openjdk.jdk
 .claude/
+.jqwik-database
