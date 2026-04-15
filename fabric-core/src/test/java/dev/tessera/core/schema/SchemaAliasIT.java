@@ -15,21 +15,60 @@
  */
 package dev.tessera.core.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.FlywayItApplication;
+import dev.tessera.core.tenant.TenantContext;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 2 — plan 01-W2-01. SCHEMA-05: property aliases via schema_property_aliases. */
+/** SCHEMA-05 — property rename via schema_property_aliases. */
+@SpringBootTest(classes = FlywayItApplication.class)
+@ActiveProfiles("flyway-it")
 @Testcontainers
-@Disabled("Wave 2 — filled by plan 01-W2-01")
 class SchemaAliasIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry r) {
+        r.add("spring.datasource.url", PG::getJdbcUrl);
+        r.add("spring.datasource.username", PG::getUsername);
+        r.add("spring.datasource.password", PG::getPassword);
+    }
+
+    @Autowired
+    SchemaRegistry registry;
+
     @Test
-    void placeholder() {}
+    void rename_property_records_alias_and_old_slug_resolves() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Person"));
+        registry.addProperty(ctx, "Person", AddPropertySpec.of("fullName", "string"));
+
+        registry.renameProperty(ctx, "Person", "fullName", "name");
+
+        Optional<String> resolved = registry.resolvePropertySlug(ctx, "Person", "fullName");
+        assertThat(resolved).contains("name");
+
+        // Unknown slug returns empty
+        assertThat(registry.resolvePropertySlug(ctx, "Person", "nonExistent")).isEmpty();
+
+        // loadFor still returns the type with the original property row intact
+        // (rename is a logical alias in Wave 2 — the physical schema_properties
+        // row is not migrated).
+        NodeTypeDescriptor d = registry.loadFor(ctx, "Person").orElseThrow();
+        assertThat(d.properties()).extracting(PropertyDescriptor::slug).contains("fullName");
+    }
 }

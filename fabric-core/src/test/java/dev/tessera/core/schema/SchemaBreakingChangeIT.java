@@ -15,21 +15,74 @@
  */
 package dev.tessera.core.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.FlywayItApplication;
+import dev.tessera.core.tenant.TenantContext;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 2 — plan 01-W2-01. SCHEMA-08: breaking changes rejected unless forced. */
+/** SCHEMA-08 — breaking schema changes rejected unless force=true. */
+@SpringBootTest(classes = FlywayItApplication.class)
+@ActiveProfiles("flyway-it")
 @Testcontainers
-@Disabled("Wave 2 — filled by plan 01-W2-01")
 class SchemaBreakingChangeIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry r) {
+        r.add("spring.datasource.url", PG::getJdbcUrl);
+        r.add("spring.datasource.username", PG::getUsername);
+        r.add("spring.datasource.password", PG::getPassword);
+    }
+
+    @Autowired
+    SchemaRegistry registry;
+
     @Test
-    void placeholder() {}
+    void removing_required_property_rejected_unless_forced() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Person"));
+        registry.addProperty(ctx, "Person", AddPropertySpec.required("email", "string"));
+
+        // Without force → throws.
+        assertThatThrownBy(() -> registry.removeRequiredPropertyOrReject(ctx, "Person", "email", false))
+                .isInstanceOf(SchemaBreakingChangeException.class)
+                .hasMessageContaining("email");
+
+        // Property still present.
+        assertThat(registry.loadFor(ctx, "Person").orElseThrow().properties())
+                .extracting(PropertyDescriptor::slug)
+                .contains("email");
+
+        // With force → succeeds.
+        registry.removeRequiredPropertyOrReject(ctx, "Person", "email", true);
+        assertThat(registry.loadFor(ctx, "Person").orElseThrow().properties())
+                .extracting(PropertyDescriptor::slug)
+                .doesNotContain("email");
+    }
+
+    @Test
+    void removing_optional_property_is_allowed_without_force() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Person"));
+        registry.addProperty(ctx, "Person", AddPropertySpec.of("nickname", "string"));
+
+        registry.removeRequiredPropertyOrReject(ctx, "Person", "nickname", false);
+        assertThat(registry.loadFor(ctx, "Person").orElseThrow().properties())
+                .extracting(PropertyDescriptor::slug)
+                .doesNotContain("nickname");
+    }
 }

@@ -22,6 +22,8 @@ import dev.tessera.core.graph.GraphMutationOutcome;
 import dev.tessera.core.graph.GraphService;
 import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.graph.Operation;
+import dev.tessera.core.schema.NodeTypeDescriptor;
+import dev.tessera.core.schema.SchemaRegistry;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -45,19 +47,40 @@ public class GraphServiceImpl implements GraphService {
     private final GraphRepositoryImpl graphRepository;
     private final EventLog eventLog;
     private final Outbox outbox;
+    private final SchemaRegistry schemaRegistry;
 
-    public GraphServiceImpl(GraphSession graphSession, EventLog eventLog, Outbox outbox) {
+    /**
+     * Sole constructor. {@code schemaRegistry} MAY be null for legacy test harnesses
+     * (JMH benches, jqwik property tests) that pre-date the Schema Registry; in
+     * production Spring always wires a real {@link SchemaRegistry} bean. Null
+     * tolerance is a Wave 2 concession and will be removed when Wave 3 makes
+     * schema-load mandatory via SHACL.
+     */
+    public GraphServiceImpl(
+            GraphSession graphSession, EventLog eventLog, Outbox outbox, SchemaRegistry schemaRegistry) {
         this.graphSession = graphSession;
         this.graphRepository = new GraphRepositoryImpl(graphSession);
         this.eventLog = eventLog;
         this.outbox = outbox;
+        this.schemaRegistry = schemaRegistry;
     }
 
     @Override
     @Transactional(propagation = Propagation.REQUIRED)
     public GraphMutationOutcome apply(GraphMutation mutation) {
-        // authorize(mutation)                           -- TODO(W2): Spring Security integration
-        // schemaRegistry.loadFor(ctx, mutation.type())  -- TODO(W2): schema lookup + Caffeine cache
+        // authorize(mutation)                           -- TODO(W3): Spring Security integration
+        // SCHEMA-06: load descriptor through Caffeine-cached SchemaRegistry. Permissive in
+        // Wave 2 — unregistered types are allowed (bootstrap flows, Wave 1 ITs) but the
+        // loadFor call is on the hot path so cache hit rate is observable. Wave 3 SHACL
+        // validation will promote an unregistered type to a rejection.
+        if (schemaRegistry != null && !mutation.type().startsWith(GraphSession.EDGE_PREFIX)) {
+            Optional<NodeTypeDescriptor> descriptor = schemaRegistry.loadFor(mutation.tenantContext(), mutation.type());
+            // descriptor is either used by W3 rules/SHACL or ignored here — both are valid.
+            if (descriptor.isPresent()) {
+                // Wave 3 will pass this into the rule context.
+                descriptor.get();
+            }
+        }
         // ruleEngine.run(Chain.VALIDATE, ruleCtx)       -- TODO(W3): may REJECT
         // ruleEngine.run(Chain.RECONCILE, ruleCtx)      -- TODO(W3): may MERGE/OVERRIDE
         // ruleEngine.run(Chain.ENRICH, ruleCtx)         -- TODO(W3): adds derived fields

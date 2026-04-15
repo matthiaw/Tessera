@@ -15,21 +15,75 @@
  */
 package dev.tessera.core.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.FlywayItApplication;
+import dev.tessera.core.tenant.TenantContext;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 2 — plan 01-W2-01. SCHEMA-02: schema_properties CRUD. */
+/** SCHEMA-02 — schema_properties CRUD roundtrip through SchemaRegistry. */
+@SpringBootTest(classes = FlywayItApplication.class)
+@ActiveProfiles("flyway-it")
 @Testcontainers
-@Disabled("Wave 2 — filled by plan 01-W2-01")
 class SchemaPropertyCrudIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry r) {
+        r.add("spring.datasource.url", PG::getJdbcUrl);
+        r.add("spring.datasource.username", PG::getUsername);
+        r.add("spring.datasource.password", PG::getPassword);
+    }
+
+    @Autowired
+    SchemaRegistry registry;
+
     @Test
-    void placeholder() {}
+    void add_three_properties_of_different_types_then_deprecate_one() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Person"));
+
+        registry.addProperty(ctx, "Person", AddPropertySpec.of("name", "string"));
+        registry.addProperty(ctx, "Person", AddPropertySpec.of("age", "int"));
+        registry.addProperty(ctx, "Person", AddPropertySpec.required("email", "string"));
+
+        NodeTypeDescriptor d = registry.loadFor(ctx, "Person").orElseThrow();
+        assertThat(d.properties())
+                .extracting(PropertyDescriptor::slug)
+                .containsExactlyInAnyOrder("name", "age", "email");
+        assertThat(d.properties().stream()
+                        .filter(p -> p.slug().equals("email"))
+                        .findFirst()
+                        .orElseThrow()
+                        .required())
+                .isTrue();
+        assertThat(d.properties().stream()
+                        .filter(p -> p.slug().equals("age"))
+                        .findFirst()
+                        .orElseThrow()
+                        .dataType())
+                .isEqualTo("int");
+
+        // deprecate one
+        registry.deprecateProperty(ctx, "Person", "age");
+        NodeTypeDescriptor after = registry.loadFor(ctx, "Person").orElseThrow();
+        assertThat(after.properties().stream()
+                        .filter(p -> p.slug().equals("age"))
+                        .findFirst()
+                        .orElseThrow()
+                        .deprecatedAt())
+                .isNotNull();
+    }
 }

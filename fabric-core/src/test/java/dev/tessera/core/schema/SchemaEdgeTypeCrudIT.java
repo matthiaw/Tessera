@@ -15,21 +15,57 @@
  */
 package dev.tessera.core.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.FlywayItApplication;
+import dev.tessera.core.tenant.TenantContext;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 2 — plan 01-W2-01. SCHEMA-03: schema_edge_types CRUD. */
+/** SCHEMA-03 — schema_edge_types CRUD. */
+@SpringBootTest(classes = FlywayItApplication.class)
+@ActiveProfiles("flyway-it")
 @Testcontainers
-@Disabled("Wave 2 — filled by plan 01-W2-01")
 class SchemaEdgeTypeCrudIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry r) {
+        r.add("spring.datasource.url", PG::getJdbcUrl);
+        r.add("spring.datasource.username", PG::getUsername);
+        r.add("spring.datasource.password", PG::getPassword);
+    }
+
+    @Autowired
+    SchemaRegistry registry;
+
     @Test
-    void placeholder() {}
+    void create_source_target_and_edge_type() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Person"));
+        registry.createNodeType(ctx, CreateNodeTypeSpec.of("Organization"));
+
+        EdgeTypeDescriptor edge =
+                registry.createEdgeType(ctx, CreateEdgeTypeSpec.of("EMPLOYED_BY", "Person", "Organization"));
+
+        assertThat(edge.slug()).isEqualTo("EMPLOYED_BY");
+        assertThat(edge.sourceTypeSlug()).isEqualTo("Person");
+        assertThat(edge.targetTypeSlug()).isEqualTo("Organization");
+
+        Optional<EdgeTypeDescriptor> found = registry.findEdgeType(ctx, "EMPLOYED_BY");
+        assertThat(found).isPresent();
+        assertThat(found.get().cardinality()).isEqualTo("many_to_many");
+    }
 }

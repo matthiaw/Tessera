@@ -49,6 +49,8 @@
         <jmh.version>1.37</jmh.version>
         <shedlock.version>5.16.0</shedlock.version>
         <jqwik.version>1.9.2</jqwik.version>
+        <caffeine.version>3.1.8</caffeine.version>
+        <awaitility.version>4.2.2</awaitility.version>
     </properties>
 
     <dependencyManagement>
@@ -104,6 +106,31 @@
                 <groupId>net.javacrumbs.shedlock</groupId>
                 <artifactId>shedlock-spring</artifactId>
                 <version>${shedlock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>net.javacrumbs.shedlock</groupId>
+                <artifactId>shedlock-provider-jdbc-template</artifactId>
+                <version>${shedlock.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.ben-manes.caffeine</groupId>
+                <artifactId>caffeine</artifactId>
+                <version>${caffeine.version}</version>
+            </dependency>
+            <!--
+              Pin checker-qual to the higher version to resolve convergence
+              between pgJDBC 42.7.5 (3.48.3) and Caffeine 3.1.8 (3.37.0).
+            -->
+            <dependency>
+                <groupId>org.checkerframework</groupId>
+                <artifactId>checker-qual</artifactId>
+                <version>3.48.3</version>
+            </dependency>
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
+                <scope>test</scope>
             </dependency>
             <dependency>
                 <groupId>org.springdoc</groupId>

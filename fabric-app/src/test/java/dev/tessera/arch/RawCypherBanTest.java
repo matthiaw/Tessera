@@ -53,12 +53,21 @@ public class RawCypherBanTest {
             .resideOutsideOfPackage("dev.tessera.core.graph.internal..")
             .and()
             .resideOutsideOfPackage("dev.tessera.core.events..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.events.internal..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.schema..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.schema.internal..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")
-            .because("CORE-02: only graph.internal (Cypher) and events (plain SQL to graph_events/graph_outbox)"
-                    + " may touch pgJDBC directly. Cypher strings are still forbidden outside graph.internal by"
-                    + " the secondary no_cypher_strings_outside_internal rule below.")
+            .because("CORE-02: only graph.internal (Cypher), events (plain SQL to graph_events/graph_outbox),"
+                    + " and schema (plain SQL to schema_node_types/schema_properties/schema_edge_types +"
+                    + " schema_change_event/schema_version + schema_property_aliases) may touch pgJDBC directly."
+                    + " Wave 2 widened this list to add dev.tessera.core.schema..; these modules use"
+                    + " NamedParameterJdbcTemplate for plain SQL (no Cypher) per D-B1. Cypher string literals"
+                    + " remain banned outside graph.internal by the secondary rule below.")
             .allowEmptyShould(true);
 
     @ArchTest
