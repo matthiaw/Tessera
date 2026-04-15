@@ -19,7 +19,13 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
-@SpringBootApplication
+/**
+ * Tessera main entry point. Component scan is rooted at {@code dev.tessera}
+ * so {@code fabric-core} beans — including {@code LockProviderConfig}
+ * (which activates {@code @EnableSchedulerLock} for the Outbox poller) — are
+ * picked up automatically.
+ */
+@SpringBootApplication(scanBasePackages = "dev.tessera")
 @EnableScheduling
 public class TesseraApplication {
     public static void main(String[] args) {
