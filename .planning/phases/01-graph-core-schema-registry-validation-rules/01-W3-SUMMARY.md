@@ -266,6 +266,22 @@ The verifier (`/gsd-verify-phase`) should confirm:
 
 None blocking. The Phase-1 circuit breaker DLQ write path is exercised only with an empty queue by design (no connector-side buffer until Phase 2); the `connector_dlq` table + indexes + insert SQL are live and ready for Phase 2 connectors to start feeding mutations into `trip(key, queuedMutations)`.
 
-## Self-Check
+## Self-Check: PASSED
 
-(appended after commit)
+- FOUND: fabric-core/src/main/java/dev/tessera/core/circuit/CircuitBreakerPort.java
+- FOUND: fabric-core/src/main/java/dev/tessera/core/circuit/CircuitBreakerTrippedException.java
+- FOUND: fabric-rules/src/main/java/dev/tessera/rules/circuit/WriteRateCircuitBreaker.java
+- FOUND: fabric-rules/src/main/java/dev/tessera/rules/circuit/CircuitBreakerAdminController.java
+- FOUND: fabric-rules/src/test/java/dev/tessera/rules/circuit/CircuitBreakerTest.java
+- FOUND: fabric-rules/src/test/java/dev/tessera/rules/circuit/CircuitBreakerIT.java
+- FOUND: .planning/phases/01-graph-core-schema-registry-validation-rules/01-W3-SUMMARY.md
+- FOUND commit: ad77f5d feat(01-W3-t3): write-rate circuit breaker + JMH benches + Wave 3 summary (RULE-07)
+- GREP PASS: `AtomicLongArray` in WriteRateCircuitBreaker.java
+- GREP PASS: `tessera.circuit.tripped` in WriteRateCircuitBreaker.java
+- GREP PASS: `connector_dlq` in WriteRateCircuitBreaker.java
+- GREP PASS: `tessera.circuit.startup-grace` in WriteRateCircuitBreaker.java (Q5 RESOLVED)
+- GREP PASS: `/admin/connectors/{connectorId}/reset` in CircuitBreakerAdminController.java
+- GREP PASS: `@PreAuthorize` in CircuitBreakerAdminController.java (as REQUIRED_AUTHORIZATION constant + Javadoc)
+- `./mvnw -B verify`: GREEN (6:48 min, full reactor)
+- CircuitBreakerTest: 5/5 PASS (0.321 s)
+- CircuitBreakerIT: 1/1 PASS (10.19 s including Testcontainers AGE boot + Flyway v1..v10)
