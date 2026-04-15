@@ -15,21 +15,112 @@
  */
 package dev.tessera.core.graph;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.zaxxer.hikari.HikariDataSource;
+import dev.tessera.core.graph.internal.GraphSession;
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.AgeTestHarness;
+import dev.tessera.core.tenant.TenantContext;
+import java.math.BigDecimal;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Map;
+import java.util.UUID;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 1 — plan 01-W1-01. CORE-06: system properties on every node/edge. */
+/** CORE-06: every write stamps the eight mandatory system properties. */
 @Testcontainers
-@Disabled("Wave 1 — filled by plan 01-W1-01")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class SystemPropertiesIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    private HikariDataSource ds;
+    private GraphSession session;
+
+    @BeforeAll
+    void setUp() {
+        ds = AgeTestHarness.dataSourceFor(PG);
+        session = new GraphSession(AgeTestHarness.jdbcTemplate(ds));
+    }
+
+    @AfterAll
+    void tearDown() {
+        if (ds != null) {
+            ds.close();
+        }
+    }
+
     @Test
-    void placeholder() {}
+    void every_system_property_is_stamped_on_create() {
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        Instant before = Instant.now().minus(Duration.ofSeconds(1));
+
+        GraphMutation m = GraphMutation.builder()
+                .tenantContext(ctx)
+                .operation(Operation.CREATE)
+                .type("Person")
+                .payload(Map.of("name", "Dave"))
+                .sourceType(SourceType.MANUAL)
+                .sourceId("src-sys")
+                .sourceSystem("manual-entry")
+                .confidence(BigDecimal.ONE)
+                .build();
+
+        NodeState state = session.apply(ctx, m);
+
+        assertThat(state.uuid()).isNotNull();
+        assertThat(state.properties())
+                .containsKey("uuid")
+                .containsKey("model_id")
+                .containsKey("_type")
+                .containsKey("_created_at")
+                .containsKey("_updated_at")
+                .containsKey("_created_by")
+                .containsKey("_source")
+                .containsKey("_source_id");
+
+        assertThat(state.properties().get("model_id")).isEqualTo(ctx.modelId().toString());
+        assertThat(state.properties().get("_type")).isEqualTo("Person");
+        assertThat(state.properties().get("_created_by")).isEqualTo("src-sys");
+        assertThat(state.properties().get("_source")).isEqualTo("manual-entry");
+        assertThat(state.properties().get("_source_id")).isEqualTo("src-sys");
+
+        Instant after = Instant.now().plus(Duration.ofSeconds(1));
+        Instant createdAt = state.createdAt();
+        Instant updatedAt = state.updatedAt();
+        assertThat(createdAt).isBetween(before, after);
+        assertThat(updatedAt).isEqualTo(createdAt); // CREATE: created_at == updated_at
+    }
+
+    @Test
+    void payload_supplied_timestamps_are_stripped() {
+        // CORE-08: Tessera-owned timestamps. Payload-supplied _created_at must be ignored.
+        TenantContext ctx = TenantContext.of(UUID.randomUUID());
+        Instant before = Instant.now().minus(Duration.ofSeconds(1));
+
+        GraphMutation m = GraphMutation.builder()
+                .tenantContext(ctx)
+                .operation(Operation.CREATE)
+                .type("Person")
+                .payload(Map.of("name", "Evil", "_created_at", "1999-01-01T00:00:00Z"))
+                .sourceType(SourceType.MANUAL)
+                .sourceId("src-ts")
+                .sourceSystem("test")
+                .confidence(BigDecimal.ONE)
+                .build();
+
+        NodeState state = session.apply(ctx, m);
+        Instant createdAt = state.createdAt();
+        assertThat(createdAt).isAfter(before);
+        assertThat(state.properties().get("_created_at")).asString().doesNotContain("1999");
+    }
 }
