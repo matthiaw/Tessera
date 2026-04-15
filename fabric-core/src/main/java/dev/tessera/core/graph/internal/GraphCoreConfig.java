@@ -15,7 +15,14 @@
  */
 package dev.tessera.core.graph.internal;
 
+import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.GraphRepository;
+import dev.tessera.core.rules.RuleEnginePort;
+import dev.tessera.core.schema.NodeTypeDescriptor;
+import dev.tessera.core.tenant.TenantContext;
+import java.util.List;
+import java.util.Map;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -37,5 +44,35 @@ public class GraphCoreConfig {
     @Bean
     public GraphRepository graphRepository(GraphSession session) {
         return new GraphRepositoryImpl(session);
+    }
+
+    /**
+     * No-op {@link RuleEnginePort} fallback active only when no real
+     * implementation is on the classpath. In production {@code fabric-rules}
+     * provides {@code RuleEngine} which wins by {@link ConditionalOnMissingBean}.
+     * Pure {@code fabric-core} integration tests (which never pull fabric-rules
+     * onto their test classpath) get this no-op and the rule phase of
+     * {@code GraphServiceImpl.apply} becomes a pass-through.
+     */
+    @Bean
+    @ConditionalOnMissingBean(RuleEnginePort.class)
+    public RuleEnginePort noOpRuleEnginePort() {
+        return new RuleEnginePort() {
+            @Override
+            public Outcome run(
+                    TenantContext tenantContext,
+                    NodeTypeDescriptor descriptor,
+                    Map<String, Object> currentProperties,
+                    Map<String, String> currentSourceSystem,
+                    GraphMutation mutation) {
+                // Pass-through: return the incoming payload unchanged as
+                // finalProperties so GraphServiceImpl does not overwrite
+                // the mutation payload with an empty map. A real RuleEngine
+                // would run the four chains; this fallback behaves as if no
+                // rules exist.
+                Map<String, Object> payload = mutation.payload() == null ? Map.of() : mutation.payload();
+                return new Outcome(false, null, null, payload, Map.of(), List.of());
+            }
+        };
     }
 }

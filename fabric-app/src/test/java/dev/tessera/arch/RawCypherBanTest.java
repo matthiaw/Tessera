@@ -59,15 +59,28 @@ public class RawCypherBanTest {
             .resideOutsideOfPackage("dev.tessera.core.schema..")
             .and()
             .resideOutsideOfPackage("dev.tessera.core.schema.internal..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.rules..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.rules..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.rules.internal..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.rules.authority..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.rules.conflicts..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.rules.admin..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")
             .because("CORE-02: only graph.internal (Cypher), events (plain SQL to graph_events/graph_outbox),"
-                    + " and schema (plain SQL to schema_node_types/schema_properties/schema_edge_types +"
-                    + " schema_change_event/schema_version + schema_property_aliases) may touch pgJDBC directly."
-                    + " Wave 2 widened this list to add dev.tessera.core.schema..; these modules use"
-                    + " NamedParameterJdbcTemplate for plain SQL (no Cypher) per D-B1. Cypher string literals"
-                    + " remain banned outside graph.internal by the secondary rule below.")
+                    + " schema (plain SQL to schema_* tables), core.rules (reconciliation_conflicts writer),"
+                    + " and the fabric-rules rule engine (plain SQL to reconciliation_rules, source_authority,"
+                    + " graph_events for echo-loop suppression) may touch pgJDBC directly."
+                    + " Wave 3 Task 2 widened this list for the rule engine which uses"
+                    + " NamedParameterJdbcTemplate for plain SQL (no Cypher) per ADR-7 §RULE-04. Cypher"
+                    + " string literals remain banned outside graph.internal by the secondary rule below.")
             .allowEmptyShould(true);
 
     @ArchTest

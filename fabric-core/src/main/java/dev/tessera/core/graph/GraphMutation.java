@@ -61,6 +61,24 @@ public record GraphMutation(
         }
     }
 
+    /** Return a copy with a different payload. Used by the rule engine ENRICH chain. */
+    public GraphMutation withPayload(Map<String, Object> newPayload) {
+        return new GraphMutation(
+                tenantContext,
+                operation,
+                type,
+                targetNodeUuid,
+                newPayload,
+                sourceType,
+                sourceId,
+                sourceSystem,
+                confidence,
+                extractorVersion,
+                llmModelId,
+                originConnectorId,
+                originChangeId);
+    }
+
     /** Return a copy with a different {@link TenantContext}. Used by jqwik fuzz. */
     public GraphMutation withTenant(TenantContext newContext) {
         return new GraphMutation(

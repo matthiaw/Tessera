@@ -22,6 +22,9 @@ import dev.tessera.core.graph.GraphMutationOutcome;
 import dev.tessera.core.graph.GraphService;
 import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.graph.Operation;
+import dev.tessera.core.rules.ReconciliationConflictsRepository;
+import dev.tessera.core.rules.RuleEnginePort;
+import dev.tessera.core.rules.RuleRejectException;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
 import dev.tessera.core.validation.ShaclValidator;
@@ -36,10 +39,12 @@ import org.springframework.transaction.annotation.Transactional;
  * flows through {@link #apply}; the Cypher write, event log append, and
  * outbox insert all share one Postgres transaction and roll back atomically.
  *
- * <p>Wave 1 implements the subset of the pipeline from RESEARCH §"Pattern 1:
- * Single Write Funnel". Rule engine (VALIDATE / RECONCILE / ENRICH / ROUTE)
- * and SHACL validation are left as {@code TODO(W3)} markers at the exact
- * call sites Waves 2 and 3 will fill in.
+ * <p>Wave 3 Task 2 wires the rule engine pipeline: VALIDATE →
+ * RECONCILE → ENRICH → ROUTE runs before the Cypher write. VALIDATE Reject
+ * throws {@link RuleRejectException}; RECONCILE Override accumulates
+ * {@code reconciliation_conflicts} rows written after the event log append
+ * (so {@code event_id} is available). ROUTE hints are passed to the outbox
+ * insert.
  */
 @Service
 public class GraphServiceImpl implements GraphService {
@@ -50,25 +55,33 @@ public class GraphServiceImpl implements GraphService {
     private final Outbox outbox;
     private final SchemaRegistry schemaRegistry;
     private final ShaclValidator shaclValidator;
+    private final RuleEnginePort ruleEngine;
+    private final ReconciliationConflictsRepository conflictsRepository;
 
     /**
-     * Sole constructor. {@code schemaRegistry} and {@code shaclValidator} MAY be null for
-     * legacy test harnesses (JMH benches, jqwik property tests) that pre-date the Schema
-     * Registry / Wave 3 SHACL; in production Spring always wires real beans. Null tolerance
-     * is a transitional concession.
+     * Sole constructor. {@code schemaRegistry}, {@code shaclValidator},
+     * {@code ruleEngine}, and {@code conflictsRepository} MAY be null for
+     * legacy test harnesses (JMH benches, jqwik property tests) that pre-
+     * date the Wave 2 Schema Registry / Wave 3 SHACL + rule engine; in
+     * production Spring always wires real beans. Null tolerance is a
+     * transitional concession.
      */
     public GraphServiceImpl(
             GraphSession graphSession,
             EventLog eventLog,
             Outbox outbox,
             SchemaRegistry schemaRegistry,
-            ShaclValidator shaclValidator) {
+            ShaclValidator shaclValidator,
+            RuleEnginePort ruleEngine,
+            ReconciliationConflictsRepository conflictsRepository) {
         this.graphSession = graphSession;
         this.graphRepository = new GraphRepositoryImpl(graphSession);
         this.eventLog = eventLog;
         this.outbox = outbox;
         this.schemaRegistry = schemaRegistry;
         this.shaclValidator = shaclValidator;
+        this.ruleEngine = ruleEngine;
+        this.conflictsRepository = conflictsRepository;
     }
 
     @Override
@@ -77,8 +90,7 @@ public class GraphServiceImpl implements GraphService {
         // authorize(mutation)                           -- TODO(W3): Spring Security integration
         // SCHEMA-06: load descriptor through Caffeine-cached SchemaRegistry. Permissive in
         // Wave 2 — unregistered types are allowed (bootstrap flows, Wave 1 ITs) but the
-        // loadFor call is on the hot path so cache hit rate is observable. Wave 3 SHACL
-        // validation will promote an unregistered type to a rejection.
+        // loadFor call is on the hot path so cache hit rate is observable.
         NodeTypeDescriptor resolvedDescriptor = null;
         if (schemaRegistry != null && !mutation.type().startsWith(GraphSession.EDGE_PREFIX)) {
             Optional<NodeTypeDescriptor> descriptor = schemaRegistry.loadFor(mutation.tenantContext(), mutation.type());
@@ -86,35 +98,67 @@ public class GraphServiceImpl implements GraphService {
                 resolvedDescriptor = descriptor.get();
             }
         }
-        // ruleEngine.run(Chain.VALIDATE, ruleCtx)       -- TODO(W3-t2): may REJECT
-        // ruleEngine.run(Chain.RECONCILE, ruleCtx)      -- TODO(W3-t2): may MERGE/OVERRIDE
-        // ruleEngine.run(Chain.ENRICH, ruleCtx)         -- TODO(W3-t2): adds derived fields
+
+        // Capture previous state once — shared between rule engine RECONCILE chain
+        // and EVENT-03 delta computation.
+        Map<String, Object> previousState = capturePreviousState(mutation);
+
+        // ADR-7 §RULE-02 rule engine pipeline: VALIDATE → RECONCILE → ENRICH → ROUTE.
+        // Runs before SHACL so VALIDATE Rejects short-circuit cheapest, and before
+        // the Cypher write so ENRICH/MERGE/OVERRIDE outcomes mutate the property
+        // state that ends up in AGE + graph_events + graph_outbox.
+        GraphMutation effective = mutation;
+        Map<String, Object> routingHints = Map.of();
+        RuleEnginePort.Outcome engineOutcome = null;
+        if (ruleEngine != null) {
+            engineOutcome =
+                    ruleEngine.run(mutation.tenantContext(), resolvedDescriptor, previousState, Map.of(), mutation);
+            if (engineOutcome.rejected()) {
+                throw new RuleRejectException(engineOutcome.rejectReason(), engineOutcome.rejectingRuleId());
+            }
+            if (!engineOutcome.finalProperties().equals(mutation.payload())) {
+                effective = mutation.withPayload(engineOutcome.finalProperties());
+            }
+            routingHints = engineOutcome.routingHints();
+        }
+
         // VALID-01: synchronous SHACL pre-commit. Runs inside the @Transactional
         // boundary so a thrown ShaclValidationException rolls back the Cypher
         // write, event-log append, and outbox insert atomically.
         if (shaclValidator != null && resolvedDescriptor != null) {
-            shaclValidator.validate(mutation.tenantContext(), resolvedDescriptor, mutation);
+            shaclValidator.validate(effective.tenantContext(), resolvedDescriptor, effective);
         }
 
-        // Capture previous state for EVENT-03 delta on UPDATE / TOMBSTONE.
-        Map<String, Object> previousState = capturePreviousState(mutation);
+        NodeState state = graphSession.apply(effective.tenantContext(), effective);
 
-        NodeState state = graphSession.apply(mutation.tenantContext(), mutation);
-
-        String eventType = deriveEventType(mutation);
+        String eventType = deriveEventType(effective);
         EventLog.Appended appended =
-                eventLog.append(mutation.tenantContext(), mutation, state, eventType, previousState);
+                eventLog.append(effective.tenantContext(), effective, state, eventType, previousState);
+
+        // RULE-06 / D-C3: persist any RECONCILE-chain Override decisions. Runs
+        // inside the same TX — rollback discards the conflict rows.
+        if (engineOutcome != null
+                && conflictsRepository != null
+                && !engineOutcome.conflicts().isEmpty()) {
+            for (RuleEnginePort.ConflictEntry conflict : engineOutcome.conflicts()) {
+                conflictsRepository.record(effective.tenantContext(), appended.eventId(), state.uuid(), conflict);
+            }
+        }
 
         outbox.append(
-                mutation.tenantContext(),
+                effective.tenantContext(),
                 appended.eventId(),
-                mutation.type(),
+                effective.type(),
                 state.uuid(),
                 eventType,
                 state.properties(),
-                Map.of()); // routing_hints empty in W1 — ROUTE chain in W3 populates
+                routingHints);
 
-        // ruleEngine.run(Chain.ROUTE, ...)              -- TODO(W3): post-commit tag
+        // Seed rule-engine caches with the committed origin-pair (echo loop).
+        if (ruleEngine != null) {
+            ruleEngine.onCommitted(
+                    effective.tenantContext(), state.uuid(), effective.originConnectorId(), effective.originChangeId());
+        }
 
         return new GraphMutationOutcome.Committed(state.uuid(), appended.sequenceNr(), appended.eventId());
     }

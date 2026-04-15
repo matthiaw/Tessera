@@ -15,13 +15,60 @@
  */
 package dev.tessera.rules;
 
-import org.junit.jupiter.api.Disabled;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 
-/** Wave 3 — plan 01-W3-02. RULE-03 / ADR-7: COMMIT / REJECT / MERGE / OVERRIDE / ADD / ROUTE. */
-@Disabled("Wave 3 — filled by plan 01-W3-02")
+/** RULE-03 / ADR-7 §RULE-03: sealed outcome with exactly six permitted cases. */
 class RuleOutcomeTest {
 
     @Test
-    void placeholder() {}
+    void sealed_hierarchy_has_exactly_six_permitted_subtypes() {
+        Class<?>[] permitted = RuleOutcome.class.getPermittedSubclasses();
+        assertThat(permitted).isNotNull();
+        Set<String> names = Set.of("Commit", "Reject", "Merge", "Override", "Add", "Route");
+        assertThat(permitted).hasSize(6);
+        for (Class<?> c : permitted) {
+            assertThat(names).contains(c.getSimpleName());
+        }
+    }
+
+    @Test
+    void all_six_outcomes_construct_and_exhaustive_switch_works() {
+        RuleOutcome[] outcomes = {
+            RuleOutcome.Commit.INSTANCE,
+            new RuleOutcome.Reject("bad"),
+            new RuleOutcome.Merge("email", "a@b"),
+            new RuleOutcome.Override("email", "a@b", "obsidian", "c@d"),
+            new RuleOutcome.Add("derived", 42),
+            new RuleOutcome.Route(Map.of("topic", "dlq")),
+        };
+        for (RuleOutcome o : outcomes) {
+            String tag =
+                    switch (o) {
+                        case RuleOutcome.Commit c -> "commit";
+                        case RuleOutcome.Reject r -> "reject:" + r.reason();
+                        case RuleOutcome.Merge m -> "merge:" + m.propertySlug();
+                        case RuleOutcome.Override ov -> "override:" + ov.propertySlug();
+                        case RuleOutcome.Add a -> "add:" + a.propertySlug();
+                        case RuleOutcome.Route r -> "route:" + r.routingHints().size();
+                    };
+            assertThat(tag).isNotBlank();
+        }
+    }
+
+    @Test
+    void reject_records_reason() {
+        RuleOutcome.Reject r = new RuleOutcome.Reject("echo loop");
+        assertThat(r.reason()).isEqualTo("echo loop");
+    }
+
+    @Test
+    void override_records_losing_source_and_value() {
+        RuleOutcome.Override ov = new RuleOutcome.Override("name", "Alice", "obsidian", "alice");
+        assertThat(ov.losingSourceSystem()).isEqualTo("obsidian");
+        assertThat(ov.losingValue()).isEqualTo("alice");
+    }
 }
