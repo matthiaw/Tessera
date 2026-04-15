@@ -78,14 +78,30 @@ public class ChainExecutor {
                 properties.put(merge.propertySlug(), merge.value());
             } else if (outcome instanceof RuleOutcome.Override ov) {
                 properties.put(ov.propertySlug(), ov.value());
+                // 01-VERIFICATION Known Deviation #2 closed in 02-W0:
+                // detect the "current-keeps" branch by comparing the rule's
+                // losingSourceSystem (the system whose write is being dropped)
+                // against the incoming mutation source. If they match, the
+                // incoming write lost and the winner is whatever source
+                // currently owns the property — pulled from ctx.currentSourceSystem.
+                // Otherwise we are in the incoming-wins branch and the winner
+                // IS the incoming mutation's source.
+                boolean currentKeeps =
+                        ov.losingSourceSystem().equals(ctx.mutation().sourceSystem());
+                String winningSourceSystem = currentKeeps
+                        ? ctx.currentSourceSystem().getOrDefault(ov.propertySlug(), "")
+                        : ctx.mutation().sourceSystem();
+                String winningSourceId = currentKeeps
+                        ? "" /* current source_id not tracked yet */
+                        : ctx.mutation().sourceId();
                 conflicts.add(new ConflictRecord(
                         ctx.mutation().type(),
                         ov.propertySlug(),
                         ctx.mutation().sourceId(),
                         ov.losingSourceSystem(),
                         ov.losingValue(),
-                        ctx.mutation().sourceId(),
-                        ctx.mutation().sourceSystem(),
+                        winningSourceId,
+                        winningSourceSystem,
                         ov.value(),
                         rule.id(),
                         "override by " + rule.id()));

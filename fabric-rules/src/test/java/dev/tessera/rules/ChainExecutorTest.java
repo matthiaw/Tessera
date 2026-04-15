@@ -155,6 +155,87 @@ class ChainExecutorTest {
     }
 
     @Test
+    void incoming_wins_branch_labels_winning_source_system_from_mutation() {
+        // 02-W0 Task 2: pin the incoming-wins labelling (01-VERIFICATION
+        // Known Deviation #2). losingSourceSystem != mutation.sourceSystem()
+        // -> the incoming write won -> winningSourceSystem must come from the
+        // mutation's source system.
+        GraphMutation mutation = GraphMutation.builder()
+                .tenantContext(TenantContext.of(UUID.randomUUID()))
+                .operation(Operation.UPDATE)
+                .type("Person")
+                .targetNodeUuid(UUID.randomUUID())
+                .payload(Map.of("status", "VALUE_FROM_A"))
+                .sourceType(SourceType.STRUCTURED)
+                .sourceId("src-A")
+                .sourceSystem("A")
+                .confidence(BigDecimal.ONE)
+                .build();
+        RuleContext localCtx = new RuleContext(
+                mutation.tenantContext(), null, Map.of("status", "VALUE_FROM_B"), Map.of("status", "B"), mutation);
+        Rule override = new FakeRule(
+                "incoming-wins",
+                Chain.RECONCILE,
+                10,
+                c -> true,
+                // losingSourceSystem = "B" (the current), not the mutation source -> incoming wins
+                c -> new RuleOutcome.Override("status", "VALUE_FROM_A", "B", "VALUE_FROM_B"),
+                new ArrayList<>());
+
+        ChainResult r = executor.execute(Chain.RECONCILE, List.of(override), localCtx, Map.of());
+
+        assertThat(r.conflicts()).hasSize(1);
+        ConflictRecord c = r.conflicts().get(0);
+        assertThat(c.winningSourceSystem())
+                .as("incoming-wins branch must label winning source system from mutation")
+                .isEqualTo("A");
+        assertThat(c.losingSourceSystem()).isEqualTo("B");
+        assertThat(c.winningValue()).isEqualTo("VALUE_FROM_A");
+        assertThat(c.losingValue()).isEqualTo("VALUE_FROM_B");
+    }
+
+    @Test
+    void current_keeps_branch_labels_winning_source_system_from_current_source_map() {
+        // 02-W0 Task 2: pin the current-keeps labelling (01-VERIFICATION
+        // Known Deviation #2). losingSourceSystem == mutation.sourceSystem()
+        // -> the incoming write lost -> winningSourceSystem must come from
+        // ctx.currentSourceSystem() for the contested property, NOT from the
+        // mutation source.
+        GraphMutation mutation = GraphMutation.builder()
+                .tenantContext(TenantContext.of(UUID.randomUUID()))
+                .operation(Operation.UPDATE)
+                .type("Person")
+                .targetNodeUuid(UUID.randomUUID())
+                .payload(Map.of("status", "VALUE_FROM_B"))
+                .sourceType(SourceType.STRUCTURED)
+                .sourceId("src-B")
+                .sourceSystem("B")
+                .confidence(BigDecimal.ONE)
+                .build();
+        RuleContext localCtx = new RuleContext(
+                mutation.tenantContext(), null, Map.of("status", "VALUE_FROM_A"), Map.of("status", "A"), mutation);
+        Rule override = new FakeRule(
+                "current-keeps",
+                Chain.RECONCILE,
+                10,
+                c -> true,
+                // losingSourceSystem = "B" (the mutation source) -> current keeps
+                c -> new RuleOutcome.Override("status", "VALUE_FROM_A", "B", "VALUE_FROM_B"),
+                new ArrayList<>());
+
+        ChainResult r = executor.execute(Chain.RECONCILE, List.of(override), localCtx, Map.of());
+
+        assertThat(r.conflicts()).hasSize(1);
+        ConflictRecord c = r.conflicts().get(0);
+        assertThat(c.winningSourceSystem())
+                .as("current-keeps branch must label winning source system from ctx.currentSourceSystem")
+                .isEqualTo("A");
+        assertThat(c.losingSourceSystem()).isEqualTo("B");
+        assertThat(c.winningValue()).isEqualTo("VALUE_FROM_A");
+        assertThat(c.losingValue()).isEqualTo("VALUE_FROM_B");
+    }
+
+    @Test
     void route_accumulates_routing_hints() {
         Rule routeRule = new FakeRule(
                 "router",

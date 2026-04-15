@@ -29,6 +29,7 @@ import dev.tessera.core.rules.RuleRejectException;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
 import dev.tessera.core.validation.ShaclValidator;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -116,8 +117,15 @@ public class GraphServiceImpl implements GraphService {
         Map<String, Object> routingHints = Map.of();
         RuleEnginePort.Outcome engineOutcome = null;
         if (ruleEngine != null) {
-            engineOutcome =
-                    ruleEngine.run(mutation.tenantContext(), resolvedDescriptor, previousState, Map.of(), mutation);
+            // 02-W0 Task 2 closes 01-VERIFICATION Known Deviation #1: thread
+            // a per-property source-system map derived from the pre-mutation
+            // node state into ruleEngine.run. Empty on CREATE (previousState
+            // is Map.of()). AuthorityReconciliationRule.findFirstContested
+            // short-circuits on empty currentSourceSystem, so this line is
+            // load-bearing for RULE-05/06 firing through the write funnel.
+            Map<String, String> currentSourceSystem = deriveCurrentSourceSystemMap(previousState);
+            engineOutcome = ruleEngine.run(
+                    mutation.tenantContext(), resolvedDescriptor, previousState, currentSourceSystem, mutation);
             if (engineOutcome.rejected()) {
                 throw new RuleRejectException(engineOutcome.rejectReason(), engineOutcome.rejectingRuleId());
             }
@@ -166,6 +174,35 @@ public class GraphServiceImpl implements GraphService {
         }
 
         return new GraphMutationOutcome.Committed(state.uuid(), appended.sequenceNr(), appended.eventId());
+    }
+
+    /**
+     * Derive the per-property source-system map the rule engine consumes.
+     * Wave 1 stamps {@code _source} at the node level (one value per node),
+     * so every user-visible property shares the same source-system label.
+     * Empty on CREATE. Phase-later refinement can move to per-property
+     * source tracking without changing this signature.
+     */
+    private static Map<String, String> deriveCurrentSourceSystemMap(Map<String, Object> previousState) {
+        if (previousState == null || previousState.isEmpty()) {
+            return Map.of();
+        }
+        Object sourceObj = previousState.get("_source");
+        if (sourceObj == null) {
+            return Map.of();
+        }
+        String source = sourceObj.toString();
+        if (source.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> map = new HashMap<>();
+        for (String key : previousState.keySet()) {
+            if (key == null || key.isEmpty() || key.charAt(0) == '_') {
+                continue; // skip system properties (_source, _uuid, _model_id, ...)
+            }
+            map.put(key, source);
+        }
+        return Map.copyOf(map);
     }
 
     private Map<String, Object> capturePreviousState(GraphMutation m) {
