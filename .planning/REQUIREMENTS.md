@@ -44,7 +44,7 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 - [ ] **VALID-02**: Compiled SHACL shapes are cached per `(model_id, typeSlug)` with invalidation on schema change
 - [ ] **VALID-03**: Validation targets only the mutated node(s) against a minimal in-memory RDF model (no full-graph validation)
 - [ ] **VALID-04**: `ValidationReport` is tenant-filtered before it reaches consumers or logs — no cross-tenant leakage through error messages
-- [ ] **VALID-05**: Business-rule validation (beyond SHACL) runs as a rule-engine action with `REJECT` outcome
+- [x] **VALID-05**: Business-rule validation (beyond SHACL) runs as a rule-engine action with `REJECT` outcome
 
 ### Event Log & Outbox (EVENT)
 
@@ -63,11 +63,11 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 - [ ] **RULE-01**: Custom chain-of-responsibility rule executor sorts rules by priority **DESC** (higher runs first), short-circuits on REJECT. Four named chains run in fixed pipeline order per ADR-7: VALIDATE → RECONCILE → ENRICH → ROUTE.
 - [ ] **RULE-02**: `Rule` interface (ADR-7 override of original `ReconciliationRule` naming) with `id()`, `chain()`, `priority()`, `applies(RuleContext)`, `evaluate(RuleContext) → RuleOutcome`. `RuleContext` carries `TenantContext`, schema descriptor, current node state, and incoming `GraphMutation`.
 - [ ] **RULE-03**: Rule outcomes (ADR-7 override): `COMMIT`, `REJECT`, `MERGE`, `OVERRIDE`, `ADD`, `ROUTE`. The original `FLAG_FOR_REVIEW` and `DEFER` outcomes are moved to a Phase 2.5 pre-funnel layer per CONTEXT D-A2 (review queue routes low-confidence extractions BEFORE the rule engine sees them).
-- [ ] **RULE-04**: **Hybrid rule storage** (ADR-7): rule logic as Java classes discovered via Spring DI; per-tenant activation/priority-override/parameters stored in `reconciliation_rules` table with Caffeine cache and hot-reload via internal admin endpoint `POST /admin/rules/reload/{model_id}`.
-- [ ] **RULE-05**: Per-tenant source authority matrix supports per-property authority (not just per-entity), with property-wildcard fallback and entity-wildcard fallback
-- [ ] **RULE-06**: `reconciliation_conflicts` register records unresolved conflicts with graph value, source value, source system, rule chain, status (OPEN / RESOLVED / IGNORED)
+- [x] **RULE-04**: **Hybrid rule storage** (ADR-7): rule logic as Java classes discovered via Spring DI; per-tenant activation/priority-override/parameters stored in `reconciliation_rules` table with Caffeine cache and hot-reload via internal admin endpoint `POST /admin/rules/reload/{model_id}`.
+- [x] **RULE-05**: Per-tenant source authority matrix supports per-property authority (not just per-entity), with property-wildcard fallback and entity-wildcard fallback
+- [x] **RULE-06**: `reconciliation_conflicts` register records unresolved conflicts with graph value, source value, source system, rule chain, status (OPEN / RESOLVED / IGNORED)
 - [ ] **RULE-07**: Write-amplification circuit breaker: per-entity write-rate threshold halts a connector and raises an alert before a conflict storm
-- [ ] **RULE-08**: Every event tracks `origin_connector_id` + `origin_change_id` to prevent echo loops between connectors
+- [x] **RULE-08**: Every event tracks `origin_connector_id` + `origin_change_id` to prevent echo loops between connectors
 
 ### REST Projection (REST)
 
@@ -262,7 +262,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | VALID-02 | Phase 1 | Pending |
 | VALID-03 | Phase 1 | Pending |
 | VALID-04 | Phase 1 | Pending |
-| VALID-05 | Phase 1 | Pending |
+| VALID-05 | Phase 1 | Complete |
 | EVENT-01 | Phase 1 | Pending |
 | EVENT-02 | Phase 1 | Pending |
 | EVENT-03 | Phase 1 | Pending |
@@ -273,11 +273,11 @@ Explicitly excluded. Documented to prevent scope creep.
 | RULE-01 | Phase 1 | Pending |
 | RULE-02 | Phase 1 | Pending |
 | RULE-03 | Phase 1 | Pending |
-| RULE-04 | Phase 1 | Pending |
-| RULE-05 | Phase 1 | Pending |
-| RULE-06 | Phase 1 | Pending |
+| RULE-04 | Phase 1 | Complete |
+| RULE-05 | Phase 1 | Complete |
+| RULE-06 | Phase 1 | Complete |
 | RULE-07 | Phase 1 | Pending |
-| RULE-08 | Phase 1 | Pending |
+| RULE-08 | Phase 1 | Complete |
 | REST-01 | Phase 2 | Pending |
 | REST-02 | Phase 2 | Pending |
 | REST-03 | Phase 2 | Pending |
