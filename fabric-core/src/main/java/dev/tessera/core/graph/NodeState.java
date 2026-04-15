@@ -22,11 +22,26 @@ import java.util.UUID;
 /**
  * Read-side view of a single graph node, scoped by {@link dev.tessera.core.tenant.TenantContext}
  * upstream. Carries the CORE-06 system properties plus the typed payload.
+ *
+ * <p>Phase 2 Wave 1 adds {@code seq} — the monotonic BIGINT stamped on every
+ * write as the node's {@code _seq} property (CONTEXT Decision 12). A sentinel
+ * value of {@code 0} indicates "no sequence allocated" (legacy read paths that
+ * reconstruct a NodeState from the stored agtype without an allocator, or
+ * tests constructed pre-seq).
  */
 public record NodeState(
-        UUID uuid, String typeSlug, Map<String, Object> properties, Instant createdAt, Instant updatedAt) {
+        UUID uuid, String typeSlug, Map<String, Object> properties, Instant createdAt, Instant updatedAt, long seq) {
 
     public NodeState {
         properties = properties == null ? Map.of() : Map.copyOf(properties);
+    }
+
+    /**
+     * Backwards-compatible 5-arg constructor — Phase 1 call sites that do not
+     * thread a sequence (tests that build NodeState directly, legacy read-back
+     * helpers that only see agtype rows). Defaults {@code seq} to {@code 0}.
+     */
+    public NodeState(UUID uuid, String typeSlug, Map<String, Object> properties, Instant createdAt, Instant updatedAt) {
+        this(uuid, typeSlug, properties, createdAt, updatedAt, 0L);
     }
 }

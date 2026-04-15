@@ -16,6 +16,7 @@
 package dev.tessera.core.graph.internal;
 
 import dev.tessera.core.circuit.CircuitBreakerPort;
+import dev.tessera.core.events.internal.SequenceAllocator;
 import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.rules.RuleEnginePort;
@@ -38,8 +39,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 public class GraphCoreConfig {
 
     @Bean
-    public GraphSession graphSession(NamedParameterJdbcTemplate jdbc) {
-        return new GraphSession(jdbc);
+    public GraphSession graphSession(NamedParameterJdbcTemplate jdbc, SequenceAllocator sequenceAllocator) {
+        // Phase 2 W1: thread SequenceAllocator so GraphSession.apply stamps
+        // _seq on every write (CONTEXT Decision 12).
+        return new GraphSession(jdbc, sequenceAllocator);
     }
 
     @Bean

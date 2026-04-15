@@ -17,7 +17,15 @@ package dev.tessera.core.schema;
 
 import java.time.Instant;
 
-/** SCHEMA-02 property descriptor. Immutable record used by the Caffeine cache. */
+/**
+ * SCHEMA-02 property descriptor. Immutable record used by the Caffeine cache.
+ *
+ * <p>Phase 2 Wave 1 adds {@code encrypted} / {@code encryptedAlg} (CONTEXT
+ * Decision 2). Both default to neutral values ({@code false} / {@code null}).
+ * The SEC-06 startup guard refuses to boot if any row in the Schema Registry
+ * has {@code encrypted=true} while the {@code tessera.security.field-encryption.enabled}
+ * feature flag is off.
+ */
 public record PropertyDescriptor(
         String slug,
         String name,
@@ -27,4 +35,36 @@ public record PropertyDescriptor(
         String validationRules,
         String enumValues,
         String referenceTarget,
-        Instant deprecatedAt) {}
+        Instant deprecatedAt,
+        boolean encrypted,
+        String encryptedAlg) {
+
+    /**
+     * Backwards-compatible constructor — defaults the Wave 1 encryption flags
+     * to {@code false} / {@code null}. Lets Phase 1 call sites keep compiling
+     * unchanged.
+     */
+    public PropertyDescriptor(
+            String slug,
+            String name,
+            String dataType,
+            boolean required,
+            String defaultValue,
+            String validationRules,
+            String enumValues,
+            String referenceTarget,
+            Instant deprecatedAt) {
+        this(
+                slug,
+                name,
+                dataType,
+                required,
+                defaultValue,
+                validationRules,
+                enumValues,
+                referenceTarget,
+                deprecatedAt,
+                false,
+                null);
+    }
+}

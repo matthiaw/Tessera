@@ -233,7 +233,12 @@ public final class EventLog {
             NodeState state,
             String eventType,
             Map<String, Object> previousState) {
-        long seq = allocator.nextSequenceNr(ctx);
+        // Phase 2 W1 CONTEXT Decision 12: if GraphSession already stamped a
+        // _seq onto the node (state.seq() > 0), reuse that allocation so the
+        // graph_events.sequence_nr row and the node's _seq property share one
+        // monotonic value. Fall back to allocating here when the caller is a
+        // legacy test path that bypasses GraphSession.apply's seq stamping.
+        long seq = state.seq() > 0 ? state.seq() : allocator.nextSequenceNr(ctx);
         String payloadJson = JsonMaps.toJson(state.properties());
         String deltaJson = JsonMaps.toJson(computeDelta(mutation.operation(), state.properties(), previousState));
 

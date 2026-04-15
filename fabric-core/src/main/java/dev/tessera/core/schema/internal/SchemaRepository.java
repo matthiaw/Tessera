@@ -73,7 +73,8 @@ public class SchemaRepository {
         p.addValue("model_id", ctx.modelId().toString());
         p.addValue("slug", slug);
         List<NodeTypeRow> rows = jdbc.query(
-                "SELECT model_id, slug, name, label, description, deprecated_at"
+                "SELECT model_id, slug, name, label, description, deprecated_at,"
+                        + " rest_read_enabled, rest_write_enabled"
                         + " FROM schema_node_types WHERE model_id = :model_id::uuid AND slug = :slug",
                 p,
                 nodeTypeMapper());
@@ -83,14 +84,24 @@ public class SchemaRepository {
         NodeTypeRow r = rows.get(0);
         List<PropertyDescriptor> props = listProperties(ctx, slug);
         return Optional.of(new NodeTypeDescriptor(
-                r.modelId, r.slug, r.name, r.label, r.description, schemaVersion, props, r.deprecatedAt));
+                r.modelId,
+                r.slug,
+                r.name,
+                r.label,
+                r.description,
+                schemaVersion,
+                props,
+                r.deprecatedAt,
+                r.restReadEnabled,
+                r.restWriteEnabled));
     }
 
     public List<NodeTypeDescriptor> listNodeTypes(TenantContext ctx, long schemaVersion) {
         MapSqlParameterSource p = new MapSqlParameterSource();
         p.addValue("model_id", ctx.modelId().toString());
         List<NodeTypeRow> rows = jdbc.query(
-                "SELECT model_id, slug, name, label, description, deprecated_at"
+                "SELECT model_id, slug, name, label, description, deprecated_at,"
+                        + " rest_read_enabled, rest_write_enabled"
                         + " FROM schema_node_types WHERE model_id = :model_id::uuid",
                 p,
                 nodeTypeMapper());
@@ -103,7 +114,9 @@ public class SchemaRepository {
                         r.description,
                         schemaVersion,
                         listProperties(ctx, r.slug),
-                        r.deprecatedAt))
+                        r.deprecatedAt,
+                        r.restReadEnabled,
+                        r.restWriteEnabled))
                 .toList();
     }
 
@@ -154,7 +167,7 @@ public class SchemaRepository {
         p.addValue("type_slug", typeSlug);
         return jdbc.query(
                 "SELECT slug, name, data_type, required, default_value, validation_rules, enum_values,"
-                        + " reference_target, deprecated_at"
+                        + " reference_target, deprecated_at, property_encrypted, property_encrypted_alg"
                         + " FROM schema_properties WHERE model_id = :model_id::uuid AND type_slug = :type_slug"
                         + " ORDER BY slug",
                 p,
@@ -167,7 +180,9 @@ public class SchemaRepository {
                         rs.getString("validation_rules"),
                         rs.getString("enum_values"),
                         rs.getString("reference_target"),
-                        toInstant(rs.getTimestamp("deprecated_at"))));
+                        toInstant(rs.getTimestamp("deprecated_at")),
+                        rs.getBoolean("property_encrypted"),
+                        rs.getString("property_encrypted_alg")));
     }
 
     public void deprecateProperty(TenantContext ctx, String typeSlug, String propertySlug) {
@@ -243,7 +258,9 @@ public class SchemaRepository {
                 rs.getString("name"),
                 rs.getString("label"),
                 rs.getString("description"),
-                toInstant(rs.getTimestamp("deprecated_at")));
+                toInstant(rs.getTimestamp("deprecated_at")),
+                rs.getBoolean("rest_read_enabled"),
+                rs.getBoolean("rest_write_enabled"));
     }
 
     private static Instant toInstant(Timestamp t) {
@@ -251,5 +268,12 @@ public class SchemaRepository {
     }
 
     private record NodeTypeRow(
-            UUID modelId, String slug, String name, String label, String description, Instant deprecatedAt) {}
+            UUID modelId,
+            String slug,
+            String name,
+            String label,
+            String description,
+            Instant deprecatedAt,
+            boolean restReadEnabled,
+            boolean restWriteEnabled) {}
 }

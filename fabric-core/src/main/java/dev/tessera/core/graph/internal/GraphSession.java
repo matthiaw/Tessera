@@ -15,6 +15,7 @@
  */
 package dev.tessera.core.graph.internal;
 
+import dev.tessera.core.events.internal.SequenceAllocator;
 import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.graph.Operation;
@@ -69,19 +70,43 @@ public final class GraphSession {
     private static final String SYS_SOURCE_ID = "_source_id";
     private static final String SYS_TOMBSTONED = "_tombstoned";
     private static final String SYS_TOMBSTONED_AT = "_tombstoned_at";
+    /** Phase 2 W1 CONTEXT Decision 12: monotonic BIGINT node sequence property. */
+    public static final String SYS_SEQ = "_seq";
 
     /** Sentinel prefix on {@link GraphMutation#type()} indicating an edge mutation. */
     public static final String EDGE_PREFIX = "#edge/";
 
     private final JdbcTemplate jdbc;
+    private final SequenceAllocator sequenceAllocator;
 
     public GraphSession(NamedParameterJdbcTemplate jdbc) {
-        this.jdbc = jdbc.getJdbcTemplate();
+        this(jdbc.getJdbcTemplate(), null);
     }
 
     /** Public for tests / convenience. */
     public GraphSession(JdbcTemplate jdbc) {
+        this(jdbc, null);
+    }
+
+    /**
+     * Phase 2 W1 production constructor. When {@code sequenceAllocator} is
+     * non-null, every CREATE/UPDATE/TOMBSTONE stamps a {@code _seq} property
+     * allocated from the per-tenant SEQUENCE — the SAME allocation used by
+     * {@link dev.tessera.core.events.EventLog#append} for the
+     * {@code graph_events.sequence_nr} row (one allocation per mutation,
+     * threaded through both writes via {@link NodeState#seq()}).
+     *
+     * <p>A null allocator keeps Phase 1 legacy test constructors working and
+     * is an explicit pass-through: no {@code _seq} stamped, no monotonic
+     * guarantee, and the returned {@link NodeState#seq()} is 0.
+     */
+    public GraphSession(NamedParameterJdbcTemplate jdbc, SequenceAllocator sequenceAllocator) {
+        this(jdbc.getJdbcTemplate(), sequenceAllocator);
+    }
+
+    public GraphSession(JdbcTemplate jdbc, SequenceAllocator sequenceAllocator) {
         this.jdbc = jdbc;
+        this.sequenceAllocator = sequenceAllocator;
     }
 
     // --------------------------------------------------------------------
@@ -117,6 +142,11 @@ public final class GraphSession {
         props.put(SYS_CREATED_BY, nullToEmpty(m.sourceId()));
         props.put(SYS_SOURCE, nullToEmpty(m.sourceSystem()));
         props.put(SYS_SOURCE_ID, nullToEmpty(m.sourceId()));
+        // Phase 2 W1 CONTEXT Decision 12: stamp monotonic _seq from the per-tenant allocator.
+        long seq = allocateSeq(ctx);
+        if (seq > 0) {
+            props.put(SYS_SEQ, seq);
+        }
         validateKeys(props);
 
         String propsMap = AgtypeBinder.toCypherMap(props);
@@ -124,7 +154,7 @@ public final class GraphSession {
                 + " CREATE (n:" + label + " " + propsMap + ") RETURN n"
                 + " $$) AS (n agtype)";
         executeCypher(cypher);
-        return new NodeState(uuid, label, Map.copyOf(props), now, now);
+        return new NodeState(uuid, label, Map.copyOf(props), now, now, seq);
     }
 
     private NodeState updateNode(TenantContext ctx, GraphMutation m, String label) {
@@ -132,6 +162,12 @@ public final class GraphSession {
         Map<String, Object> props = sanitizePayload(m.payload());
         Instant now = Instant.now();
         props.put(SYS_UPDATED_AT, now.toString());
+        // Phase 2 W1 CONTEXT Decision 12: bump _seq on every UPDATE so cursor
+        // pagination sees write order, not creation order.
+        long seq = allocateSeq(ctx);
+        if (seq > 0) {
+            props.put(SYS_SEQ, seq);
+        }
         validateKeys(props);
 
         // Build SET clauses for each property — keys are validated, values are Cypher literals.
@@ -154,25 +190,57 @@ public final class GraphSession {
         executeCypher(cypher);
 
         // Read-back for authoritative post-state (merges existing + updated).
-        return findNode(ctx, label, uuid)
+        NodeState readBack = findNode(ctx, label, uuid)
                 .orElseThrow(
                         () -> new IllegalStateException("UPDATE applied but node not found: " + label + "/" + uuid));
+        // Thread the seq we just allocated through the returned state so
+        // EventLog.append reuses it rather than allocating a second one.
+        return new NodeState(
+                readBack.uuid(),
+                readBack.typeSlug(),
+                readBack.properties(),
+                readBack.createdAt(),
+                readBack.updatedAt(),
+                seq);
     }
 
     private NodeState tombstoneNode(TenantContext ctx, GraphMutation m, String label) {
         UUID uuid = requireTargetUuid(m);
         Instant now = Instant.now();
+        long seq = allocateSeq(ctx);
+        String seqAssign = seq > 0 ? " n." + SYS_SEQ + " = " + seq + "," : "";
         String cypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$"
                 + " MATCH (n:" + label + " {model_id: \"" + ctx.modelId() + "\", uuid: \"" + uuid + "\"})"
-                + " SET n." + SYS_TOMBSTONED + " = true,"
+                + " SET" + seqAssign
+                + " n." + SYS_TOMBSTONED + " = true,"
                 + " n." + SYS_TOMBSTONED_AT + " = \"" + now + "\","
                 + " n." + SYS_UPDATED_AT + " = \"" + now + "\""
                 + " RETURN n"
                 + " $$) AS (n agtype)";
         executeCypher(cypher);
-        return findNode(ctx, label, uuid)
+        NodeState readBack = findNode(ctx, label, uuid)
                 .orElseThrow(
                         () -> new IllegalStateException("TOMBSTONE applied but node not found: " + label + "/" + uuid));
+        return new NodeState(
+                readBack.uuid(),
+                readBack.typeSlug(),
+                readBack.properties(),
+                readBack.createdAt(),
+                readBack.updatedAt(),
+                seq);
+    }
+
+    /**
+     * Allocate the next per-tenant {@code _seq} value for this mutation.
+     * Returns 0 when no {@link SequenceAllocator} is wired (legacy test
+     * constructors). Phase 2 W1 production always wires the allocator via
+     * {@link GraphCoreConfig#graphSession}.
+     */
+    private long allocateSeq(TenantContext ctx) {
+        if (sequenceAllocator == null) {
+            return 0L;
+        }
+        return sequenceAllocator.nextSequenceNr(ctx);
     }
 
     /**
@@ -308,7 +376,18 @@ public final class GraphSession {
         Instant updatedAt = properties.containsKey(SYS_UPDATED_AT)
                 ? Instant.parse(properties.get(SYS_UPDATED_AT).toString())
                 : null;
-        return new NodeState(uuid, typeSlug, Collections.unmodifiableMap(properties), createdAt, updatedAt);
+        long seq = 0L;
+        Object seqRaw = properties.get(SYS_SEQ);
+        if (seqRaw instanceof Number n) {
+            seq = n.longValue();
+        } else if (seqRaw != null) {
+            try {
+                seq = Long.parseLong(seqRaw.toString());
+            } catch (NumberFormatException ignored) {
+                // Leave seq at 0 — malformed _seq should not break read paths.
+            }
+        }
+        return new NodeState(uuid, typeSlug, Collections.unmodifiableMap(properties), createdAt, updatedAt, seq);
     }
 
     private static Map<String, Object> sanitizePayload(Map<String, Object> payload) {
