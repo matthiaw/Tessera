@@ -145,19 +145,121 @@ These are answered. Downstream agents (researcher, planner) MUST treat them as c
 - `ForbiddenException` is reserved for cases where the user is authenticated, owns the tenant, but lacks the specific role needed (returns 403).
 - A security test verifies a curl against `/api/v1/tenantA/entities/hidden` from a `tenantB` JWT returns 404, indistinguishable from a truly non-existent type.
 
+### 12. Node sequence denormalization — add `_seq` to nodes in Wave 1
+
+**Decision:** Phase 1 stored `sequence_nr` only on `graph_events`. Phase 2 Wave 1 denormalizes it onto nodes: every `GraphServiceImpl.apply` call writes `_seq BIGINT` (from the per-tenant sequence already allocated for the event) as a property on the created/updated node. A Flyway migration (V10) adds a composite index on `(model_id, _seq)` via AGE's label-table access.
+
+**Why:** Cursor pagination needs a stable, monotonic sort key on nodes. UUID-order is random; JOIN-to-events is slow. Denormalization is a one-wave change with clean long-term semantics.
+
+**How it shapes planning:**
+- Wave 1 task: modify `GraphServiceImpl.apply` to pass `_seq` into the node create/update Cypher.
+- Wave 1 task: Flyway V10 indexes `(model_id, _seq)` on the AGE label tables.
+- Cursor is `base64(model_id || type_slug || last_seq || last_node_id)`.
+- Existing Phase 1 test fixtures may need update if they assert exact property sets on nodes.
+
+### 13. SpringDoc dynamic lifecycle risk — Wave 0 spike
+
+**Decision:** Before Wave 1 touches REST, a dedicated Wave 0 spike (~30 min) ships a `SchemaVersionBumpIT` that declares a type, hits `/v3/api-docs`, flips `rest_read_enabled`, hits `/v3/api-docs` again, and asserts the new path appears. Only if the spike passes does Wave 1 commit to the `OpenApiCustomizer` rebuild-per-request model. If it fails, the fallback (documented restart-on-schema-change) is discussed with the user BEFORE Wave 1 code lands.
+
+**Why:** The `OpenApiCustomizer` pattern is idiomatic but unverified on SpringDoc 2.8.x. 30 minutes of spike work de-risks the entire REST-05 success criterion and protects the "without a redeploy" ROADMAP guarantee.
+
+**How it shapes planning:**
+- Phase 2 plan starts with a tiny Wave 0 (spike only, no production code).
+- If spike fails: orchestrator returns to user for fallback decision before proceeding.
+
+### 14. DLQ write path — inside `GraphService.apply` same-TX
+
+**Decision:** When a connector-submitted `CandidateMutation` fails validation or a rule rejects it, `GraphService.apply` writes a DLQ row in the same Postgres transaction before rolling back the graph mutation. The DLQ row captures: mutation payload, rejection reason, rule id (if applicable), connector id, tenant, timestamp.
+
+**Why:** Preserves the single-write-funnel invariant (no caller outside `graph.internal` writes to Postgres). Operator visibility is immediate. Slight coupling from `core` to the DLQ table is acceptable — DLQ becomes a first-class piece of the core surface.
+
+**How it shapes planning:**
+- Flyway V11 creates `connector_dlq` table.
+- `GraphServiceImpl.apply` grows a `try/catch` that writes DLQ and re-throws (or returns a rejected outcome) inside the same TX.
+- Distinction between "DLQ row = caller wants to know" and "event log = authoritative truth" must stay clean: the DLQ write is metadata about the failed attempt, the event log is untouched on rejection.
+- Admin REST endpoint `/admin/connectors/{id}/dlq` lists rows per connector.
+
 ---
 
-## Open / Claude's Discretion
+## Resolved — Previously Open Items
 
-Items below are **NOT locked decisions** — they're explicit gray areas the planner or researcher can resolve based on codebase patterns and best practice. If a decision below becomes critical during planning, spawn back for a follow-up discuss round.
+The seven items below were initially left to Claude's discretion. They have all been resolved by the Phase 2 research pass (`02-RESEARCH.md`) and locked in by the planner. Recording the decisions here so CONTEXT.md remains the single source of truth for execution.
 
-- **Admin endpoint path prefix:** `/admin/*`, `/api/v1/admin/*`, or separate port? Claude's discretion.
-- **Connector mapping definition DSL:** JSONB shape for `mapping_def` — JSONPath? JSONata? JMESPath? Claude's discretion based on research.
-- **Vault auth method:** AppRole vs Kubernetes vs token. Likely AppRole per STACK.md but confirm in research.
-- **ETag / Last-Modified detection:** store last seen value per-row or per-page? Claude's discretion.
-- **Sync-status surface:** separate `/admin/connectors/{id}/status` endpoint or embedded in list response? Claude's discretion.
-- **OpenAPI lifecycle for dynamic controllers:** Springdoc hook timing is a known research flag — researcher must investigate.
-- **Bootstrap token issuance:** CLI command or one-shot REST endpoint for the very first admin token? Claude's discretion.
+### 15. Admin endpoint path prefix — `/admin/*`
+
+**Decision:** All admin endpoints live under `/admin/*` at the root, not nested inside `/api/v1/*` and not on a separate port.
+
+**Why:** Keeps the `/api/v1/{model}/entities/*` surface clean for data consumers. One Spring Security filter chain can protect the prefix with a bootstrap `ROLE_ADMIN`. Separate port adds ops burden for no isolation benefit (the Vault-signed JWT already carries role).
+
+**Endpoints in Phase 2:** `/admin/tokens/issue`, `/admin/connectors` (CRUD), `/admin/connectors/{id}/status`, `/admin/connectors/{id}/dlq`, `/admin/schema/*/expose` (flip `rest_read_enabled`).
+
+### 16. Connector mapping DSL — Jayway JSONPath 2.9.0
+
+**Decision:** `mapping_def` JSONB stores a `JSONPath`-based mapping: a flat map from target property name to `{ path: "$.data.name", transform: "lowercase" }` entries. Transforms are a **closed registry** (Java enum `Transform` with values like `LOWERCASE`, `UPPERCASE`, `ISO8601_DATE`, `TRIM`, `SHA256`). No expression language.
+
+**Why:** Jayway JSONPath 2.9.0 is mature, battle-tested in Spring, and covers the 95% case. JSONata and JMESPath add a second-language surface with marginal gains. A closed transform registry keeps auditing and failure modes tractable — operators can't inject arbitrary code via `mapping_def`.
+
+**Dependencies:** `com.jayway.jsonpath:json-path:2.9.0` with `JacksonMappingProvider` so types align with Spring's Jackson config.
+
+**Deferred:** Per-field JavaScript/Groovy expressions, nested-array flattening beyond JSONPath semantics, conditional mappings.
+
+### 17. Vault auth method — AppRole (with token fallback for tests)
+
+**Decision:** Production uses AppRole (`role_id` + `secret_id`) loaded via Spring Cloud Vault Config Data API. Integration tests default to token auth for speed, with a dedicated `VaultAppRoleAuthIT` exercising the production path against a Testcontainers Vault.
+
+**Why:** AppRole is the standard pattern for non-interactive service auth, cleanly rotatable, and doesn't require Kubernetes (Tessera targets IONOS VPS). Kubernetes auth is deferred to the day someone actually runs Tessera on K8s.
+
+**Paths:**
+- `secret/tessera/auth/jwt_signing_key` — HMAC signing key for resource-server JWTs
+- `secret/tessera/connectors/{connector_id}/bearer_token` — per-connector bearer tokens
+- AppRole credentials live outside Vault's KV store (bootstrapped via operator)
+
+### 18. ETag / Last-Modified detection — two-layer
+
+**Decision:** The generic REST poller combines two delta-detection layers:
+
+1. **Connector level.** Per connector, store the latest `ETag` and `Last-Modified` seen in `connector_sync_status`. Send `If-None-Match` / `If-Modified-Since` on subsequent polls. A 304 response skips the entire poll.
+2. **Per-row hash.** Each polled row is hashed (SHA-256 over sorted `(path, value)` tuples) and the hash stored as `_source_hash` on the resulting node. On the next poll, rows whose hash matches the existing node are skipped before any mutation is built. Rows with a new hash produce a `CandidateMutation`.
+
+**Why:** Most SaaS APIs don't implement RFC-correct ETags. Per-row hashing is the safety net that makes dedup actually work. The connector-level layer shaves traffic when the upstream behaves.
+
+**Storage:** `_source_hash` is a reserved system property alongside `_seq`.
+
+### 19. Sync-status surface — dedicated `/admin/connectors/{id}/status` endpoint
+
+**Decision:** Sync status is served from a dedicated `GET /admin/connectors/{id}/status` endpoint. The list endpoint `GET /admin/connectors` returns only configuration (id, type, enabled, poll interval); it does NOT embed live status.
+
+**Why:** Keeps the list response fast and cacheable. Status data (last success timestamp, DLQ count, events processed, last error) changes on every poll and is best fetched on demand. Operator dashboards poll the status endpoint independently.
+
+**Shape:**
+```json
+{
+  "connector_id": "...",
+  "last_poll_started_at": "...",
+  "last_poll_completed_at": "...",
+  "last_poll_outcome": "SUCCESS|FAILED|NO_CHANGE",
+  "last_error": null,
+  "dlq_count": 0,
+  "events_processed_total": 12345,
+  "rows_seen_last_poll": 42
+}
+```
+
+### 20. OpenAPI lifecycle for dynamic controllers — `OpenApiCustomizer` + Wave 0 spike
+
+**Decision:** `GenericEntityController` is a single `@RequestMapping` dispatcher. OpenAPI is produced by a `GroupedOpenApi` bean with an `OpenApiCustomizer` that walks the Schema Registry at document-build time. `springdoc.cache.disabled=true` forces a rebuild on every `/v3/api-docs` request so a newly-flipped `rest_read_enabled` shows up without restart. Wave 0 ships a `SchemaVersionBumpIT` spike gating this approach (Decision 13).
+
+**Why:** Confirmed in research (`02-RESEARCH.md` Q1) as the idiomatic SpringDoc 2.8.x path. The `cache.disabled=true` setting is load-bearing — without it, the rebuild only happens on a restart.
+
+**Fallback path (if spike fails):** Return to user for a documented restart-on-schema-change decision before Wave 1 writes production code.
+
+### 21. Bootstrap token issuance — `/admin/tokens/issue` REST endpoint
+
+**Decision:** A minimal `POST /admin/tokens/issue` endpoint mints short-lived (15 min) JWTs signed with the Vault-held HMAC key. Protected by a bootstrap `ROLE_TOKEN_ISSUER` that is seeded from a Vault secret at first startup.
+
+**Why:** Keeps the entire auth path inside the application — no separate CLI tool to build, document, and keep in sync with the JWT signing key. Bootstrap flow: operator reads the seeded token-issuer secret from Vault, calls `/admin/tokens/issue` once to get an admin JWT, then uses that JWT for everything else. Rotation by rewriting the Vault secret and reissuing.
+
+**Out of scope:** Refresh tokens, full OAuth2 authorization server flows, IdP federation. Those arrive with the Keycloak/Authentik migration in a later phase.
 
 ---
 
