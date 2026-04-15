@@ -15,6 +15,7 @@
  */
 package dev.tessera.core.graph.internal;
 
+import dev.tessera.core.circuit.CircuitBreakerPort;
 import dev.tessera.core.events.EventLog;
 import dev.tessera.core.events.Outbox;
 import dev.tessera.core.graph.GraphMutation;
@@ -57,12 +58,14 @@ public class GraphServiceImpl implements GraphService {
     private final ShaclValidator shaclValidator;
     private final RuleEnginePort ruleEngine;
     private final ReconciliationConflictsRepository conflictsRepository;
+    private final CircuitBreakerPort circuitBreaker;
 
     /**
      * Sole constructor. {@code schemaRegistry}, {@code shaclValidator},
-     * {@code ruleEngine}, and {@code conflictsRepository} MAY be null for
-     * legacy test harnesses (JMH benches, jqwik property tests) that pre-
-     * date the Wave 2 Schema Registry / Wave 3 SHACL + rule engine; in
+     * {@code ruleEngine}, {@code conflictsRepository}, and
+     * {@code circuitBreaker} MAY be null for legacy test harnesses (JMH
+     * benches, jqwik property tests) that pre-date the Wave 2 Schema
+     * Registry / Wave 3 SHACL + rule engine / Wave 3 circuit breaker; in
      * production Spring always wires real beans. Null tolerance is a
      * transitional concession.
      */
@@ -73,7 +76,8 @@ public class GraphServiceImpl implements GraphService {
             SchemaRegistry schemaRegistry,
             ShaclValidator shaclValidator,
             RuleEnginePort ruleEngine,
-            ReconciliationConflictsRepository conflictsRepository) {
+            ReconciliationConflictsRepository conflictsRepository,
+            CircuitBreakerPort circuitBreaker) {
         this.graphSession = graphSession;
         this.graphRepository = new GraphRepositoryImpl(graphSession);
         this.eventLog = eventLog;
@@ -82,6 +86,7 @@ public class GraphServiceImpl implements GraphService {
         this.shaclValidator = shaclValidator;
         this.ruleEngine = ruleEngine;
         this.conflictsRepository = conflictsRepository;
+        this.circuitBreaker = circuitBreaker;
     }
 
     @Override

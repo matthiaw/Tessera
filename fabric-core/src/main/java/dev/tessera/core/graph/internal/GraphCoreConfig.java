@@ -15,6 +15,7 @@
  */
 package dev.tessera.core.graph.internal;
 
+import dev.tessera.core.circuit.CircuitBreakerPort;
 import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.rules.RuleEnginePort;
@@ -73,6 +74,23 @@ public class GraphCoreConfig {
                 Map<String, Object> payload = mutation.payload() == null ? Map.of() : mutation.payload();
                 return new Outcome(false, null, null, payload, Map.of(), List.of());
             }
+        };
+    }
+
+    /**
+     * No-op {@link CircuitBreakerPort} fallback active only when no real
+     * implementation is on the classpath. In production {@code fabric-rules}
+     * provides {@code WriteRateCircuitBreaker} which wins by
+     * {@link ConditionalOnMissingBean}. Pure fabric-core integration tests
+     * get this no-op and the rate-limit phase of {@code GraphServiceImpl.apply}
+     * becomes a pass-through (RULE-07 enforcement is proven by CircuitBreakerIT
+     * under fabric-rules).
+     */
+    @Bean
+    @ConditionalOnMissingBean(CircuitBreakerPort.class)
+    public CircuitBreakerPort noOpCircuitBreakerPort() {
+        return (ctx, connectorId) -> {
+            /* pass-through: no rate limiting in pure fabric-core tests */
         };
     }
 }

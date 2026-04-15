@@ -107,7 +107,7 @@ public final class PipelineFixture implements AutoCloseable {
         ReconciliationConflictsRepository conflicts = new ReconciliationConflictsRepository(jdbc);
         RuleEnginePort port = engine;
 
-        GraphServiceImpl graphService = new GraphServiceImpl(session, log, outbox, null, null, port, conflicts);
+        GraphServiceImpl graphService = new GraphServiceImpl(session, log, outbox, null, null, port, conflicts, null);
 
         TransactionTemplate tx = new TransactionTemplate(new DataSourceTransactionManager(ds));
         return new PipelineFixture(pg, ds, jdbc, graphService, repo, matrix, echoLoop, conflicts, engine, tx);
