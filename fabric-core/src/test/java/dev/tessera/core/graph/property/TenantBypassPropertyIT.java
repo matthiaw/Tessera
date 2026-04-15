@@ -97,7 +97,7 @@ class TenantBypassPropertyIT {
         SequenceAllocator alloc = new SequenceAllocator(named);
         EventLog log = new EventLog(named, alloc);
         Outbox outbox = new Outbox(named);
-        graphService = new GraphServiceImpl(session, log, outbox, null);
+        graphService = new GraphServiceImpl(session, log, outbox, null, null);
         graphRepository = new GraphRepositoryImpl(session);
         tx = new TransactionTemplate(new DataSourceTransactionManager(ds));
     }

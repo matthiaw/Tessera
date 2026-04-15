@@ -101,7 +101,7 @@ public class WritePipelineBench {
         SequenceAllocator allocator = new SequenceAllocator(named);
         EventLog log = new EventLog(named, allocator);
         Outbox outbox = new Outbox(named);
-        graphService = new GraphServiceImpl(session, log, outbox, null);
+        graphService = new GraphServiceImpl(session, log, outbox, null, null);
 
         PlatformTransactionManager txm = new DataSourceTransactionManager(ds);
         txTemplate = new TransactionTemplate(txm);

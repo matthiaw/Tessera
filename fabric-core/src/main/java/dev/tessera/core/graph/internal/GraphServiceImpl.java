@@ -24,6 +24,7 @@ import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.graph.Operation;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.validation.ShaclValidator;
 import java.util.Map;
 import java.util.Optional;
 import org.springframework.stereotype.Service;
@@ -48,21 +49,26 @@ public class GraphServiceImpl implements GraphService {
     private final EventLog eventLog;
     private final Outbox outbox;
     private final SchemaRegistry schemaRegistry;
+    private final ShaclValidator shaclValidator;
 
     /**
-     * Sole constructor. {@code schemaRegistry} MAY be null for legacy test harnesses
-     * (JMH benches, jqwik property tests) that pre-date the Schema Registry; in
-     * production Spring always wires a real {@link SchemaRegistry} bean. Null
-     * tolerance is a Wave 2 concession and will be removed when Wave 3 makes
-     * schema-load mandatory via SHACL.
+     * Sole constructor. {@code schemaRegistry} and {@code shaclValidator} MAY be null for
+     * legacy test harnesses (JMH benches, jqwik property tests) that pre-date the Schema
+     * Registry / Wave 3 SHACL; in production Spring always wires real beans. Null tolerance
+     * is a transitional concession.
      */
     public GraphServiceImpl(
-            GraphSession graphSession, EventLog eventLog, Outbox outbox, SchemaRegistry schemaRegistry) {
+            GraphSession graphSession,
+            EventLog eventLog,
+            Outbox outbox,
+            SchemaRegistry schemaRegistry,
+            ShaclValidator shaclValidator) {
         this.graphSession = graphSession;
         this.graphRepository = new GraphRepositoryImpl(graphSession);
         this.eventLog = eventLog;
         this.outbox = outbox;
         this.schemaRegistry = schemaRegistry;
+        this.shaclValidator = shaclValidator;
     }
 
     @Override
@@ -73,18 +79,22 @@ public class GraphServiceImpl implements GraphService {
         // Wave 2 — unregistered types are allowed (bootstrap flows, Wave 1 ITs) but the
         // loadFor call is on the hot path so cache hit rate is observable. Wave 3 SHACL
         // validation will promote an unregistered type to a rejection.
+        NodeTypeDescriptor resolvedDescriptor = null;
         if (schemaRegistry != null && !mutation.type().startsWith(GraphSession.EDGE_PREFIX)) {
             Optional<NodeTypeDescriptor> descriptor = schemaRegistry.loadFor(mutation.tenantContext(), mutation.type());
-            // descriptor is either used by W3 rules/SHACL or ignored here — both are valid.
             if (descriptor.isPresent()) {
-                // Wave 3 will pass this into the rule context.
-                descriptor.get();
+                resolvedDescriptor = descriptor.get();
             }
         }
-        // ruleEngine.run(Chain.VALIDATE, ruleCtx)       -- TODO(W3): may REJECT
-        // ruleEngine.run(Chain.RECONCILE, ruleCtx)      -- TODO(W3): may MERGE/OVERRIDE
-        // ruleEngine.run(Chain.ENRICH, ruleCtx)         -- TODO(W3): adds derived fields
-        // shaclValidator.validate(ctx, enriched)        -- TODO(W3): synchronous pre-commit
+        // ruleEngine.run(Chain.VALIDATE, ruleCtx)       -- TODO(W3-t2): may REJECT
+        // ruleEngine.run(Chain.RECONCILE, ruleCtx)      -- TODO(W3-t2): may MERGE/OVERRIDE
+        // ruleEngine.run(Chain.ENRICH, ruleCtx)         -- TODO(W3-t2): adds derived fields
+        // VALID-01: synchronous SHACL pre-commit. Runs inside the @Transactional
+        // boundary so a thrown ShaclValidationException rolls back the Cypher
+        // write, event-log append, and outbox insert atomically.
+        if (shaclValidator != null && resolvedDescriptor != null) {
+            shaclValidator.validate(mutation.tenantContext(), resolvedDescriptor, mutation);
+        }
 
         // Capture previous state for EVENT-03 delta on UPDATE / TOMBSTONE.
         Map<String, Object> previousState = capturePreviousState(mutation);
