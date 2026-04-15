@@ -15,21 +15,106 @@
  */
 package dev.tessera.core.events;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import dev.tessera.core.support.AgePostgresContainer;
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.support.FlywayItApplication;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/** Wave 2 — plan 01-W2-02. EVENT-01: graph_events append-only, partitioned, indexed. */
+/**
+ * Wave 2 — plan 01-W2-02. EVENT-01: confirm {@code graph_events} table is
+ * partitioned by RANGE(event_time), carries the three required indexes, and
+ * has the full provenance + payload + delta column set. Tessera code never
+ * issues DELETE against this table by convention (append-only), but no DB
+ * trigger or RLS policy enforces it — the convention is enforced via the
+ * single-write-funnel + ArchUnit raw-Cypher ban (CORE-02).
+ */
+@SpringBootTest(classes = FlywayItApplication.class)
+@ActiveProfiles("flyway-it")
 @Testcontainers
-@Disabled("Wave 2 — filled by plan 01-W2-02")
 class EventLogSchemaIT {
 
     @Container
     static final PostgreSQLContainer<?> PG = AgePostgresContainer.create();
 
+    @DynamicPropertySource
+    static void props(DynamicPropertyRegistry r) {
+        r.add("spring.datasource.url", PG::getJdbcUrl);
+        r.add("spring.datasource.username", PG::getUsername);
+        r.add("spring.datasource.password", PG::getPassword);
+    }
+
+    @Autowired
+    JdbcTemplate jdbc;
+
     @Test
-    void placeholder() {}
+    void graph_events_has_three_required_indexes() {
+        Long indexCount = jdbc.queryForObject(
+                """
+                SELECT count(*) FROM pg_indexes
+                 WHERE tablename LIKE 'graph_events%'
+                   AND indexname IN (
+                       'idx_graph_events_model_seq',
+                       'idx_graph_events_node_uuid',
+                       'idx_graph_events_model_type_time'
+                   )
+                """,
+                Long.class);
+        assertThat(indexCount).isEqualTo(3L);
+    }
+
+    @Test
+    void graph_events_is_range_partitioned_by_event_time() {
+        // pg_partitioned_table.partstrat = 'r' means RANGE partitioning.
+        Long partCount = jdbc.queryForObject(
+                """
+                SELECT count(*)
+                  FROM pg_partitioned_table pt
+                  JOIN pg_class c ON c.oid = pt.partrelid
+                 WHERE c.relname = 'graph_events'
+                   AND pt.partstrat = 'r'
+                """,
+                Long.class);
+        assertThat(partCount).isEqualTo(1L);
+    }
+
+    @Test
+    void graph_events_has_full_provenance_and_delta_columns() {
+        List<String> columns = jdbc.queryForList(
+                """
+                SELECT column_name FROM information_schema.columns
+                 WHERE table_name = 'graph_events'
+                """,
+                String.class);
+        assertThat(Set.copyOf(columns))
+                .contains(
+                        "id",
+                        "model_id",
+                        "node_uuid",
+                        "sequence_nr",
+                        "event_type",
+                        "event_time",
+                        "type_slug",
+                        "payload",
+                        "delta",
+                        "source_type",
+                        "source_id",
+                        "source_system",
+                        "confidence",
+                        "extractor_version",
+                        "llm_model_id",
+                        "origin_connector_id",
+                        "origin_change_id");
+    }
 }
