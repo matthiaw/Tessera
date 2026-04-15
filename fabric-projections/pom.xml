@@ -14,7 +14,7 @@
     <artifactId>fabric-projections</artifactId>
     <packaging>jar</packaging>
     <name>Tessera :: fabric-projections</name>
-    <description>REST/MCP/SQL/Kafka projection generators. Phase 0 is structural only.</description>
+    <description>REST/MCP/SQL/Kafka projection generators. Wave 0 lands the SpringDoc dynamic spike.</description>
 
     <dependencies>
         <dependency>
@@ -26,6 +26,15 @@
             <groupId>dev.tessera</groupId>
             <artifactId>fabric-rules</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
         <dependency>
