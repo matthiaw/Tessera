@@ -75,7 +75,7 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 - [ ] **REST-02**: `GET` supports filtering by indexed properties, pagination (cursor-based), and projection (field selection)
 - [ ] **REST-03**: `POST/PUT` bodies are validated against the schema before entering `GraphService.apply()`
 - [ ] **REST-04**: Generated endpoints are **fail-closed** — new types default to deny-all until an `exposure` policy is declared
-- [ ] **REST-05**: SpringDoc OpenAPI is dynamically customized from the Schema Registry — generated endpoints appear in `/v3/api-docs`
+- [x] **REST-05**: SpringDoc OpenAPI is dynamically customized from the Schema Registry — generated endpoints appear in `/v3/api-docs`
 - [ ] **REST-06**: Error responses never leak other tenants' data (shared with VALID-04)
 - [ ] **REST-07**: Row-level and field-level access control filters response payloads based on caller role
 
@@ -282,7 +282,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | REST-02 | Phase 2 | Pending |
 | REST-03 | Phase 2 | Pending |
 | REST-04 | Phase 2 | Pending |
-| REST-05 | Phase 2 | Pending |
+| REST-05 | Phase 2 | Complete |
 | REST-06 | Phase 2 | Pending |
 | REST-07 | Phase 2 | Pending |
 | CONN-01 | Phase 2 | Pending |
