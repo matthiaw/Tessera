@@ -37,6 +37,7 @@ requirements:
   - REST-07
   - SEC-01
   - SEC-02
+  - SEC-03  # ops/LUKS documentation per 02-VALIDATION.md row 57 — no code task
   - SEC-04
   - SEC-05
 
@@ -222,7 +223,7 @@ public class CrossTenantException extends RuntimeException {}
     - `grep -q "TypeNotExposedException" fabric-projections/src/main/java/dev/tessera/projections/rest/internal/EntityDispatcher.java` succeeds
     - `grep -q "restReadEnabled" fabric-projections/src/main/java/dev/tessera/projections/rest/internal/EntityDispatcher.java` succeeds
     - `grep -q "OpenApiCustomizer" fabric-projections/src/main/java/dev/tessera/projections/rest/internal/OpenApiSchemaCustomizer.java` succeeds
-    - `grep -q "graph.internal" fabric-projections/src/main/java/dev/tessera/projections/**/*.java` returns zero hits (module boundary)
+    - `! grep -rnq "graph\.internal" fabric-projections/src/main/java` (module boundary; recursive; zero hits required)
     - RestProjectionBench produces a p95 reading; warn-only gate at 50ms
   </acceptance_criteria>
   <done>
