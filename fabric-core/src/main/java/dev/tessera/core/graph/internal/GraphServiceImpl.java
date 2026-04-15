@@ -16,6 +16,7 @@
 package dev.tessera.core.graph.internal;
 
 import dev.tessera.core.circuit.CircuitBreakerPort;
+import dev.tessera.core.connector.dlq.ConnectorDlqWriter;
 import dev.tessera.core.events.EventLog;
 import dev.tessera.core.events.Outbox;
 import dev.tessera.core.graph.GraphMutation;
@@ -28,10 +29,12 @@ import dev.tessera.core.rules.RuleEnginePort;
 import dev.tessera.core.rules.RuleRejectException;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.validation.ShaclValidationException;
 import dev.tessera.core.validation.ShaclValidator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +63,16 @@ public class GraphServiceImpl implements GraphService {
     private final RuleEnginePort ruleEngine;
     private final ReconciliationConflictsRepository conflictsRepository;
     private final CircuitBreakerPort circuitBreaker;
+
+    /**
+     * 02-W1-02 / CONTEXT Decision 14: connector-origin DLQ writer. Autowired
+     * as an optional field so Phase 1 test fixtures ({@code PipelineFixture})
+     * that construct {@code GraphServiceImpl} via the explicit constructor
+     * continue to work without a DLQ writer; in production Spring always
+     * populates the bean.
+     */
+    @Autowired(required = false)
+    private ConnectorDlqWriter connectorDlqWriter;
 
     /**
      * Sole constructor. {@code schemaRegistry}, {@code shaclValidator},
@@ -113,36 +126,53 @@ public class GraphServiceImpl implements GraphService {
         // Runs before SHACL so VALIDATE Rejects short-circuit cheapest, and before
         // the Cypher write so ENRICH/MERGE/OVERRIDE outcomes mutate the property
         // state that ends up in AGE + graph_events + graph_outbox.
+        //
+        // 02-W1-02 / CONTEXT Decision 14: wrap the rule engine + SHACL +
+        // graphSession.apply chain in a try/catch. On RuleRejectException or
+        // ShaclValidationException, IF the mutation came from a connector
+        // (originConnectorId != null) write a DLQ row BEFORE re-throwing. The
+        // DLQ writer uses Propagation.REQUIRES_NEW so the insert commits on a
+        // separate connection while the outer @Transactional rolls back the
+        // graph mutation.
         GraphMutation effective = mutation;
         Map<String, Object> routingHints = Map.of();
         RuleEnginePort.Outcome engineOutcome = null;
-        if (ruleEngine != null) {
-            // 02-W0 Task 2 closes 01-VERIFICATION Known Deviation #1: thread
-            // a per-property source-system map derived from the pre-mutation
-            // node state into ruleEngine.run. Empty on CREATE (previousState
-            // is Map.of()). AuthorityReconciliationRule.findFirstContested
-            // short-circuits on empty currentSourceSystem, so this line is
-            // load-bearing for RULE-05/06 firing through the write funnel.
-            Map<String, String> currentSourceSystem = deriveCurrentSourceSystemMap(previousState);
-            engineOutcome = ruleEngine.run(
-                    mutation.tenantContext(), resolvedDescriptor, previousState, currentSourceSystem, mutation);
-            if (engineOutcome.rejected()) {
-                throw new RuleRejectException(engineOutcome.rejectReason(), engineOutcome.rejectingRuleId());
+        NodeState state;
+        try {
+            if (ruleEngine != null) {
+                // 02-W0 Task 2 closes 01-VERIFICATION Known Deviation #1: thread
+                // a per-property source-system map derived from the pre-mutation
+                // node state into ruleEngine.run. Empty on CREATE (previousState
+                // is Map.of()). AuthorityReconciliationRule.findFirstContested
+                // short-circuits on empty currentSourceSystem, so this line is
+                // load-bearing for RULE-05/06 firing through the write funnel.
+                Map<String, String> currentSourceSystem = deriveCurrentSourceSystemMap(previousState);
+                engineOutcome = ruleEngine.run(
+                        mutation.tenantContext(), resolvedDescriptor, previousState, currentSourceSystem, mutation);
+                if (engineOutcome.rejected()) {
+                    throw new RuleRejectException(engineOutcome.rejectReason(), engineOutcome.rejectingRuleId());
+                }
+                if (!engineOutcome.finalProperties().equals(mutation.payload())) {
+                    effective = mutation.withPayload(engineOutcome.finalProperties());
+                }
+                routingHints = engineOutcome.routingHints();
             }
-            if (!engineOutcome.finalProperties().equals(mutation.payload())) {
-                effective = mutation.withPayload(engineOutcome.finalProperties());
+
+            // VALID-01: synchronous SHACL pre-commit. Runs inside the @Transactional
+            // boundary so a thrown ShaclValidationException rolls back the Cypher
+            // write, event-log append, and outbox insert atomically.
+            if (shaclValidator != null && resolvedDescriptor != null) {
+                shaclValidator.validate(effective.tenantContext(), resolvedDescriptor, effective);
             }
-            routingHints = engineOutcome.routingHints();
-        }
 
-        // VALID-01: synchronous SHACL pre-commit. Runs inside the @Transactional
-        // boundary so a thrown ShaclValidationException rolls back the Cypher
-        // write, event-log append, and outbox insert atomically.
-        if (shaclValidator != null && resolvedDescriptor != null) {
-            shaclValidator.validate(effective.tenantContext(), resolvedDescriptor, effective);
+            state = graphSession.apply(effective.tenantContext(), effective);
+        } catch (RuleRejectException rre) {
+            recordConnectorDlqOnFailure(mutation, "RULE_REJECT", rre.getMessage(), rre.ruleId());
+            throw rre;
+        } catch (ShaclValidationException sve) {
+            recordConnectorDlqOnFailure(mutation, "SHACL_VIOLATION", sve.getMessage(), null);
+            throw sve;
         }
-
-        NodeState state = graphSession.apply(effective.tenantContext(), effective);
 
         String eventType = deriveEventType(effective);
         EventLog.Appended appended =
@@ -174,6 +204,29 @@ public class GraphServiceImpl implements GraphService {
         }
 
         return new GraphMutationOutcome.Committed(state.uuid(), appended.sequenceNr(), appended.eventId());
+    }
+
+    /**
+     * 02-W1-02: guarded DLQ write. No-op when the mutation did not originate
+     * from a connector ({@code originConnectorId == null}) or when no
+     * {@link ConnectorDlqWriter} bean is wired (Phase 1 test fixtures). The
+     * DLQ writer itself runs on {@link Propagation#REQUIRES_NEW} so the row
+     * commits even when the outer TX rolls back.
+     */
+    private void recordConnectorDlqOnFailure(
+            GraphMutation mutation, String rejectionReason, String rejectionDetail, String ruleId) {
+        if (connectorDlqWriter == null || mutation.originConnectorId() == null) {
+            return;
+        }
+        try {
+            connectorDlqWriter.record(mutation.tenantContext(), mutation, rejectionReason, rejectionDetail, ruleId);
+        } catch (RuntimeException dlqFailure) {
+            // A DLQ write failure must NOT mask the original rejection. The
+            // outer catch re-throws the RuleReject / ShaclValidation exception
+            // immediately after this helper returns; swallowing DLQ write
+            // failures is deliberate — operator observability for failed DLQ
+            // writes should come from a Spring async handler in a later wave.
+        }
     }
 
     /**

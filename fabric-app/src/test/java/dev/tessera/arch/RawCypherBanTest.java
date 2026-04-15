@@ -71,16 +71,20 @@ public class RawCypherBanTest {
             .resideOutsideOfPackage("dev.tessera.rules.conflicts..")
             .and()
             .resideOutsideOfPackage("dev.tessera.rules.admin..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.connector.dlq..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.core.security..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")
             .because("CORE-02: only graph.internal (Cypher), events (plain SQL to graph_events/graph_outbox),"
                     + " schema (plain SQL to schema_* tables), core.rules (reconciliation_conflicts writer),"
-                    + " and the fabric-rules rule engine (plain SQL to reconciliation_rules, source_authority,"
-                    + " graph_events for echo-loop suppression) may touch pgJDBC directly."
-                    + " Wave 3 Task 2 widened this list for the rule engine which uses"
-                    + " NamedParameterJdbcTemplate for plain SQL (no Cypher) per ADR-7 §RULE-04. Cypher"
-                    + " string literals remain banned outside graph.internal by the secondary rule below.")
+                    + " the fabric-rules rule engine (plain SQL to reconciliation_rules, source_authority,"
+                    + " graph_events for echo-loop suppression), and Phase 2 Wave 1's core.connector.dlq +"
+                    + " core.security packages (plain SQL to connector_dlq / schema_properties — no Cypher)"
+                    + " may touch pgJDBC directly. Cypher string literals remain banned outside graph.internal"
+                    + " by the secondary rule below.")
             .allowEmptyShould(true);
 
     @ArchTest

@@ -18,6 +18,16 @@ spring:
     virtual:
       enabled: true
 
+# Phase 2 Wave 1 / SEC-06 / CONTEXT Decision 2: field-level encryption is
+# feature-flagged OFF for Phase 2. The EncryptionStartupGuard refuses to boot
+# if any schema_properties row has property_encrypted=TRUE while this flag is
+# false. Flip to true only when the full encryption machinery lands in a
+# later phase.
+tessera:
+  security:
+    field-encryption:
+      enabled: false
+
 management:
   endpoints:
     web:
