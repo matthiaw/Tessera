@@ -72,9 +72,9 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 ### REST Projection (REST)
 
 - [ ] **REST-01**: `GenericEntityController` handles `GET/POST/PUT/DELETE /api/v1/{model}/entities/{typeSlug}` via runtime schema lookup — no per-type controller classes
-- [ ] **REST-02**: `GET` supports filtering by indexed properties, pagination (cursor-based), and projection (field selection)
+- [x] **REST-02**: `GET` supports filtering by indexed properties, pagination (cursor-based), and projection (field selection)
 - [ ] **REST-03**: `POST/PUT` bodies are validated against the schema before entering `GraphService.apply()`
-- [ ] **REST-04**: Generated endpoints are **fail-closed** — new types default to deny-all until an `exposure` policy is declared
+- [x] **REST-04**: Generated endpoints are **fail-closed** — new types default to deny-all until an `exposure` policy is declared
 - [x] **REST-05**: SpringDoc OpenAPI is dynamically customized from the Schema Registry — generated endpoints appear in `/v3/api-docs`
 - [ ] **REST-06**: Error responses never leak other tenants' data (shared with VALID-04)
 - [ ] **REST-07**: Row-level and field-level access control filters response payloads based on caller role
@@ -84,7 +84,7 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 - [ ] **CONN-01**: `Connector` SPI: `getSystemId()`, `getCapabilities()`, `sync(SyncContext)`, `onWebhook(payload)`, `getMapping()`
 - [ ] **CONN-02**: `MappingDefinition` JSON format declares source entity, target node type, field mappings (with transforms), identity fields, sync strategy, sync interval, reconciliation chain
 - [ ] **CONN-03**: `ConnectorRegistry` + Spring `@Scheduled` runner with ShedLock for safe multi-instance scheduling
-- [ ] **CONN-04**: Bounded queues + Spring Retry + `connector_dlq` table for failed events
+- [x] **CONN-04**: Bounded queues + Spring Retry + `connector_dlq` table for failed events
 - [ ] **CONN-05**: `_last_sync_at` and `_source_hash` stored per node; delta detection skips unchanged rows
 - [ ] **CONN-06**: Sync status per `(connector_id, model_id)` exposed via API and dashboard: last success, last failure, events processed, events in DLQ
 - [ ] **CONN-07**: First concrete connector — **generic REST polling** with ETag / `Last-Modified` delta detection — reads from a configured REST endpoint and lands rows as graph nodes
@@ -110,7 +110,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 - [ ] **SEC-03**: Postgres Transparent Data Encryption at rest (LUKS/dm-crypt self-hosted) with CMK-encrypted backups
 - [ ] **SEC-04**: Row-level access control based on caller role, enforced in the Projection Engine before response serialization
 - [ ] **SEC-05**: Field-level access control (read/write roles per `schema_property`), enforced in the Projection Engine
-- [ ] **SEC-06**: Field-level encryption is **gated** — the MVP ships with the feature flag off; if enabled it must include per-tenant blind index keys, multi-version DEKs, fail-closed writes on KMS outage, and a KMS chaos test in CI (all-or-nothing per research)
+- [x] **SEC-06**: Field-level encryption is **gated** — the MVP ships with the feature flag off; if enabled it must include per-tenant blind index keys, multi-version DEKs, fail-closed writes on KMS outage, and a KMS chaos test in CI (all-or-nothing per research)
 - [ ] **SEC-07**: MCP agents are read-only by default; agent-invoked writes require a per-agent write quota and cannot touch schema mutation tools
 - [ ] **SEC-08**: MCP tool responses wrap source-system content in `<data>...</data>` markers to mitigate prompt injection
 
@@ -279,16 +279,16 @@ Explicitly excluded. Documented to prevent scope creep.
 | RULE-07 | Phase 1 | Pending |
 | RULE-08 | Phase 1 | Complete |
 | REST-01 | Phase 2 | Pending |
-| REST-02 | Phase 2 | Pending |
+| REST-02 | Phase 2 | Complete |
 | REST-03 | Phase 2 | Pending |
-| REST-04 | Phase 2 | Pending |
+| REST-04 | Phase 2 | Complete |
 | REST-05 | Phase 2 | Complete |
 | REST-06 | Phase 2 | Pending |
 | REST-07 | Phase 2 | Pending |
 | CONN-01 | Phase 2 | Pending |
 | CONN-02 | Phase 2 | Pending |
 | CONN-03 | Phase 2 | Pending |
-| CONN-04 | Phase 2 | Pending |
+| CONN-04 | Phase 2 | Complete |
 | CONN-05 | Phase 2 | Pending |
 | CONN-06 | Phase 2 | Pending |
 | CONN-07 | Phase 2 | Pending |
@@ -306,7 +306,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | SEC-03 | Phase 2 | Pending |
 | SEC-04 | Phase 2 | Pending |
 | SEC-05 | Phase 2 | Pending |
-| SEC-06 | Phase 2 | Pending |
+| SEC-06 | Phase 2 | Complete |
 | SEC-07 | Phase 3 | Pending |
 | SEC-08 | Phase 3 | Pending |
 | MCP-01 | Phase 3 | Pending |
