@@ -58,8 +58,11 @@ class FlywayBaselineIT {
 
     @Test
     void v1_enable_age_is_applied_and_tessera_main_graph_exists() {
+        // Wave 1 note: fabric-core now ships V1..V9 mirrored from fabric-app so
+        // integration tests can boot the full Phase 1 schema. FOUND-03 still
+        // holds: V1 enabled AGE and created tessera_main; Wave 0 added V2..V9.
         assertThat(flyway.info().applied().length).isGreaterThanOrEqualTo(1);
-        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("1");
+        assertThat(flyway.info().applied()[0].getVersion().getVersion()).isEqualTo("1");
 
         Integer graphs = jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM ag_catalog.ag_graph WHERE name = 'tessera_main'", Integer.class);
