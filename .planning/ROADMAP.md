@@ -62,7 +62,12 @@ Plans:
   3. A generic REST poller connector configured via a `MappingDefinition` pulls rows from a mock REST endpoint, applies ETag / `Last-Modified` delta detection, lands them as graph nodes through `GraphService.apply()`, and exposes sync status (last success, DLQ count, events processed) per `(connector_id, model_id)`.
   4. All consumer-facing HTTP traffic is TLS 1.3 with HSTS; connector credentials are loaded from HashiCorp Vault via Spring Cloud Vault Config Data API and never appear in config files or the fabric DB; row-level and field-level access control filters responses based on caller role.
   5. The field-level encryption decision is recorded and enforced: either the feature flag is off (and writes to encrypted-marked properties are rejected at startup), or the full machinery (per-tenant blind index, multi-version DEKs, fail-closed writes on KMS outage, KMS chaos test in CI) is green.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 02-W0-PLAN.md — Wave 0 SpringDoc dynamic-OpenAPI spike (SchemaVersionBumpIT) + Phase 1 deviation closure (thread currentSourceSystem through GraphServiceImpl.apply; fix ChainExecutor ConflictRecord.winningSourceSystem labelling)
+- [ ] 02-W1-PLAN.md — Wave 1 graph denormalization + schema exposure/encryption columns + DLQ substrate: V10 node _seq indexes, V11 connector_dlq, V12 rest_read_enabled/rest_write_enabled/property_encrypted, GraphSession writes _seq, same-TX REQUIRES_NEW DLQ writer, SEC-06 startup guard
+- [ ] 02-W2-PLAN.md — Wave 2 REST projection + security baseline: GenericEntityController dispatcher, cursor pagination (seek-method), OpenApiCustomizer (promoted from W0 spike), OAuth2 resource server + Vault HMAC via RotatableJwtDecoder, RFC 7807 ControllerAdvice, TLS 1.3 + HSTS, /api/v1/admin/tokens/issue, RestProjectionBench p95 < 50ms, ProjectionsModuleDependencyTest
+- [ ] 02-W3-PLAN.md — Wave 3 connector framework + first connector: Connector SPI + V13/V14/V15 migrations, ConnectorRegistry + Runner + Scheduler (ShedLock per connector_id), GenericRestPollerConnector (Bearer from Vault + Jayway JSONPath + ETag/LM + _source_hash), /api/v1/admin/connectors CRUD + /status + /dlq, ConnectorArchitectureTest, VaultAppRoleAuthIT
 
 ### Phase 2.5: Unstructured Ingestion & Entity Extraction
 **Goal**: Extend the connector framework with a second mode — LLM-based extraction of typed entities and relationships from unstructured text — so that free-text sources (wikis, notes, chat logs, emails, code commentary) land as first-class graph data that flows through the same rule engine, SHACL validation, reconciliation, and source authority matrix as structured connectors. Extracted candidates must be indistinguishable from REST-polled candidates downstream of the connector boundary.
