@@ -75,6 +75,8 @@ public class RawCypherBanTest {
             .resideOutsideOfPackage("dev.tessera.core.connector.dlq..")
             .and()
             .resideOutsideOfPackage("dev.tessera.core.security..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.connectors.internal..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")
@@ -82,7 +84,8 @@ public class RawCypherBanTest {
                     + " schema (plain SQL to schema_* tables), core.rules (reconciliation_conflicts writer),"
                     + " the fabric-rules rule engine (plain SQL to reconciliation_rules, source_authority,"
                     + " graph_events for echo-loop suppression), and Phase 2 Wave 1's core.connector.dlq +"
-                    + " core.security packages (plain SQL to connector_dlq / schema_properties — no Cypher)"
+                    + " core.security packages (plain SQL to connector_dlq / schema_properties — no Cypher),"
+                    + " and connectors.internal (plain SQL to connectors / connector_sync_status — no Cypher)"
                     + " may touch pgJDBC directly. Cypher string literals remain banned outside graph.internal"
                     + " by the secondary rule below.")
             .allowEmptyShould(true);
