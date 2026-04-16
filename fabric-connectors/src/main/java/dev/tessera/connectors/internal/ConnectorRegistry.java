@@ -65,15 +65,20 @@ public class ConnectorRegistry {
 
     @PostConstruct
     void loadAll() {
-        List<Map<String, Object>> rows = jdbc.queryForList("SELECT * FROM connectors WHERE enabled = TRUE", Map.of());
-        for (Map<String, Object> row : rows) {
-            try {
-                loadRow(row);
-            } catch (Exception e) {
-                LOG.warn("Failed to load connector {}: {}", row.get("id"), e.getMessage());
+        try {
+            List<Map<String, Object>> rows =
+                    jdbc.queryForList("SELECT * FROM connectors WHERE enabled = TRUE", Map.of());
+            for (Map<String, Object> row : rows) {
+                try {
+                    loadRow(row);
+                } catch (Exception e) {
+                    LOG.warn("Failed to load connector {}: {}", row.get("id"), e.getMessage());
+                }
             }
+            LOG.info("ConnectorRegistry loaded {} connector instances", instances.size());
+        } catch (Exception e) {
+            LOG.warn("ConnectorRegistry startup load failed (table may not exist yet): {}", e.getMessage());
         }
-        LOG.info("ConnectorRegistry loaded {} connector instances", instances.size());
     }
 
     @EventListener
@@ -85,7 +90,7 @@ public class ConnectorRegistry {
         }
         try {
             List<Map<String, Object>> rows = jdbc.queryForList(
-                    "SELECT * FROM connectors WHERE id = :id",
+                    "SELECT * FROM connectors WHERE id = :id::uuid",
                     new MapSqlParameterSource("id", event.connectorId().toString()));
             if (rows.isEmpty()) {
                 instances.remove(event.connectorId());

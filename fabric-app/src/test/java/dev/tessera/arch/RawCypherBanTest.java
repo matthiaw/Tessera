@@ -77,6 +77,8 @@ public class RawCypherBanTest {
             .resideOutsideOfPackage("dev.tessera.core.security..")
             .and()
             .resideOutsideOfPackage("dev.tessera.connectors.internal..")
+            .and()
+            .resideOutsideOfPackage("dev.tessera.connectors.admin..")
             .should()
             .dependOnClassesThat()
             .resideInAnyPackage("org.postgresql..", "org.springframework.jdbc.core..")

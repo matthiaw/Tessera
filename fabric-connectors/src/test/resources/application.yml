@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: TesseraHikariPool-ConnectorIT
+      maximum-pool-size: 4
+  mvc:
+    problemdetails:
+      enabled: true
+
+tessera:
+  auth:
+    jwt-signing-key: "dGVzc2VyYS10ZXN0LWtleS0xMjM0NTY3ODkwYWJjZGVm"
+    token-ttl-minutes: 15
+    bootstrap-token: "test-bootstrap-secret"

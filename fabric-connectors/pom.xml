@@ -46,10 +46,16 @@
             <artifactId>spring-boot-starter-jdbc</artifactId>
         </dependency>
 
-        <!-- Spring context for @Component, @Scheduled, ApplicationEventPublisher -->
+        <!-- Spring Web for admin REST controllers -->
         <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- OAuth2 resource server for @AuthenticationPrincipal Jwt in admin controllers -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
 
         <!-- Jackson for MappingDefinition JSON parsing -->
@@ -77,6 +83,11 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>vault</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>
