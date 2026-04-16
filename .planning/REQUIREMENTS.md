@@ -81,14 +81,14 @@ Requirements for initial release (milestone 1 — MVP through first real consume
 
 ### Connector Framework (CONN)
 
-- [ ] **CONN-01**: `Connector` SPI: `getSystemId()`, `getCapabilities()`, `sync(SyncContext)`, `onWebhook(payload)`, `getMapping()`
-- [ ] **CONN-02**: `MappingDefinition` JSON format declares source entity, target node type, field mappings (with transforms), identity fields, sync strategy, sync interval, reconciliation chain
-- [ ] **CONN-03**: `ConnectorRegistry` + Spring `@Scheduled` runner with ShedLock for safe multi-instance scheduling
+- [x] **CONN-01**: `Connector` SPI: `getSystemId()`, `getCapabilities()`, `sync(SyncContext)`, `onWebhook(payload)`, `getMapping()`
+- [x] **CONN-02**: `MappingDefinition` JSON format declares source entity, target node type, field mappings (with transforms), identity fields, sync strategy, sync interval, reconciliation chain
+- [x] **CONN-03**: `ConnectorRegistry` + Spring `@Scheduled` runner with ShedLock for safe multi-instance scheduling
 - [x] **CONN-04**: Bounded queues + Spring Retry + `connector_dlq` table for failed events
-- [ ] **CONN-05**: `_last_sync_at` and `_source_hash` stored per node; delta detection skips unchanged rows
-- [ ] **CONN-06**: Sync status per `(connector_id, model_id)` exposed via API and dashboard: last success, last failure, events processed, events in DLQ
-- [ ] **CONN-07**: First concrete connector — **generic REST polling** with ETag / `Last-Modified` delta detection — reads from a configured REST endpoint and lands rows as graph nodes
-- [ ] **CONN-08**: First connector is **read-only** (no write-back to source system) — bidirectional propagation is explicitly deferred
+- [x] **CONN-05**: `_last_sync_at` and `_source_hash` stored per node; delta detection skips unchanged rows
+- [x] **CONN-06**: Sync status per `(connector_id, model_id)` exposed via API and dashboard: last success, last failure, events processed, events in DLQ
+- [x] **CONN-07**: First concrete connector — **generic REST polling** with ETag / `Last-Modified` delta detection — reads from a configured REST endpoint and lands rows as graph nodes
+- [x] **CONN-08**: First connector is **read-only** (no write-back to source system) — bidirectional propagation is explicitly deferred
 
 ### Unstructured Ingestion & Entity Extraction (EXTR)
 
@@ -106,7 +106,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 ### Security (SEC)
 
 - [ ] **SEC-01**: TLS 1.3 minimum on all consumer-facing HTTP endpoints (REST, MCP, WebSocket); HSTS enabled
-- [ ] **SEC-02**: Connector credentials and secrets live in HashiCorp Vault, loaded via Spring Cloud Vault Config Data API — never in repo, config files, or the fabric DB
+- [x] **SEC-02**: Connector credentials and secrets live in HashiCorp Vault, loaded via Spring Cloud Vault Config Data API — never in repo, config files, or the fabric DB
 - [ ] **SEC-03**: Postgres Transparent Data Encryption at rest (LUKS/dm-crypt self-hosted) with CMK-encrypted backups
 - [ ] **SEC-04**: Row-level access control based on caller role, enforced in the Projection Engine before response serialization
 - [ ] **SEC-05**: Field-level access control (read/write roles per `schema_property`), enforced in the Projection Engine
@@ -285,14 +285,14 @@ Explicitly excluded. Documented to prevent scope creep.
 | REST-05 | Phase 2 | Complete |
 | REST-06 | Phase 2 | Pending |
 | REST-07 | Phase 2 | Pending |
-| CONN-01 | Phase 2 | Pending |
-| CONN-02 | Phase 2 | Pending |
-| CONN-03 | Phase 2 | Pending |
+| CONN-01 | Phase 2 | Complete |
+| CONN-02 | Phase 2 | Complete |
+| CONN-03 | Phase 2 | Complete |
 | CONN-04 | Phase 2 | Complete |
-| CONN-05 | Phase 2 | Pending |
-| CONN-06 | Phase 2 | Pending |
-| CONN-07 | Phase 2 | Pending |
-| CONN-08 | Phase 2 | Pending |
+| CONN-05 | Phase 2 | Complete |
+| CONN-06 | Phase 2 | Complete |
+| CONN-07 | Phase 2 | Complete |
+| CONN-08 | Phase 2 | Complete |
 | EXTR-01 | Phase 2.5 | Pending |
 | EXTR-02 | Phase 2.5 | Pending |
 | EXTR-03 | Phase 2.5 | Pending |
@@ -302,7 +302,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | EXTR-07 | Phase 2.5 | Pending |
 | EXTR-08 | Phase 2.5 | Pending |
 | SEC-01 | Phase 2 | Pending |
-| SEC-02 | Phase 2 | Pending |
+| SEC-02 | Phase 2 | Complete |
 | SEC-03 | Phase 2 | Pending |
 | SEC-04 | Phase 2 | Pending |
 | SEC-05 | Phase 2 | Pending |
