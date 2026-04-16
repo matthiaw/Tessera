@@ -64,11 +64,13 @@ public final class EventLog {
                 model_id, sequence_nr, event_type, node_uuid, edge_uuid, type_slug,
                 payload, delta, caused_by, source_type, source_id, source_system,
                 confidence, extractor_version, llm_model_id,
+                source_document_id, source_chunk_range,
                 origin_connector_id, origin_change_id
             ) VALUES (
                 :model_id::uuid, :sequence_nr, :event_type, :node_uuid::uuid, :edge_uuid::uuid, :type_slug,
                 :payload::jsonb, :delta::jsonb, :caused_by, :source_type, :source_id, :source_system,
                 :confidence, :extractor_version, :llm_model_id,
+                :source_document_id, :source_chunk_range,
                 :origin_connector_id, :origin_change_id
             )
             RETURNING id
@@ -260,6 +262,8 @@ public final class EventLog {
         p.addValue("confidence", mutation.confidence());
         p.addValue("extractor_version", mutation.extractorVersion(), Types.VARCHAR);
         p.addValue("llm_model_id", mutation.llmModelId(), Types.VARCHAR);
+        p.addValue("source_document_id", mutation.sourceDocumentId(), Types.VARCHAR);
+        p.addValue("source_chunk_range", mutation.sourceChunkRange(), Types.VARCHAR);
         p.addValue("origin_connector_id", mutation.originConnectorId(), Types.VARCHAR);
         p.addValue("origin_change_id", mutation.originChangeId(), Types.VARCHAR);
 

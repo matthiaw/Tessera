@@ -22,6 +22,7 @@ package dev.tessera.core.graph;
 public enum SourceType {
     STRUCTURED,
     EXTRACTION,
+    UNSTRUCTURED,
     MANUAL,
     SYSTEM
 }

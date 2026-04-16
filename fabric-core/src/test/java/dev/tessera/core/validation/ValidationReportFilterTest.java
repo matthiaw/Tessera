@@ -92,6 +92,8 @@ class ValidationReportFilterTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null);
 
         assertThatThrownBy(() -> validator.validate(ctx, descriptor, m))

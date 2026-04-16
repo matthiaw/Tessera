@@ -213,7 +213,8 @@ public class GenericRestPollerConnector implements Connector {
                             state.customState() != null
                                     ? (String) state.customState().get("connector_id")
                                     : "unknown",
-                            UUID.randomUUID().toString()));
+                            UUID.randomUUID().toString(),
+                            null, null, null, null, null));
 
                 } catch (Exception e) {
                     dlq.add(new DlqEntry("MAPPING_ERROR", e.getMessage(), rowToMap(row)));

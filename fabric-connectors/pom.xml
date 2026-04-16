@@ -40,6 +40,25 @@
             <artifactId>shedlock-provider-jdbc-template</artifactId>
         </dependency>
 
+        <!-- Spring AI: Anthropic Claude for LLM-based entity extraction (Phase 2.5) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-anthropic</artifactId>
+        </dependency>
+
+        <!-- Spring AI: Ollama for self-hosted embedding generation (Phase 2.5) -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-ollama</artifactId>
+        </dependency>
+
+        <!-- Apache Commons Text for fuzzy string matching in entity resolution (Phase 2.5) -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-text</artifactId>
+            <version>${commons-text.version}</version>
+        </dependency>
+
         <!-- Spring JDBC for ConnectorRegistry, SyncStatusRepository -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

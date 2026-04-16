@@ -70,6 +70,8 @@ class TargetedValidationTest {
                 null,
                 null,
                 null,
+                null,
+                null,
                 null);
     }
 

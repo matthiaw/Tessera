@@ -28,12 +28,17 @@ import java.util.UUID;
  * Converted to a {@link GraphMutation} by the runner before flowing
  * through {@code GraphService.apply}.
  *
- * @param targetTypeSlug  Tessera node type slug
- * @param targetNodeUuid  existing node UUID for updates; null for creates
- * @param properties      mapped properties from the source
- * @param sourceSystem    source system identifier
- * @param connectorId     originating connector UUID
- * @param changeId        unique ID for this change (dedup key)
+ * @param targetTypeSlug       Tessera node type slug
+ * @param targetNodeUuid       existing node UUID for updates; null for creates
+ * @param properties           mapped properties from the source
+ * @param sourceSystem         source system identifier
+ * @param connectorId          originating connector UUID
+ * @param changeId             unique ID for this change (dedup key)
+ * @param sourceDocumentId     Phase 2.5 provenance: SHA-256 of source document (null for structured)
+ * @param sourceChunkRange     Phase 2.5 provenance: char offset:length within document (null for structured)
+ * @param extractorVersion     Phase 2.5 provenance: extractor version string (null for structured)
+ * @param llmModelId           Phase 2.5 provenance: LLM model identifier (null for structured)
+ * @param extractionConfidence Phase 2.5 provenance: extraction confidence 0.0-1.0 (null for structured)
  */
 public record CandidateMutation(
         String targetTypeSlug,
@@ -41,10 +46,18 @@ public record CandidateMutation(
         Map<String, Object> properties,
         String sourceSystem,
         String connectorId,
-        String changeId) {
+        String changeId,
+        // Phase 2.5 provenance (null for structured connectors)
+        String sourceDocumentId,
+        String sourceChunkRange,
+        String extractorVersion,
+        String llmModelId,
+        BigDecimal extractionConfidence) {
 
     /**
      * Convert to a {@link GraphMutation} for the write funnel.
+     * When provenance fields are present (unstructured path), uses
+     * {@link SourceType#UNSTRUCTURED} per CONTEXT.md Decisions 6 and 8.
      */
     public GraphMutation toMutation(TenantContext tenant) {
         return new GraphMutation(
@@ -53,12 +66,14 @@ public record CandidateMutation(
                 targetTypeSlug,
                 targetNodeUuid,
                 properties,
-                SourceType.STRUCTURED,
+                sourceDocumentId != null ? SourceType.UNSTRUCTURED : SourceType.STRUCTURED,
                 connectorId,
                 sourceSystem,
-                BigDecimal.ONE,
-                null,
-                null,
+                extractionConfidence != null ? extractionConfidence : BigDecimal.ONE,
+                extractorVersion,
+                llmModelId,
+                sourceDocumentId,
+                sourceChunkRange,
                 connectorId,
                 changeId);
     }

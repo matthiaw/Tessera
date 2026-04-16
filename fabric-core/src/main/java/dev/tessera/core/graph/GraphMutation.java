@@ -40,6 +40,8 @@ public record GraphMutation(
         BigDecimal confidence,
         String extractorVersion,
         String llmModelId,
+        String sourceDocumentId,
+        String sourceChunkRange,
         String originConnectorId,
         String originChangeId) {
 
@@ -75,6 +77,8 @@ public record GraphMutation(
                 confidence,
                 extractorVersion,
                 llmModelId,
+                sourceDocumentId,
+                sourceChunkRange,
                 originConnectorId,
                 originChangeId);
     }
@@ -93,6 +97,8 @@ public record GraphMutation(
                 confidence,
                 extractorVersion,
                 llmModelId,
+                sourceDocumentId,
+                sourceChunkRange,
                 originConnectorId,
                 originChangeId);
     }
@@ -114,6 +120,8 @@ public record GraphMutation(
         private BigDecimal confidence = BigDecimal.ONE;
         private String extractorVersion;
         private String llmModelId;
+        private String sourceDocumentId;
+        private String sourceChunkRange;
         private String originConnectorId;
         private String originChangeId;
 
@@ -172,6 +180,16 @@ public record GraphMutation(
             return this;
         }
 
+        public Builder sourceDocumentId(String v) {
+            this.sourceDocumentId = v;
+            return this;
+        }
+
+        public Builder sourceChunkRange(String v) {
+            this.sourceChunkRange = v;
+            return this;
+        }
+
         public Builder originConnectorId(String v) {
             this.originConnectorId = v;
             return this;
@@ -195,6 +213,8 @@ public record GraphMutation(
                     confidence,
                     extractorVersion,
                     llmModelId,
+                    sourceDocumentId,
+                    sourceChunkRange,
                     originConnectorId,
                     originChangeId);
         }
