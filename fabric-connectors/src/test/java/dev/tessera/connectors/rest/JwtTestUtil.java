@@ -30,17 +30,17 @@ import java.util.List;
  * Test utility to mint HS256 JWTs for connector integration tests.
  * Uses a static test signing key matching the test properties.
  */
-final class JwtTestUtil {
+public final class JwtTestUtil {
 
     static final String TEST_SIGNING_KEY = "dGVzc2VyYS10ZXN0LWtleS0xMjM0NTY3ODkwYWJjZGVm";
 
     private JwtTestUtil() {}
 
-    static String mintAdmin(String tenant) {
+    public static String mintAdmin(String tenant) {
         return mint(tenant, List.of("ADMIN"));
     }
 
-    static String mint(String tenant, List<String> roles) {
+    public static String mint(String tenant, List<String> roles) {
         try {
             byte[] raw = Base64.getDecoder().decode(TEST_SIGNING_KEY);
             MACSigner signer = new MACSigner(raw);
