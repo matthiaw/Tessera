@@ -30,6 +30,7 @@ server:
 # false. Flip to true only when the full encryption machinery lands in a
 # later phase.
 tessera:
+  version: 0.1.0-SNAPSHOT
   security:
     field-encryption:
       enabled: false
@@ -37,10 +38,27 @@ tessera:
     jwt-signing-key: "${TESSERA_JWT_SIGNING_KEY:}"
     token-ttl-minutes: 15
     bootstrap-token: "${TESSERA_BOOTSTRAP_TOKEN:}"
+  extraction:
+    model: claude-sonnet-4-5
+    max-tokens: 4096
+    temperature: 0.0
+    max-retries: 3
 
 springdoc:
   cache:
     disabled: true
+
+spring.ai:
+  anthropic:
+    api-key: ${ANTHROPIC_API_KEY:placeholder}
+    chat:
+      options:
+        max-tokens: 4096
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    embedding:
+      options:
+        model: nomic-embed-text
 
 management:
   endpoints:

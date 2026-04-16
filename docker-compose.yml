@@ -1,19 +1,23 @@
-# Tessera local dev stack — Phase 0 (FOUND-02)
+# Tessera local dev stack
 #
-# Single service: Postgres 16 + Apache AGE 1.6.0 (PG16 branch), pinned by sha256 digest.
-# Vault is deferred to Phase 2 (Phase 0 D-08). No app service yet — Phase 0 only stands up
-# the DB substrate. AGE extension creation lives in Flyway V1 (plan 00-03 D-10), NOT here:
-# no command override, no init-SQL bind mount.
+# Services:
+#   postgres-age: PostgreSQL 16 + Apache AGE 1.6.0 + pgvector (custom image)
+#   ollama: Self-hosted Ollama for embedding generation (nomic-embed-text)
+#   ollama-init: One-shot model pull for Ollama
 #
-# D-09: The image digest below is one of THREE enforcement sites. Bumping it requires
+# Vault is deferred to Phase 2 (Phase 0 D-08). No app service yet.
+# AGE extension creation lives in Flyway V1 (plan 00-03 D-10), NOT here.
+#
+# D-09: The base image digest is one of THREE enforcement sites. Bumping it requires
 # updating all three:
-#   1. docker-compose.yml (this file)
+#   1. docker/age-pgvector/Dockerfile (base image FROM line)
 #   2. fabric-core/src/test/java/dev/tessera/core/support/AgePostgresContainer.java (plan 00-03)
 #   3. README.md "Image pinning" section
 
 services:
   postgres-age:
-    image: apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed
+    build:
+      context: docker/age-pgvector
     container_name: tessera-postgres-age
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-tessera}
@@ -31,6 +35,34 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: tessera-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - tessera-ollama-data:/root/.ollama
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    restart: unless-stopped
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: tessera-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["sh", "-c", "ollama pull nomic-embed-text && echo 'Model ready'"]
+    restart: "no"
+
 volumes:
   tessera-pgdata:
+    driver: local
+  tessera-ollama-data:
     driver: local

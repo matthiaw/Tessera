@@ -74,7 +74,8 @@ class EtagDeltaDetectionIT {
                 "$.data[*]",
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
-                baseUrl + "/api/data");
+                baseUrl + "/api/data",
+                null, null, null, null, null, null);
     }
 
     @Test

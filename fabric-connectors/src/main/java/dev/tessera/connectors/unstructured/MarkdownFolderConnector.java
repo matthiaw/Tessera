@@ -253,14 +253,21 @@ public class MarkdownFolderConnector implements Connector {
     }
 
     private List<Path> scanFolder(Path folder, String globPattern) {
+        // Build two matchers: the original pattern and a root-level variant.
+        // glob:**/*.md does not match "file.md" at root level (no directory component),
+        // so we also check the filename-only portion of the pattern (e.g., *.md).
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
+        String rootGlob = globPattern.startsWith("**/")
+                ? globPattern.substring(3)
+                : globPattern;
+        PathMatcher rootMatcher = FileSystems.getDefault().getPathMatcher("glob:" + rootGlob);
         List<Path> result = new ArrayList<>();
         try {
             Files.walkFileTree(folder, new SimpleFileVisitor<>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                     Path relative = folder.relativize(file);
-                    if (matcher.matches(relative)) {
+                    if (matcher.matches(relative) || rootMatcher.matches(relative)) {
                         result.add(file);
                     }
                     return FileVisitResult.CONTINUE;

@@ -58,4 +58,25 @@ public class ConnectorArchitectureTest {
             .dependOnClassesThat()
             .haveSimpleName("GraphService")
             .allowEmptyShould(true);
+
+    // Phase 2.5 EXTR-06: Extraction and resolution paths cannot bypass the write funnel.
+    // Only ConnectorRunner (in connectors.internal) may call GraphService.apply().
+
+    @ArchTest
+    static final ArchRule extraction_classes_must_not_depend_on_graph_service = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.connectors.extraction..")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleName("GraphService")
+            .allowEmptyShould(true);
+
+    @ArchTest
+    static final ArchRule resolution_classes_must_not_depend_on_graph_service = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.rules.resolution..")
+            .should()
+            .dependOnClassesThat()
+            .haveSimpleName("GraphService")
+            .allowEmptyShould(true);
 }

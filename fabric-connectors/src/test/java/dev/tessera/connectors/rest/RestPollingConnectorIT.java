@@ -99,7 +99,8 @@ class RestPollingConnectorIT {
                         new FieldMapping("name", "$.name", null, false),
                         new FieldMapping("email", "$.email", "lowercase", false)),
                 List.of("name"),
-                wm.baseUrl() + "/api/customers");
+                wm.baseUrl() + "/api/customers",
+                null, null, null, null, null, null);
 
         ConnectorState state = new ConnectorState(
                 null, null, null, 0L, Map.of("bearer_token", "test-token-123", "connector_id", "conn-001"));
@@ -142,7 +143,8 @@ class RestPollingConnectorIT {
                         new FieldMapping("name", "$.name", null, false),
                         new FieldMapping("email", "$.email", null, false)),
                 List.of("name"),
-                wm.baseUrl() + "/api/customers");
+                wm.baseUrl() + "/api/customers",
+                null, null, null, null, null, null);
 
         ConnectorState state = new ConnectorState(null, null, null, 0L, Map.of("connector_id", "conn-002"));
         TenantContext tenant = TenantContext.of(UUID.randomUUID());
