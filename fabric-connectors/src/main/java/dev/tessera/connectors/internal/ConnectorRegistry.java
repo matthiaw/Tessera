@@ -141,7 +141,7 @@ public class ConnectorRegistry {
             String mappingJson = row.get("mapping_def").toString();
             MappingDefinition mapping = objectMapper.readValue(mappingJson, MappingDefinition.class);
 
-            List<String> errors = MappingDefinitionValidator.validate(mapping, authType, pollInterval);
+            List<String> errors = MappingDefinitionValidator.validate(mapping, authType, pollInterval, type);
             if (!errors.isEmpty()) {
                 LOG.warn("Connector {} has invalid mapping: {}", id, errors);
                 return;

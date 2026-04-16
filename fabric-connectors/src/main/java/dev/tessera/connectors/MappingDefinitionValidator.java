@@ -31,9 +31,64 @@ public final class MappingDefinitionValidator {
 
     /**
      * Validate a connector's configuration. Returns a list of error messages
+     * (empty if valid). Delegates to type-specific validation based on
+     * connector type.
+     */
+    public static List<String> validate(
+            MappingDefinition mapping, String authType, int pollIntervalSeconds, String connectorType) {
+        if ("unstructured-text".equals(connectorType)) {
+            return validateUnstructured(mapping, authType, pollIntervalSeconds);
+        }
+        return validateRest(mapping, authType, pollIntervalSeconds);
+    }
+
+    /**
+     * Validate a connector's configuration. Returns a list of error messages
      * (empty if valid).
      */
     public static List<String> validate(MappingDefinition mapping, String authType, int pollIntervalSeconds) {
+        return validateRest(mapping, authType, pollIntervalSeconds);
+    }
+
+    private static List<String> validateUnstructured(
+            MappingDefinition mapping, String authType, int pollIntervalSeconds) {
+        List<String> errors = new ArrayList<>();
+
+        // Auth type: NONE or BEARER for unstructured connectors
+        if (authType != null && !authType.equalsIgnoreCase("NONE") && !authType.equalsIgnoreCase("BEARER")) {
+            errors.add("auth_type must be 'NONE' or 'BEARER' for unstructured connectors, got: " + authType);
+        }
+
+        if (pollIntervalSeconds < 1) {
+            errors.add("poll_interval_seconds must be >= 1, got: " + pollIntervalSeconds);
+        }
+
+        if (mapping == null) {
+            errors.add("mapping_def must not be null");
+            return errors;
+        }
+
+        if (mapping.folderPath() == null || mapping.folderPath().isBlank()) {
+            errors.add("folder_path must not be blank for unstructured connectors");
+        } else if (mapping.folderPath().contains("..")) {
+            errors.add("folder_path must not contain '..' (path traversal)");
+        }
+
+        String provider = mapping.provider() != null ? mapping.provider() : "anthropic";
+        if (!"anthropic".equals(provider)) {
+            errors.add("provider must be 'anthropic', got: " + provider);
+        }
+
+        String strategy = mapping.chunkStrategy() != null ? mapping.chunkStrategy() : "paragraph";
+        if (!strategy.equals("paragraph") && !strategy.equals("sentence")) {
+            errors.add("chunk_strategy must be 'paragraph' or 'sentence', got: " + strategy);
+        }
+
+        return errors;
+    }
+
+    private static List<String> validateRest(
+            MappingDefinition mapping, String authType, int pollIntervalSeconds) {
         List<String> errors = new ArrayList<>();
 
         // Auth type: only BEARER in Phase 2

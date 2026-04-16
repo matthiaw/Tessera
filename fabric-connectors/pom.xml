@@ -22,6 +22,11 @@
             <artifactId>fabric-core</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>dev.tessera</groupId>
+            <artifactId>fabric-rules</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
         <!-- JSONPath mapping for connector field extraction -->
         <dependency>
