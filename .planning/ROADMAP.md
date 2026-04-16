@@ -79,7 +79,12 @@ Plans:
   3. Entity Resolution against existing graph state is deterministic and reproducible: for a given `(name, type, optional embedding)`, running resolution twice on the same DB state returns the same merge decision; a test proves that matches above the configured threshold merge into the existing node and matches below land in a review queue.
   4. Reconciliation between extracted and structured-source entities honors the per-tenant authority matrix: when an extraction says a property value is X and a structured connector says Y, the matrix picks the winner, the loser is logged in `reconciliation_conflicts` with the extraction metadata intact, and the conflict is queryable per source type.
   5. The `pgvector` extension is installed via Flyway migration, embeddings are optional per entity type (configured in the Schema Registry), and at least one concrete unstructured connector (Markdown folder / Obsidian-vault shape) is green end-to-end against a Testcontainers-seeded AGE + pgvector database.
-**Plans**: TBD
+**Plans**: 4 plans
+Plans:
+- [ ] 02.5-01-PLAN.md — Infrastructure: custom AGE+pgvector Docker image, Flyway V16-V21 (pgvector, entity_embeddings, review queue, provenance columns, embedding flags, auth_type widening), CandidateMutation/GraphMutation provenance extension, POM dependencies
+- [ ] 02.5-02-PLAN.md — Text chunking + LLM extraction: TextChunker strategy (ParagraphChunker, SentenceChunker), ExtractionCandidate, DynamicSchemaOutputConverter, SchemaRegistrySchemaBuilder, ExtractionService with retry
+- [ ] 02.5-03-PLAN.md — Entity resolution + review queue: EntityResolutionService (three-tier: exact, embedding, fuzzy), EmbeddingService, FuzzyNameMatcher, ExtractionReviewController + Repository
+- [ ] 02.5-04-PLAN.md — Integration: MarkdownFolderConnector, ConnectorRunner extraction hooks, ArchUnit enforcement, Docker Compose Ollama, E2E MarkdownFolderConnectorIT
 
 ### Phase 3: MCP Projection (Flagship Differentiator)
 **Goal**: Make Tessera usable as durable, typed shared memory for LLM agents through a Spring AI MCP Server whose tool surface is dynamically registered from the Schema Registry, read-only by default, audited per invocation, and hardened against prompt injection and schema-mutation abuse.
@@ -123,7 +128,7 @@ Plans:
 | 0. Foundations & Risk Burndown | 0/0 | Not started | - |
 | 1. Graph Core, Schema Registry, Validation, Rules | 0/0 | Not started | - |
 | 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
-| 2.5. Unstructured Ingestion & Entity Extraction | 0/0 | Not started | - |
+| 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 0/0 | Not started | - |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/0 | Not started | - |
 | 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
