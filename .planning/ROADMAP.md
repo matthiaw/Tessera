@@ -66,7 +66,7 @@ Plans:
 Plans:
 - [x] 02-W0-PLAN.md — Wave 0 SpringDoc dynamic-OpenAPI spike (SchemaVersionBumpIT) + Phase 1 deviation closure (thread currentSourceSystem through GraphServiceImpl.apply; fix ChainExecutor ConflictRecord.winningSourceSystem labelling)
 - [x] 02-W1-PLAN.md — Wave 1 graph denormalization + schema exposure/encryption columns + DLQ substrate: V10 node _seq indexes, V11 connector_dlq, V12 rest_read_enabled/rest_write_enabled/property_encrypted, GraphSession writes _seq, same-TX REQUIRES_NEW DLQ writer, SEC-06 startup guard
-- [ ] 02-W2-PLAN.md — Wave 2 REST projection + security baseline: GenericEntityController dispatcher, cursor pagination (seek-method), OpenApiCustomizer (promoted from W0 spike), OAuth2 resource server + Vault HMAC via RotatableJwtDecoder, RFC 7807 ControllerAdvice, TLS 1.3 + HSTS, /api/v1/admin/tokens/issue, RestProjectionBench p95 < 50ms, ProjectionsModuleDependencyTest
+- [x] 02-W2-PLAN.md — Wave 2 REST projection + security baseline: GenericEntityController dispatcher, cursor pagination (seek-method), OpenApiCustomizer (promoted from W0 spike), OAuth2 resource server + Vault HMAC via RotatableJwtDecoder, RFC 7807 ControllerAdvice, TLS 1.3 + HSTS, /api/v1/admin/tokens/issue, RestProjectionBench p95 < 50ms, ProjectionsModuleDependencyTest
 - [ ] 02-W3-PLAN.md — Wave 3 connector framework + first connector: Connector SPI + V13/V14/V15 migrations, ConnectorRegistry + Runner + Scheduler (ShedLock per connector_id), GenericRestPollerConnector (Bearer from Vault + Jayway JSONPath + ETag/LM + _source_hash), /api/v1/admin/connectors CRUD + /status + /dlq, ConnectorArchitectureTest, VaultAppRoleAuthIT
 
 ### Phase 2.5: Unstructured Ingestion & Entity Extraction
