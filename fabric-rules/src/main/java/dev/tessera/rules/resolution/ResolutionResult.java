@@ -22,14 +22,14 @@ import java.util.UUID;
  * <ul>
  *   <li>{@link Match} — candidate matches an existing graph node</li>
  *   <li>{@link Create} — no match found, create a new node</li>
- *   <li>{@link ReviewQueue} — below confidence threshold, route to operator review</li>
+ *   <li>{@link NeedsReview} — below confidence threshold, route to operator review</li>
  * </ul>
  */
-public sealed interface ResolutionResult permits ResolutionResult.Match, ResolutionResult.Create, ResolutionResult.ReviewQueue {
+public sealed interface ResolutionResult permits ResolutionResult.Match, ResolutionResult.Create, ResolutionResult.NeedsReview {
 
     record Match(UUID existingNodeUuid, String tier, double score) implements ResolutionResult {}
 
     record Create() implements ResolutionResult {}
 
-    record ReviewQueue(String tier, double score) implements ResolutionResult {}
+    record NeedsReview(String tier, double score) implements ResolutionResult {}
 }

@@ -223,7 +223,7 @@ public class ConnectorRunner {
         ResolutionResult resolution = entityResolutionService.resolve(
                 resCandidate, instance.tenant(), threshold, embeddingEnabled, DEFAULT_EMBEDDING_MODEL);
 
-        if (resolution instanceof ResolutionResult.ReviewQueue rq) {
+        if (resolution instanceof ResolutionResult.NeedsReview rq) {
             // Route to review queue
             if (reviewRepository != null) {
                 ReviewQueueEntry entry = new ReviewQueueEntry(

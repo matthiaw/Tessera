@@ -59,7 +59,7 @@ public class EntityResolutionService {
      * @param threshold        similarity threshold for tier 2 and tier 3
      * @param embeddingEnabled whether tier 2 (embedding similarity) is active
      * @param embeddingModelName the embedding model identifier for tier 2 queries
-     * @return resolution result: Match, Create (unused currently), or ReviewQueue
+     * @return resolution result: Match, Create (unused currently), or NeedsReview
      */
     public ResolutionResult resolve(
             ResolutionCandidate candidate,
@@ -114,6 +114,6 @@ public class EntityResolutionService {
         }
 
         // --- None matched: route to review queue ---
-        return new ResolutionResult.ReviewQueue("ALL", bestScore);
+        return new ResolutionResult.NeedsReview("ALL", bestScore);
     }
 }

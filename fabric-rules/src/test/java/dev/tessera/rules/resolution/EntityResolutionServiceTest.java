@@ -149,8 +149,8 @@ class EntityResolutionServiceTest {
         ResolutionCandidate candidate = new ResolutionCandidate("Person", "Bob Williams", Map.of(), BigDecimal.ONE);
         ResolutionResult result = service.resolve(candidate, tenant, threshold, true, embeddingModel);
 
-        assertThat(result).isInstanceOf(ResolutionResult.ReviewQueue.class);
-        ResolutionResult.ReviewQueue rq = (ResolutionResult.ReviewQueue) result;
+        assertThat(result).isInstanceOf(ResolutionResult.NeedsReview.class);
+        ResolutionResult.NeedsReview rq = (ResolutionResult.NeedsReview) result;
         assertThat(rq.tier()).isEqualTo("ALL");
     }
 
