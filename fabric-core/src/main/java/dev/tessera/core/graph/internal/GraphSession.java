@@ -330,6 +330,22 @@ public final class GraphSession {
         return Optional.of(toNodeState(label, rows.get(0)));
     }
 
+    /**
+     * Cursor-paginated read: returns up to {@code limit} nodes whose
+     * {@code _seq > afterSeq}, ordered by {@code _seq} ascending. Used by
+     * the REST projection dispatcher for stable cursor pagination (W2a).
+     */
+    public List<NodeState> queryAllNodesAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
+        String label = validateIdent(typeSlug, "node type");
+        String cypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$"
+                + " MATCH (n:" + label + ")"
+                + " WHERE n.model_id = \"" + ctx.modelId() + "\" AND n." + SYS_SEQ + " > " + afterSeq
+                + " RETURN n ORDER BY n." + SYS_SEQ + " LIMIT " + limit
+                + " $$) AS (n agtype)";
+        List<String> rows = jdbc.query(cypher, (rs, i) -> rs.getString(1));
+        return rows.stream().map(r -> toNodeState(label, r)).toList();
+    }
+
     public List<NodeState> queryAllNodes(TenantContext ctx, String typeSlug) {
         String label = validateIdent(typeSlug, "node type");
         String cypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$"

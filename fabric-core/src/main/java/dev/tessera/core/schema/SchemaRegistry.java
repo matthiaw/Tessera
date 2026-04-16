@@ -22,6 +22,7 @@ import dev.tessera.core.schema.internal.SchemaRepository;
 import dev.tessera.core.tenant.TenantContext;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -198,6 +199,27 @@ public class SchemaRegistry {
 
     public Optional<String> resolvePropertySlug(TenantContext ctx, String typeSlug, String maybeOldSlug) {
         return aliases.resolveCurrentPropertySlug(ctx, typeSlug, maybeOldSlug);
+    }
+
+    // ---------- REST projection queries (W2a) ----------
+
+    /**
+     * Return all node types for a given model that have {@code rest_read_enabled = true}.
+     * Used by the REST projection dispatcher to determine which types are exposed.
+     */
+    public List<NodeTypeDescriptor> listExposedTypes(UUID modelId) {
+        TenantContext ctx = TenantContext.of(modelId);
+        long version = versions.currentVersion(ctx);
+        return repo.listExposedNodeTypes(ctx, version);
+    }
+
+    /**
+     * Return all distinct model IDs that have at least one node type with
+     * {@code rest_read_enabled = true}. Used by the OpenAPI customizer to
+     * enumerate active models.
+     */
+    public List<UUID> listDistinctExposedModels() {
+        return repo.listDistinctExposedModels();
     }
 
     // ---------- breaking-change detector (SCHEMA-08) ----------

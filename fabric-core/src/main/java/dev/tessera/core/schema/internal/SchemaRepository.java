@@ -207,6 +207,39 @@ public class SchemaRepository {
                 p);
     }
 
+    // ---------------- REST projection queries (W2a) ----------------
+
+    public List<NodeTypeDescriptor> listExposedNodeTypes(TenantContext ctx, long schemaVersion) {
+        MapSqlParameterSource p = new MapSqlParameterSource();
+        p.addValue("model_id", ctx.modelId().toString());
+        List<NodeTypeRow> rows = jdbc.query(
+                "SELECT model_id, slug, name, label, description, deprecated_at,"
+                        + " rest_read_enabled, rest_write_enabled"
+                        + " FROM schema_node_types WHERE model_id = :model_id::uuid AND rest_read_enabled = true",
+                p,
+                nodeTypeMapper());
+        return rows.stream()
+                .map(r -> new NodeTypeDescriptor(
+                        r.modelId,
+                        r.slug,
+                        r.name,
+                        r.label,
+                        r.description,
+                        schemaVersion,
+                        listProperties(ctx, r.slug),
+                        r.deprecatedAt,
+                        r.restReadEnabled,
+                        r.restWriteEnabled))
+                .toList();
+    }
+
+    public List<UUID> listDistinctExposedModels() {
+        return jdbc.query(
+                "SELECT DISTINCT model_id FROM schema_node_types WHERE rest_read_enabled = true",
+                new MapSqlParameterSource(),
+                (rs, i) -> UUID.fromString(rs.getString("model_id")));
+    }
+
     // ---------------- edge types ----------------
 
     public void insertEdgeType(TenantContext ctx, CreateEdgeTypeSpec spec) {

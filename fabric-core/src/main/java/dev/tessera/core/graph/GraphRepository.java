@@ -30,4 +30,21 @@ public interface GraphRepository {
     Optional<NodeState> findNode(TenantContext ctx, String typeSlug, UUID nodeUuid);
 
     List<NodeState> queryAll(TenantContext ctx, String typeSlug);
+
+    /**
+     * Cursor-paginated read: returns up to {@code limit} nodes of the given
+     * type whose {@code _seq} is strictly greater than {@code afterSeq},
+     * ordered by {@code _seq} ascending. Used by the REST projection
+     * dispatcher for stable cursor pagination (W2a).
+     */
+    List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit);
+
+    /**
+     * Single-node lookup by UUID with tenant filter. Alias for
+     * {@link #findNode} — exists as a semantic marker for the REST
+     * projection dispatcher (W2a).
+     */
+    default Optional<NodeState> queryById(TenantContext ctx, String typeSlug, UUID nodeId) {
+        return findNode(ctx, typeSlug, nodeId);
+    }
 }

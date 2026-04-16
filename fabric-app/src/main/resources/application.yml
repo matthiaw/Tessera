@@ -28,6 +28,10 @@ tessera:
     field-encryption:
       enabled: false
 
+springdoc:
+  cache:
+    disabled: true
+
 management:
   endpoints:
     web:

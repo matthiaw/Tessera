@@ -45,4 +45,9 @@ public final class GraphRepositoryImpl implements GraphRepository {
     public List<NodeState> queryAll(TenantContext ctx, String typeSlug) {
         return session.queryAllNodes(ctx, typeSlug);
     }
+
+    @Override
+    public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
+        return session.queryAllNodesAfter(ctx, typeSlug, afterSeq, limit);
+    }
 }
