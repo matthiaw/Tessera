@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    # URL/username/password injected via @DynamicPropertySource from AgePostgresContainer
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      pool-name: TesseraHikariPool-ProjectionIT
+      maximum-pool-size: 4
+      connection-init-sql: "LOAD 'age'; SET search_path = ag_catalog, \"$user\", public;"
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+springdoc:
+  cache:
+    disabled: true
+
+tessera:
+  security:
+    field-encryption:
+      enabled: false
