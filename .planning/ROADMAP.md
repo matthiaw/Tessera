@@ -84,7 +84,7 @@ Plans:
 - [x] 02.5-01-PLAN.md — Infrastructure: custom AGE+pgvector Docker image, Flyway V16-V21 (pgvector, entity_embeddings, review queue, provenance columns, embedding flags, auth_type widening), CandidateMutation/GraphMutation provenance extension, POM dependencies
 - [x] 02.5-02-PLAN.md — Text chunking + LLM extraction: TextChunker strategy (ParagraphChunker, SentenceChunker), ExtractionCandidate, DynamicSchemaOutputConverter, SchemaRegistrySchemaBuilder, ExtractionService with retry
 - [x] 02.5-03-PLAN.md — Entity resolution + review queue: EntityResolutionService (three-tier: exact, embedding, fuzzy), EmbeddingService, FuzzyNameMatcher, ExtractionReviewController + Repository
-- [ ] 02.5-04-PLAN.md — Integration: MarkdownFolderConnector, ConnectorRunner extraction hooks, ArchUnit enforcement, Docker Compose Ollama, E2E MarkdownFolderConnectorIT
+- [x] 02.5-04-PLAN.md — Integration: MarkdownFolderConnector, ConnectorRunner extraction hooks, ArchUnit enforcement, Docker Compose Ollama, E2E MarkdownFolderConnectorIT
 
 ### Phase 3: MCP Projection (Flagship Differentiator)
 **Goal**: Make Tessera usable as durable, typed shared memory for LLM agents through a Spring AI MCP Server whose tool surface is dynamically registered from the Schema Registry, read-only by default, audited per invocation, and hardened against prompt injection and schema-mutation abuse.

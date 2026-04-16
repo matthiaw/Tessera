@@ -99,7 +99,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 - [x] **EXTR-03**: LLM-based entity + relationship extractor using Spring AI structured output (with LangChain4j as a documented fallback), where the target JSON schema is **derived automatically from the Schema Registry** for the tenant's active node and edge types. Adding a new type in the registry must make it available to extractors without redeploy.
 - [x] **EXTR-04**: Every extracted candidate carries complete provenance on the event log: `source_document_id`, `source_chunk_range` (offset+length or line span), `extractor_version`, `llm_model_id`, and `extraction_confidence` (0.0–1.0). Provenance survives replay.
 - [x] **EXTR-05**: Entity Resolution Service in `fabric-rules` decides whether a candidate matches an existing graph entity. First-line: deterministic name + type match. Second-line: `pgvector` embedding similarity above a configurable threshold. Third-line: rule-engine-invoked fuzzy match. Output is either "new entity" or "merge into existing entity with confidence C".
-- [ ] **EXTR-06**: Resolved candidates flow through the **same** `GraphService.apply()` write funnel, rule engine, SHACL validation, source authority matrix, and conflict register as structured-connector candidates. An ArchUnit test proves the extraction path cannot bypass this funnel.
+- [x] **EXTR-06**: Resolved candidates flow through the **same** `GraphService.apply()` write funnel, rule engine, SHACL validation, source authority matrix, and conflict register as structured-connector candidates. An ArchUnit test proves the extraction path cannot bypass this funnel.
 - [x] **EXTR-07**: Candidates with confidence below a per-tenant configurable threshold are routed to an `extraction_review_queue` table instead of auto-merging; an operator can accept, reject, or rewrite them. Rejected candidates are recorded with the reason so future extractors can learn.
 - [x] **EXTR-08**: The `pgvector` extension is installed via a Flyway migration that runs after the AGE baseline; embedding columns are optional per entity type and declared in the Schema Registry. At least one concrete unstructured connector (Markdown folder / Obsidian-vault shape) ships as a reference implementation and is green end-to-end against Testcontainers (AGE + pgvector in the same container).
 
@@ -298,7 +298,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | EXTR-03 | Phase 2.5 | Complete |
 | EXTR-04 | Phase 2.5 | Complete |
 | EXTR-05 | Phase 2.5 | Complete |
-| EXTR-06 | Phase 2.5 | Pending |
+| EXTR-06 | Phase 2.5 | Complete |
 | EXTR-07 | Phase 2.5 | Complete |
 | EXTR-08 | Phase 2.5 | Complete |
 | SEC-01 | Phase 2 | Pending |
