@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -61,9 +63,11 @@ public class GenericEntityController {
             @PathVariable("model") String model,
             @PathVariable("typeSlug") String typeSlug,
             @RequestParam(value = "cursor", required = false) String cursor,
-            @RequestParam(value = "limit", required = false, defaultValue = "50") int limit) {
+            @RequestParam(value = "limit", required = false, defaultValue = "50") int limit,
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID modelId = parseModelId(model);
+        enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
         int effectiveLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
 
@@ -98,9 +102,11 @@ public class GenericEntityController {
     public ResponseEntity<Map<String, Object>> getById(
             @PathVariable("model") String model,
             @PathVariable("typeSlug") String typeSlug,
-            @PathVariable("id") UUID id) {
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID modelId = parseModelId(model);
+        enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
         NodeState node = dispatcher
                 .getById(ctx, typeSlug, id)
@@ -113,9 +119,11 @@ public class GenericEntityController {
     public ResponseEntity<Map<String, Object>> create(
             @PathVariable("model") String model,
             @PathVariable("typeSlug") String typeSlug,
-            @RequestBody Map<String, Object> payload) {
+            @RequestBody Map<String, Object> payload,
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID modelId = parseModelId(model);
+        enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
         GraphMutationOutcome outcome = dispatcher.create(ctx, typeSlug, payload);
         return switch (outcome) {
@@ -132,9 +140,11 @@ public class GenericEntityController {
             @PathVariable("model") String model,
             @PathVariable("typeSlug") String typeSlug,
             @PathVariable("id") UUID id,
-            @RequestBody Map<String, Object> payload) {
+            @RequestBody Map<String, Object> payload,
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID modelId = parseModelId(model);
+        enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
         GraphMutationOutcome outcome = dispatcher.update(ctx, typeSlug, id, payload);
         return switch (outcome) {
@@ -150,9 +160,11 @@ public class GenericEntityController {
     public ResponseEntity<Map<String, Object>> delete(
             @PathVariable("model") String model,
             @PathVariable("typeSlug") String typeSlug,
-            @PathVariable("id") UUID id) {
+            @PathVariable("id") UUID id,
+            @AuthenticationPrincipal Jwt jwt) {
 
         UUID modelId = parseModelId(model);
+        enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
         GraphMutationOutcome outcome = dispatcher.delete(ctx, typeSlug, id);
         return switch (outcome) {
@@ -161,6 +173,20 @@ public class GenericEntityController {
             case GraphMutationOutcome.Rejected r -> ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(Map.of("error", r.reason(), "rule", r.ruleId() != null ? r.ruleId() : "unknown"));
         };
+    }
+
+    /**
+     * Decision 11: JWT tenant claim must match {model} path segment.
+     * Mismatch -> 404 (never 403) via CrossTenantException.
+     */
+    private static void enforceTenantMatch(Jwt jwt, String model) {
+        if (jwt == null) {
+            throw new CrossTenantException();
+        }
+        String tenant = jwt.getClaimAsString("tenant");
+        if (tenant == null || !tenant.equals(model)) {
+            throw new CrossTenantException();
+        }
     }
 
     private static UUID parseModelId(String model) {

@@ -90,11 +90,13 @@ class CursorPaginationConcurrencyIT {
 
     private UUID modelId;
     private TenantContext ctx;
+    private String token;
 
     @BeforeEach
     void setUp() {
         modelId = UUID.randomUUID();
         ctx = TenantContext.of(modelId);
+        token = JwtTestHelper.mint(modelId.toString(), java.util.List.of("ADMIN"));
 
         // Declare type and expose for read + write.
         schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("Item", "Item", "Item", "A test item"));
@@ -198,7 +200,7 @@ class CursorPaginationConcurrencyIT {
     }
 
     private ExtractableResponse<Response> fetchPage(String cursor, int limit) {
-        var req = given().port(port).queryParam("limit", limit);
+        var req = given().port(port).header("Authorization", "Bearer " + token).queryParam("limit", limit);
         if (cursor != null) {
             req = req.queryParam("cursor", cursor);
         }

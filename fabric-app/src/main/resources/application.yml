@@ -17,6 +17,12 @@ spring:
   threads:
     virtual:
       enabled: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  forward-headers-strategy: framework
 
 # Phase 2 Wave 1 / SEC-06 / CONTEXT Decision 2: field-level encryption is
 # feature-flagged OFF for Phase 2. The EncryptionStartupGuard refuses to boot
@@ -27,6 +33,10 @@ tessera:
   security:
     field-encryption:
       enabled: false
+  auth:
+    jwt-signing-key: "${TESSERA_JWT_SIGNING_KEY:}"
+    token-ttl-minutes: 15
+    bootstrap-token: "${TESSERA_BOOTSTRAP_TOKEN:}"
 
 springdoc:
   cache:

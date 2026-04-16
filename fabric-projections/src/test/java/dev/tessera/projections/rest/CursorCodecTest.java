@@ -39,12 +39,12 @@ class CursorCodecTest {
     @Test
     void decode_rejects_blank_cursor() {
         assertThatThrownBy(() -> CursorCodec.decode(""))
-                .isInstanceOf(IllegalArgumentException.class)
+                .isInstanceOf(InvalidCursorException.class)
                 .hasMessageContaining("must not be blank");
     }
 
     @Test
     void decode_rejects_malformed_cursor() {
-        assertThatThrownBy(() -> CursorCodec.decode("bm90LWEtY3Vyc29y")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> CursorCodec.decode("bm90LWEtY3Vyc29y")).isInstanceOf(InvalidCursorException.class);
     }
 }

@@ -39,18 +39,23 @@ public final class CursorCodec {
     /** Decode an opaque cursor string back to pagination state. */
     public static CursorPosition decode(String cursor) {
         if (cursor == null || cursor.isBlank()) {
-            throw new IllegalArgumentException("cursor must not be blank");
+            throw new InvalidCursorException("cursor must not be blank");
+        }
+        if (cursor.length() > 512) {
+            throw new InvalidCursorException("cursor exceeds maximum length");
         }
         try {
             String plain = new String(Base64.getUrlDecoder().decode(cursor), StandardCharsets.UTF_8);
             String[] parts = plain.split("\\|", 4);
             if (parts.length != 4) {
-                throw new IllegalArgumentException("malformed cursor: expected 4 parts, got " + parts.length);
+                throw new InvalidCursorException("malformed cursor");
             }
             return new CursorPosition(
                     UUID.fromString(parts[0]), parts[1], Long.parseLong(parts[2]), UUID.fromString(parts[3]));
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("invalid cursor: " + e.getMessage(), e);
+        } catch (InvalidCursorException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InvalidCursorException("invalid cursor", e);
         }
     }
 

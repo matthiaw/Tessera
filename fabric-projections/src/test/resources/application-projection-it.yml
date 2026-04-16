@@ -10,6 +10,12 @@ spring:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  forward-headers-strategy: framework
 
 springdoc:
   cache:
@@ -19,3 +25,7 @@ tessera:
   security:
     field-encryption:
       enabled: false
+  auth:
+    jwt-signing-key: "dGVzc2VyYS10ZXN0LWtleS0xMjM0NTY3ODkwYWJjZGVm"
+    token-ttl-minutes: 15
+    bootstrap-token: "test-bootstrap-secret"
