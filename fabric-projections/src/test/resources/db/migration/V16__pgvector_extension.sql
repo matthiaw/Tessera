@@ -1,5 +1,6 @@
 -- Copyright 2026 Tessera Contributors
 -- Licensed under the Apache License, Version 2.0
 --
--- Phase 2.5 / Plan 01: Install pgvector extension for embedding-based entity resolution.
-CREATE EXTENSION IF NOT EXISTS vector;
+-- IT override: pgvector extension is not available in the apache/age test image.
+-- The vector extension and entity_embeddings table are skipped in IT context.
+SELECT 1 AS pgvector_skipped_in_test;
