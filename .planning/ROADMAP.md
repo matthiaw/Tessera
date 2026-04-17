@@ -14,7 +14,7 @@
 - [ ] **Phase 3: MCP Projection (Flagship Differentiator)** - Spring AI MCP tools driven by the Schema Registry, read-only by default, audited
 - [ ] **Phase 4: SQL View + Kafka Projections, Hash-Chained Audit** - Aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
 - [x] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention (completed 2026-04-17)
-- [ ] **Phase 6: Metrics Instrumentation Wiring** - Wire TesseraMetrics calls into production code paths (Gap Closure)
+- [x] **Phase 6: Metrics Instrumentation Wiring** - Wire TesseraMetrics calls into production code paths (Gap Closure) (completed 2026-04-17)
 - [ ] **Phase 7: SchemaChangeEvent Infrastructure** - Create and wire schema-change events to SQL views and MCP notifications (Gap Closure)
 - [ ] **Phase 8: Circlead Production Wiring & DR Drill Fix** - Wire circlead ConnectorInstance to registry and complete DR drill (Gap Closure)
 - [ ] **Phase 9: Vault Dependency & Health Indicator** - Add spring-cloud-vault compile dependency and VaultHealthIndicator (Gap Closure)
@@ -153,7 +153,7 @@ Plans:
   3. SHACL validation time is recorded in `tessera_shacl_validation_seconds` timer.
 **Plans**: 1 plan
 Plans:
-- [ ] 06-01-PLAN.md — MetricsPort SPI + TesseraMetricsAdapter + wire into ShaclValidator, RuleEngine, ConnectorRunner
+- [x] 06-01-PLAN.md — MetricsPort SPI + TesseraMetricsAdapter + wire into ShaclValidator, RuleEngine, ConnectorRunner
 
 ### Phase 7: SchemaChangeEvent Infrastructure
 **Goal**: Create a `SchemaChangeEvent` application event in fabric-core, publish it from SchemaRegistry on type/property mutations, and wire listeners in SqlViewProjection (view regeneration) and SpringAiMcpAdapter (client notification) — so projections stay fresh after runtime schema changes without restart.
@@ -205,7 +205,7 @@ Plans:
 | 3. MCP Projection | 3/5 | In Progress | - |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress | - |
 | 5. Circlead Integration & Production Hardening | 5/5 | Complete | 2026-04-17 |
-| 6. Metrics Instrumentation Wiring | 0/1 | Planned | - |
+| 6. Metrics Instrumentation Wiring | 1/1 | Complete   | 2026-04-17 |
 | 7. SchemaChangeEvent Infrastructure | 0/0 | Not started | - |
 | 8. Circlead Production Wiring & DR Drill Fix | 0/0 | Not started | - |
 | 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |

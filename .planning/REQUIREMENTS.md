@@ -151,7 +151,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 ### Observability & Operations (OPS)
 
-- [ ] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
+- [x] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
 - [ ] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
 - [x] **OPS-03**: Per-tenant snapshot mechanism compacts the event log for long-lived tenants
 - [x] **OPS-04**: Per-tenant event-log retention policies are configurable
@@ -329,7 +329,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | CIRC-01 | Phase 8 | Pending |
 | CIRC-02 | Phase 8 | Pending |
 | CIRC-03 | Phase 5 | Complete |
-| OPS-01 | Phase 6 | Pending |
+| OPS-01 | Phase 6 | Complete |
 | OPS-02 | Phase 9 | Pending |
 | OPS-03 | Phase 5 | Complete |
 | OPS-04 | Phase 5 | Complete |
