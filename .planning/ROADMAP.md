@@ -164,6 +164,9 @@ Plans:
   1. Creating or modifying a node type via SchemaRegistry publishes a `SchemaChangeEvent`.
   2. SqlViewProjection regenerates affected views within seconds of a schema change — no restart required.
   3. SpringAiMcpAdapter.notifySchemaChanged() is called on schema change, notifying connected MCP clients.
+**Plans**: 1 plan
+Plans:
+- [ ] 07-01-PLAN.md — SchemaChangeEvent record + SchemaRegistry publishing + SqlViewProjection listener + SpringAiMcpAdapter listener + tests
 
 ### Phase 8: Circlead Production Wiring & DR Drill Fix
 **Goal**: Construct `ConnectorInstance` objects from circlead `MappingDefinition` beans and register them with `ConnectorRegistry` so the scheduler actually dispatches circlead syncs in production. Fix the sourceUrl Spring-placeholder resolution bug that prevents circlead connectors from polling. Fix the DR drill script column name mismatch, add event-log replay, and add a circlead consumer smoke test.
@@ -210,7 +213,7 @@ Plans:
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress | - |
 | 5. Circlead Integration & Production Hardening | 5/5 | Complete | 2026-04-17 |
 | 6. Metrics Instrumentation Wiring | 1/1 | Complete   | 2026-04-17 |
-| 7. SchemaChangeEvent Infrastructure | 0/0 | Not started | - |
+| 7. SchemaChangeEvent Infrastructure | 0/1 | Planned | - |
 | 8. Circlead Production Wiring & DR Drill Fix | 0/0 | Not started | - |
 | 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |
 | 10. Field-Level Access Control & Security Docs | 0/0 | Not started | - |
