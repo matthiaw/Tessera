@@ -13,7 +13,7 @@
 - [ ] **Phase 2.5: Unstructured Ingestion & Entity Extraction** - LLM-based entity extraction from free text, pgvector-backed entity resolution, first unstructured connector
 - [ ] **Phase 3: MCP Projection (Flagship Differentiator)** - Spring AI MCP tools driven by the Schema Registry, read-only by default, audited
 - [ ] **Phase 4: SQL View + Kafka Projections, Hash-Chained Audit** - Aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
-- [ ] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention
+- [x] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention (completed 2026-04-17)
 
 ## Phase Details
 
@@ -134,7 +134,7 @@ Plans:
 - [x] 05-01-PLAN.md — Observability: TesseraMetrics (6 Micrometer meters), AgeGraphHealthIndicator, ConnectorHealthIndicator
 - [x] 05-02-PLAN.md — Circlead integration: 3 MappingDefinition JSONs, CircleadConnectorConfig, CircleadConnectorIT, circlead-mapping.md
 - [x] 05-03-PLAN.md — Event-log lifecycle: EventRetentionJob (daily sweep), EventSnapshotService (3-TX compaction), EventLifecycleController
-- [ ] 05-04-PLAN.md — DR drill: dr_drill.sh (dump/restore/validate/smoke), DR-DRILL.md, CI pipeline extension
+- [x] 05-04-PLAN.md — DR drill: dr_drill.sh (dump/restore/validate/smoke), DR-DRILL.md, CI pipeline extension
 **UI hint**: yes
 
 ## Progress
@@ -147,7 +147,7 @@ Plans:
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 3/5 | In Progress|  |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress|  |
-| 5. Circlead Integration & Production Hardening | 4/5 | In Progress|  |
+| 5. Circlead Integration & Production Hardening | 5/5 | Complete   | 2026-04-17 |
 
 ## Coverage
 

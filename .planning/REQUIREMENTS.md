@@ -155,7 +155,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 - [x] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
 - [x] **OPS-03**: Per-tenant snapshot mechanism compacts the event log for long-lived tenants
 - [x] **OPS-04**: Per-tenant event-log retention policies are configurable
-- [ ] **OPS-05**: DR drill rehearsed end-to-end: dump → restore → replay → consumer smoke test
+- [x] **OPS-05**: DR drill rehearsed end-to-end: dump → restore → replay → consumer smoke test
 
 ## v2 Requirements
 
@@ -333,7 +333,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | OPS-02 | Phase 5 | Complete |
 | OPS-03 | Phase 5 | Complete |
 | OPS-04 | Phase 5 | Complete |
-| OPS-05 | Phase 5 | Pending |
+| OPS-05 | Phase 5 | Complete |
 
 **Coverage:**
 - v1 requirements: 98 total
