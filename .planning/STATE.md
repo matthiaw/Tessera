@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 00 (Wave 0 IT stubs)
-last_updated: "2026-04-17T08:52:01.912Z"
+stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 01 (SQL View Projection + V24-V27 migrations)
+last_updated: "2026-04-17T08:59:48.666Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 27
-  completed_plans: 24
-  percent: 89
+  completed_plans: 25
+  percent: 93
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 4
 - **Phase:** 4
 - **Plan:** Not started
 - **Status:** Executing Phase 04
-- **Progress:** [█████████░] 89%
+- **Progress:** [█████████░] 93%
 
 ## Performance Metrics
 
@@ -59,6 +59,7 @@ Plan: 1 of 4
 | Phase 03-mcp-projection-flagship-differentiator P03 | 4 | 2 tasks | 7 files |
 | Phase 03-mcp-projection-flagship-differentiator P04 | 7 | 2 tasks | 15 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P00 | 4 | 1 tasks | 7 files |
+| Phase 04-sql-view-kafka-projections-hash-chained-audit P01 | 6 | 2 tasks | 13 files |
 
 ## Accumulated Context
 
@@ -72,6 +73,13 @@ Plan: 1 of 4
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 04 Plan 01 — SQL View Projection)
+
+- `SqlViewProjection` uses `(properties::jsonb)->>'key'` cast throughout view DDL — agtype is NOT jsonb (Pitfall 1); explicit cast required to avoid runtime type errors when BI tools query views
+- View DDL embeds `/* schema_version:N model_id:X type:Y */` comment for D-D3 staleness detection; `pg_get_viewdef` + regex parse skips regeneration when version matches
+- `regenerateAll()` enumerates tenants via `schemaRegistry.listDistinctExposedModels()` — reuses existing fabric-core API rather than introducing a separate tenant registry table
+- V26 test migration uses `SELECT 1` no-op (not `ALTER SYSTEM`) for Testcontainers container reuse safety; production V26 in `fabric-app` is authoritative
 
 ### Decisions (Phase 03 Plan 00 — Wave 0 Spike)
 
@@ -126,8 +134,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T08:52:01.898Z
-**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 00 (Wave 0 IT stubs)
+**Last session:** 2026-04-17T08:59:48.659Z
+**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 01 (SQL View Projection + V24-V27 migrations)
 
 **Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
 

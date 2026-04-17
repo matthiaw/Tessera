@@ -130,7 +130,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 - [x] **SQL-01**: Per-tenant per-type SQL views materialize flat row shapes (`v_{model}_{typeSlug}`) readable by Metabase / Looker / PowerBI
 - [x] **SQL-02**: Views bypass Cypher for aggregate queries, reading AGE label tables directly — mitigates the ~15× aggregation cliff (CRIT-3)
-- [ ] **SQL-03**: View definitions are regenerated when schema changes and survive restart
+- [x] **SQL-03**: View definitions are regenerated when schema changes and survive restart
 
 ### Kafka Projection (KAFKA)
 
@@ -320,7 +320,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | MCP-09 | Phase 3 | Complete |
 | SQL-01 | Phase 4 | Complete |
 | SQL-02 | Phase 4 | Complete |
-| SQL-03 | Phase 4 | Pending |
+| SQL-03 | Phase 4 | Complete |
 | KAFKA-01 | Phase 4 | Pending |
 | KAFKA-02 | Phase 4 | Complete |
 | KAFKA-03 | Phase 4 | Pending |

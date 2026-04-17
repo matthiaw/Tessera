@@ -115,7 +115,7 @@ Plans:
   4. For a tenant with audit integrity enabled, each event row records the hash of the previous event plus its own payload; an on-demand verification job (also runnable in CI) detects any tampering and reports the first broken link.
 **Plans**: 3 plans
 Plans:
-- [ ] 04-01-PLAN.md — Flyway V24-V27 migrations + SQL View Projection (SqlViewProjection, SqlViewNameResolver, SqlViewAdminController, schema-change listener, startup regeneration, ITs)
+- [x] 04-01-PLAN.md — Flyway V24-V27 migrations + SQL View Projection (SqlViewProjection, SqlViewNameResolver, SqlViewAdminController, schema-change listener, startup regeneration, ITs)
 - [ ] 04-02-PLAN.md — Hash-Chained Audit (HashChain helper, EventLog.append() hash extension, AuditVerificationService, AuditVerificationController, concurrency IT)
 - [ ] 04-03-PLAN.md — Kafka/Debezium Projection (Docker Compose Kafka+Debezium, Outbox Event Router config, OutboxPoller conditionalization, DebeziumSlotHealthIndicator)
 
