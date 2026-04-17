@@ -17,10 +17,13 @@ package dev.tessera.projections.rest;
 
 import dev.tessera.core.graph.GraphMutationOutcome;
 import dev.tessera.core.graph.NodeState;
+import dev.tessera.core.schema.NodeTypeDescriptor;
+import dev.tessera.core.security.AclFilterService;
 import dev.tessera.core.tenant.TenantContext;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,9 +55,16 @@ public class GenericEntityController {
     private static final int MAX_LIMIT = 500;
 
     private final EntityDispatcher dispatcher;
+    private final AclFilterService aclFilterService;
 
-    public GenericEntityController(EntityDispatcher dispatcher) {
+    public GenericEntityController(EntityDispatcher dispatcher, AclFilterService aclFilterService) {
         this.dispatcher = dispatcher;
+        this.aclFilterService = aclFilterService;
+    }
+
+    private static Set<String> extractCallerRoles(Jwt jwt) {
+        List<String> roles = jwt.getClaimAsStringList("roles");
+        return roles != null ? Set.copyOf(roles) : Set.of();
     }
 
     /** GET — list entities with cursor pagination. */
@@ -69,6 +79,7 @@ public class GenericEntityController {
         UUID modelId = parseModelId(model);
         enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
+        Set<String> callerRoles = extractCallerRoles(jwt);
         int effectiveLimit = Math.max(1, Math.min(limit, MAX_LIMIT));
 
         long afterSeq = 0;
@@ -78,7 +89,7 @@ public class GenericEntityController {
         }
 
         // Fetch one extra to detect whether there is a next page.
-        List<NodeState> nodes = dispatcher.list(ctx, typeSlug, afterSeq, effectiveLimit + 1);
+        List<NodeState> nodes = dispatcher.list(ctx, typeSlug, afterSeq, effectiveLimit + 1, callerRoles);
         boolean hasMore = nodes.size() > effectiveLimit;
         List<NodeState> page = hasMore ? nodes.subList(0, effectiveLimit) : nodes;
 
@@ -88,8 +99,9 @@ public class GenericEntityController {
             nextCursor = CursorCodec.encode(modelId, typeSlug, last.seq(), last.uuid());
         }
 
+        NodeTypeDescriptor desc = dispatcher.loadDescriptor(ctx, typeSlug).orElse(null);
         List<Map<String, Object>> items =
-                page.stream().map(GenericEntityController::nodeToMap).toList();
+                page.stream().map(n -> nodeToMap(n, desc, callerRoles)).toList();
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("items", items);
@@ -108,10 +120,12 @@ public class GenericEntityController {
         UUID modelId = parseModelId(model);
         enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
+        Set<String> callerRoles = extractCallerRoles(jwt);
         NodeState node = dispatcher
-                .getById(ctx, typeSlug, id)
+                .getById(ctx, typeSlug, id, callerRoles)
                 .orElseThrow(() -> new NotFoundException("Entity " + id + " not found"));
-        return ResponseEntity.ok(nodeToMap(node));
+        NodeTypeDescriptor desc = dispatcher.loadDescriptor(ctx, typeSlug).orElse(null);
+        return ResponseEntity.ok(nodeToMap(node, desc, callerRoles));
     }
 
     /** POST — create a new entity. */
@@ -125,7 +139,8 @@ public class GenericEntityController {
         UUID modelId = parseModelId(model);
         enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
-        GraphMutationOutcome outcome = dispatcher.create(ctx, typeSlug, payload);
+        Set<String> callerRoles = extractCallerRoles(jwt);
+        GraphMutationOutcome outcome = dispatcher.create(ctx, typeSlug, payload, callerRoles);
         return switch (outcome) {
             case GraphMutationOutcome.Committed c -> ResponseEntity.status(HttpStatus.CREATED)
                     .body(Map.of("uuid", c.nodeUuid().toString(), "seq", c.sequenceNr()));
@@ -146,7 +161,8 @@ public class GenericEntityController {
         UUID modelId = parseModelId(model);
         enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
-        GraphMutationOutcome outcome = dispatcher.update(ctx, typeSlug, id, payload);
+        Set<String> callerRoles = extractCallerRoles(jwt);
+        GraphMutationOutcome outcome = dispatcher.update(ctx, typeSlug, id, payload, callerRoles);
         return switch (outcome) {
             case GraphMutationOutcome.Committed c -> ResponseEntity.ok(
                     Map.of("uuid", c.nodeUuid().toString(), "seq", c.sequenceNr()));
@@ -166,7 +182,8 @@ public class GenericEntityController {
         UUID modelId = parseModelId(model);
         enforceTenantMatch(jwt, model);
         TenantContext ctx = TenantContext.of(modelId);
-        GraphMutationOutcome outcome = dispatcher.delete(ctx, typeSlug, id);
+        Set<String> callerRoles = extractCallerRoles(jwt);
+        GraphMutationOutcome outcome = dispatcher.delete(ctx, typeSlug, id, callerRoles);
         return switch (outcome) {
             case GraphMutationOutcome.Committed c -> ResponseEntity.ok(
                     Map.of("uuid", c.nodeUuid().toString(), "tombstoned", true));
@@ -197,7 +214,8 @@ public class GenericEntityController {
         }
     }
 
-    private static Map<String, Object> nodeToMap(NodeState node) {
+    private Map<String, Object> nodeToMap(NodeState node, NodeTypeDescriptor descriptor,
+            Set<String> callerRoles) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("uuid", node.uuid().toString());
         map.put("type", node.typeSlug());
@@ -208,7 +226,11 @@ public class GenericEntityController {
         if (node.updatedAt() != null) {
             map.put("updated_at", node.updatedAt().toString());
         }
-        map.putAll(node.properties());
+        if (descriptor != null) {
+            map.putAll(aclFilterService.filterProperties(node, descriptor, callerRoles));
+        } else {
+            map.putAll(node.properties());
+        }
         return map;
     }
 }
