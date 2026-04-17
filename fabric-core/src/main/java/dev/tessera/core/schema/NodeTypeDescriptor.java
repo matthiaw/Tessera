@@ -28,6 +28,10 @@ import java.util.UUID;
  * projections for a type. A backwards-compatible 8-arg constructor lets
  * existing Phase 1 call sites (benches, unit tests) keep constructing
  * descriptors without breaking.
+ *
+ * <p>Phase 10 adds {@code readRoles} / {@code writeRoles} for type-level
+ * ACL (SEC-04, SEC-05). {@code null} or empty means the type is visible to
+ * all authenticated callers (D-02 semantics).
  */
 public record NodeTypeDescriptor(
         UUID modelId,
@@ -39,12 +43,33 @@ public record NodeTypeDescriptor(
         List<PropertyDescriptor> properties,
         Instant deprecatedAt,
         boolean restReadEnabled,
-        boolean restWriteEnabled) {
+        boolean restWriteEnabled,
+        List<String> readRoles,
+        List<String> writeRoles) {
 
     /**
-     * Backwards-compatible constructor — defaults the Wave 1 exposure flags to
-     * {@code false}. Lets Phase 1 call sites (benches, validation unit tests,
-     * Phase 1 cache-invalidation tests) keep compiling without edit.
+     * Backwards-compatible 10-arg constructor — defaults the Phase 10 ACL
+     * role lists to empty (visible/writable by all).
+     */
+    public NodeTypeDescriptor(
+            UUID modelId,
+            String slug,
+            String name,
+            String label,
+            String description,
+            long schemaVersion,
+            List<PropertyDescriptor> properties,
+            Instant deprecatedAt,
+            boolean restReadEnabled,
+            boolean restWriteEnabled) {
+        this(modelId, slug, name, label, description, schemaVersion,
+             properties, deprecatedAt, restReadEnabled, restWriteEnabled,
+             List.of(), List.of());
+    }
+
+    /**
+     * Backwards-compatible 8-arg constructor — defaults both exposure flags
+     * and ACL role lists. Lets Phase 1 call sites keep compiling without edit.
      */
     public NodeTypeDescriptor(
             UUID modelId,
@@ -55,6 +80,7 @@ public record NodeTypeDescriptor(
             long schemaVersion,
             List<PropertyDescriptor> properties,
             Instant deprecatedAt) {
-        this(modelId, slug, name, label, description, schemaVersion, properties, deprecatedAt, false, false);
+        this(modelId, slug, name, label, description, schemaVersion,
+             properties, deprecatedAt, false, false, List.of(), List.of());
     }
 }
