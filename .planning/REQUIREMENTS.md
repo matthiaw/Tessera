@@ -117,12 +117,12 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 ### MCP Projection (MCP)
 
 - [x] **MCP-01**: Spring AI MCP Server module is isolated behind an interface so it can be swapped to raw `io.modelcontextprotocol:sdk-java` if Spring AI churn blocks us
-- [ ] **MCP-02**: MCP tool `list_entity_types()` and `describe_type(slug)` return the current tenant's schema
-- [ ] **MCP-03**: MCP tool `query_entities(type, filter)` with cursor pagination
-- [ ] **MCP-04**: MCP tool `get_entity(type, id)` with configurable relation depth
-- [ ] **MCP-05**: MCP tool `traverse(query)` accepting Cypher (tenant-scoped) or a natural-language hint resolved to Cypher
+- [x] **MCP-02**: MCP tool `list_entity_types()` and `describe_type(slug)` return the current tenant's schema
+- [x] **MCP-03**: MCP tool `query_entities(type, filter)` with cursor pagination
+- [x] **MCP-04**: MCP tool `get_entity(type, id)` with configurable relation depth
+- [x] **MCP-05**: MCP tool `traverse(query)` accepting Cypher (tenant-scoped) or a natural-language hint resolved to Cypher
 - [x] **MCP-06**: MCP tool `find_path(from, to)` shortest path between two nodes
-- [ ] **MCP-07**: MCP tool `get_state_at(entity_id, timestamp)` serving temporal queries from the event log
+- [x] **MCP-07**: MCP tool `get_state_at(entity_id, timestamp)` serving temporal queries from the event log
 - [x] **MCP-08**: MCP tool set is dynamically registered from the Schema Registry — adding a type surfaces new tools without redeploy (fallback: restart on schema change if Spring AI doesn't support runtime registration)
 - [ ] **MCP-09**: MCP audit log: every tool invocation records agent identity, tool, arguments, and outcome
 
@@ -310,12 +310,12 @@ Explicitly excluded. Documented to prevent scope creep.
 | SEC-07 | Phase 3 | Complete |
 | SEC-08 | Phase 3 | Complete |
 | MCP-01 | Phase 3 | Complete |
-| MCP-02 | Phase 3 | Pending |
-| MCP-03 | Phase 3 | Pending |
-| MCP-04 | Phase 3 | Pending |
-| MCP-05 | Phase 3 | Pending |
+| MCP-02 | Phase 3 | Complete |
+| MCP-03 | Phase 3 | Complete |
+| MCP-04 | Phase 3 | Complete |
+| MCP-05 | Phase 3 | Complete |
 | MCP-06 | Phase 3 | Complete |
-| MCP-07 | Phase 3 | Pending |
+| MCP-07 | Phase 3 | Complete |
 | MCP-08 | Phase 3 | Complete |
 | MCP-09 | Phase 3 | Pending |
 | SQL-01 | Phase 4 | Pending |
