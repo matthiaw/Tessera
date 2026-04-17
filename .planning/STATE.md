@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 02 (Hash-Chained Audit Verification)
-last_updated: "2026-04-17T09:40:23Z"
+stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 03 (Debezium/Kafka CDC Fan-out)
+last_updated: "2026-04-17T09:49:30.898Z"
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 27
   completed_plans: 27
-  percent: 97
+  percent: 100
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 2 of 4
 - **Phase:** 4
 - **Plan:** Not started
 - **Status:** Executing Phase 04
-- **Progress:** [██████████] 97%
+- **Progress:** [██████████] 100%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Plan: 2 of 4
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P00 | 4 | 1 tasks | 7 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P01 | 6 | 2 tasks | 13 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P02 | 60 | 2 tasks | 7 files |
+| Phase 04-sql-view-kafka-projections-hash-chained-audit P03 | 5 | 2 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -74,6 +75,13 @@ Plan: 2 of 4
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 04 Plan 03 — Debezium/Kafka CDC Fan-out)
+
+- `ApplicationContextRunner.withUserConfiguration(OutboxPoller.class)` required (not `.withBean`) in `OutboxPollerConditionalIT` — `withBean` bypasses Spring Boot condition evaluation; `withUserConfiguration` treats the class as a component candidate so `@ConditionalOnProperty` is evaluated during context refresh
+- `aggregatetype` in `GraphServiceImpl.apply()` changed to `modelId + "." + typeSlug` for Debezium EventRouter topic routing to `tessera.{model_id}.{type_slug}`; dot separator is safe for Kafka topic names
+- `bitnami/kafka:3.9` chosen for KRaft first-class support; `ImagePinningTest` only enforces `apache/age` digest pinning — Kafka/Debezium images are not subject to the same constraint
+- `spring-boot-starter-actuator` added to `fabric-projections/pom.xml` — required for `AbstractHealthIndicator`; was missing from the module's dependencies
 
 ### Decisions (Phase 04 Plan 02 — Hash-Chained Audit Verification)
 
@@ -143,8 +151,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T09:40:23Z
-**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 02 (Hash-Chained Audit Verification)
+**Last session:** 2026-04-17T09:49:30.886Z
+**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 03 (Debezium/Kafka CDC Fan-out)
 
 **Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 

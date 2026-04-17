@@ -117,7 +117,7 @@ Plans:
 Plans:
 - [x] 04-01-PLAN.md — Flyway V24-V27 migrations + SQL View Projection (SqlViewProjection, SqlViewNameResolver, SqlViewAdminController, schema-change listener, startup regeneration, ITs)
 - [x] 04-02-PLAN.md — Hash-Chained Audit (HashChain helper, EventLog.append() hash extension, AuditVerificationService, AuditVerificationController, concurrency IT)
-- [ ] 04-03-PLAN.md — Kafka/Debezium Projection (Docker Compose Kafka+Debezium, Outbox Event Router config, OutboxPoller conditionalization, DebeziumSlotHealthIndicator)
+- [x] 04-03-PLAN.md — Kafka/Debezium Projection (Docker Compose Kafka+Debezium, Outbox Event Router config, OutboxPoller conditionalization, DebeziumSlotHealthIndicator)
 
 ### Phase 5: Circlead Integration & Production Hardening
 **Goal**: Prove the whole stack against the first real consumer (circlead) without a big-bang migration, and harden operations with observability, snapshots, retention, and a rehearsed DR drill so Tessera is safe to run on IONOS VPS.

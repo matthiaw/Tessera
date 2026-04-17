@@ -134,9 +134,9 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 ### Kafka Projection (KAFKA)
 
-- [ ] **KAFKA-01**: Kafka topic per `(model_id, typeSlug)` — `tessera.{model_id}.{type_slug}` (decided in Phase 4 CONTEXT D-B1)
+- [x] **KAFKA-01**: Kafka topic per `(model_id, typeSlug)` — `tessera.{model_id}.{type_slug}` (decided in Phase 4 CONTEXT D-B1)
 - [x] **KAFKA-02**: Debezium 3.4 + Outbox Event Router SMT replaces the in-process outbox poller without changing the write path
-- [ ] **KAFKA-03**: Replication slot lifecycle is monitored with `max_slot_wal_keep_size` and alerts on lag
+- [x] **KAFKA-03**: Replication slot lifecycle is monitored with `max_slot_wal_keep_size` and alerts on lag
 
 ### Audit Integrity (AUDIT)
 
@@ -321,9 +321,9 @@ Explicitly excluded. Documented to prevent scope creep.
 | SQL-01 | Phase 4 | Complete |
 | SQL-02 | Phase 4 | Complete |
 | SQL-03 | Phase 4 | Complete |
-| KAFKA-01 | Phase 4 | Pending |
+| KAFKA-01 | Phase 4 | Complete |
 | KAFKA-02 | Phase 4 | Complete |
-| KAFKA-03 | Phase 4 | Pending |
+| KAFKA-03 | Phase 4 | Complete |
 | AUDIT-01 | Phase 4 | Complete |
 | AUDIT-02 | Phase 4 | Complete |
 | CIRC-01 | Phase 5 | Pending |
