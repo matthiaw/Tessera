@@ -180,6 +180,10 @@ Plans:
   1. On application startup, ConnectorScheduler.tick() includes the three circlead connector instances and dispatches syncs.
   2. Circlead mapping sourceUrl placeholders are resolved before reaching `URI.create()` — a test proves `GenericRestPollerConnector.poll()` receives a valid URI.
   3. dr_drill.sh runs without column mismatch errors, includes event-log replay verification, and executes a circlead consumer smoke test.
+**Plans**: 2 plans
+Plans:
+- [ ] 08-01-PLAN.md — CircleadConnectorConfig placeholder resolution + DB registration + unit test
+- [ ] 08-02-PLAN.md — DR drill script fix (column names, partition, replay, smoke test) + CircleadDrillSmokeIT
 
 ### Phase 9: Vault Dependency & Health Indicator
 **Goal**: Add `spring-cloud-starter-vault-config` to the compile classpath so Vault config-data import works at runtime, and implement a `VaultHealthIndicator` for the Actuator health endpoint.
@@ -214,7 +218,7 @@ Plans:
 | 5. Circlead Integration & Production Hardening | 5/5 | Complete | 2026-04-17 |
 | 6. Metrics Instrumentation Wiring | 1/1 | Complete   | 2026-04-17 |
 | 7. SchemaChangeEvent Infrastructure | 0/1 | Planned | - |
-| 8. Circlead Production Wiring & DR Drill Fix | 0/0 | Not started | - |
+| 8. Circlead Production Wiring & DR Drill Fix | 0/2 | Planned | - |
 | 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |
 | 10. Field-Level Access Control & Security Docs | 0/0 | Not started | - |
 
