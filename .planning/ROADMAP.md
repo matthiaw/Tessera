@@ -166,7 +166,7 @@ Plans:
   3. SpringAiMcpAdapter.notifySchemaChanged() is called on schema change, notifying connected MCP clients.
 **Plans**: 1 plan
 Plans:
-- [ ] 07-01-PLAN.md — SchemaChangeEvent record + SchemaRegistry publishing + SqlViewProjection listener + SpringAiMcpAdapter listener + tests
+- [x] 07-01-PLAN.md — SchemaChangeEvent record + SchemaRegistry publishing + SqlViewProjection listener + SpringAiMcpAdapter listener + tests
 
 ### Phase 8: Circlead Production Wiring & DR Drill Fix
 **Goal**: Construct `ConnectorInstance` objects from circlead `MappingDefinition` beans and register them with `ConnectorRegistry` so the scheduler actually dispatches circlead syncs in production. Fix the sourceUrl Spring-placeholder resolution bug that prevents circlead connectors from polling. Fix the DR drill script column name mismatch, add event-log replay, and add a circlead consumer smoke test.
