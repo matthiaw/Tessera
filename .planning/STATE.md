@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 01 (SQL View Projection + V24-V27 migrations)
-last_updated: "2026-04-17T08:59:48.666Z"
+stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 02 (Hash-Chained Audit Verification)
+last_updated: "2026-04-17T09:40:23Z"
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 27
-  completed_plans: 25
-  percent: 93
+  completed_plans: 27
+  percent: 97
 ---
 
 # State: Tessera
@@ -27,13 +27,13 @@ progress:
 ## Current Position
 
 Phase: 04 (SQL View + Kafka Projections, Hash-Chained Audit) — EXECUTING
-Plan: 1 of 4
+Plan: 2 of 4
 
 - **Milestone:** 1
 - **Phase:** 4
 - **Plan:** Not started
 - **Status:** Executing Phase 04
-- **Progress:** [█████████░] 93%
+- **Progress:** [██████████] 97%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Plan: 1 of 4
 | Phase 03-mcp-projection-flagship-differentiator P04 | 7 | 2 tasks | 15 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P00 | 4 | 1 tasks | 7 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P01 | 6 | 2 tasks | 13 files |
+| Phase 04-sql-view-kafka-projections-hash-chained-audit P02 | 60 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,14 @@ Plan: 1 of 4
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 04 Plan 02 — Hash-Chained Audit Verification)
+
+- RowCallbackHandler (streaming) used in AuditVerificationService to avoid OOM on large tenant event logs; aborts on first broken link
+- recompactJson() via Jackson + TreeMap normalizes Postgres JSONB (adds spaces after : and ,) back to compact sorted-key form matching hash-time JsonMaps.toJson() output — required for correct hash verification
+- Per-tenant JVM synchronized lock in appendWithHashChain() spans predecessor read AND INSERT; correct for single-JVM MVP; multi-instance requires distributed lock (deferred)
+- Concurrency IT verifies no-null prev_hash safety property (not strict chain linearity); strict linearity requires cross-JVM serialization beyond MVP scope
+- fabric-projections IT V16/V17 test migrations replaced with no-ops; apache/age image has no pgvector extension
 
 ### Decisions (Phase 04 Plan 01 — SQL View Projection)
 
@@ -134,10 +143,10 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T08:59:48.659Z
-**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 01 (SQL View Projection + V24-V27 migrations)
+**Last session:** 2026-04-17T09:40:23Z
+**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 02 (Hash-Chained Audit Verification)
 
-**Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
+**Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 
 **Files of record:**
 
