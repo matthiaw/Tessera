@@ -19,12 +19,14 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.security.AclFilterService;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.mcp.api.ToolProvider;
 import dev.tessera.projections.mcp.api.ToolResponse;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
@@ -39,10 +41,13 @@ public class ListEntityTypesTool implements ToolProvider {
 
     private final SchemaRegistry schemaRegistry;
     private final ObjectMapper objectMapper;
+    private final AclFilterService aclFilterService;
 
-    public ListEntityTypesTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper) {
+    public ListEntityTypesTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper,
+            AclFilterService aclFilterService) {
         this.schemaRegistry = schemaRegistry;
         this.objectMapper = objectMapper;
+        this.aclFilterService = aclFilterService;
     }
 
     @Override
@@ -62,8 +67,10 @@ public class ListEntityTypesTool implements ToolProvider {
 
     @Override
     public ToolResponse execute(TenantContext tenant, String agentId, Map<String, Object> arguments) {
+        Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
         List<NodeTypeDescriptor> types = schemaRegistry.listNodeTypes(tenant);
         List<Map<String, Object>> result = types.stream()
+                .filter(t -> aclFilterService.isTypeVisible(t, callerRoles))
                 .map(t -> {
                     Map<String, Object> entry = new LinkedHashMap<>();
                     entry.put("slug", t.slug());

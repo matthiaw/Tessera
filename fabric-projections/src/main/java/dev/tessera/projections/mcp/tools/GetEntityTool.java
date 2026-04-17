@@ -19,6 +19,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.graph.NodeState;
+import dev.tessera.core.schema.NodeTypeDescriptor;
+import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.security.AclFilterService;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.mcp.api.ToolProvider;
 import dev.tessera.projections.mcp.api.ToolResponse;
@@ -26,6 +29,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -43,10 +47,15 @@ public class GetEntityTool implements ToolProvider {
 
     private final GraphRepository graphRepository;
     private final ObjectMapper objectMapper;
+    private final AclFilterService aclFilterService;
+    private final SchemaRegistry schemaRegistry;
 
-    public GetEntityTool(GraphRepository graphRepository, ObjectMapper objectMapper) {
+    public GetEntityTool(GraphRepository graphRepository, ObjectMapper objectMapper,
+            AclFilterService aclFilterService, SchemaRegistry schemaRegistry) {
         this.graphRepository = graphRepository;
         this.objectMapper = objectMapper;
+        this.aclFilterService = aclFilterService;
+        this.schemaRegistry = schemaRegistry;
     }
 
     @Override
@@ -109,8 +118,12 @@ public class GetEntityTool implements ToolProvider {
         }
 
         NodeState entity = maybeEntity.get();
+        Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
+        Optional<NodeTypeDescriptor> maybeDesc = schemaRegistry.loadFor(tenant, type);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("entity", ToolNodeSerializer.toMap(entity));
+        result.put("entity", maybeDesc.isPresent()
+                ? ToolNodeSerializer.toMap(entity, aclFilterService, maybeDesc.get(), callerRoles)
+                : ToolNodeSerializer.toMap(entity));
 
         if (depth > 0) {
             // Expand neighbors via tenant-scoped Cypher (model_id injected by GraphRepositoryImpl)

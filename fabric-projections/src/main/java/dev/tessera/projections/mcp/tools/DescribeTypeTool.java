@@ -20,12 +20,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.PropertyDescriptor;
 import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.security.AclFilterService;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.mcp.api.ToolProvider;
 import dev.tessera.projections.mcp.api.ToolResponse;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.springframework.stereotype.Component;
 
 /**
@@ -40,10 +42,13 @@ public class DescribeTypeTool implements ToolProvider {
 
     private final SchemaRegistry schemaRegistry;
     private final ObjectMapper objectMapper;
+    private final AclFilterService aclFilterService;
 
-    public DescribeTypeTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper) {
+    public DescribeTypeTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper,
+            AclFilterService aclFilterService) {
         this.schemaRegistry = schemaRegistry;
         this.objectMapper = objectMapper;
+        this.aclFilterService = aclFilterService;
     }
 
     @Override
@@ -76,6 +81,10 @@ public class DescribeTypeTool implements ToolProvider {
             return ToolResponse.error("Type '" + slug + "' not found");
         }
         NodeTypeDescriptor type = maybeType.get();
+        Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
+        if (!aclFilterService.isTypeVisible(type, callerRoles)) {
+            return ToolResponse.error("Type '" + slug + "' not found");
+        }
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("slug", type.slug());

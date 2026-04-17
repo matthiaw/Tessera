@@ -19,12 +19,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.graph.NodeState;
+import dev.tessera.core.schema.NodeTypeDescriptor;
+import dev.tessera.core.schema.SchemaRegistry;
+import dev.tessera.core.security.AclFilterService;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.mcp.api.ToolProvider;
 import dev.tessera.projections.mcp.api.ToolResponse;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 
@@ -42,10 +47,15 @@ public class FindPathTool implements ToolProvider {
 
     private final GraphRepository graphRepository;
     private final ObjectMapper objectMapper;
+    private final AclFilterService aclFilterService;
+    private final SchemaRegistry schemaRegistry;
 
-    public FindPathTool(GraphRepository graphRepository, ObjectMapper objectMapper) {
+    public FindPathTool(GraphRepository graphRepository, ObjectMapper objectMapper,
+            AclFilterService aclFilterService, SchemaRegistry schemaRegistry) {
         this.graphRepository = graphRepository;
         this.objectMapper = objectMapper;
+        this.aclFilterService = aclFilterService;
+        this.schemaRegistry = schemaRegistry;
     }
 
     @Override
@@ -100,7 +110,13 @@ public class FindPathTool implements ToolProvider {
             }
         }
 
-        List<Map<String, Object>> nodes = path.stream().map(ToolNodeSerializer::toMap).toList();
+        Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
+        List<Map<String, Object>> nodes = path.stream().map(n -> {
+            Optional<NodeTypeDescriptor> desc = schemaRegistry.loadFor(tenant, n.typeSlug());
+            return desc.isPresent()
+                    ? ToolNodeSerializer.toMap(n, aclFilterService, desc.get(), callerRoles)
+                    : ToolNodeSerializer.toMap(n);
+        }).toList();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("path", nodes);
         result.put("length", nodes.size() - 1);
