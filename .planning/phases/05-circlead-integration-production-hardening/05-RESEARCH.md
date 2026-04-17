@@ -532,22 +532,13 @@ public class ConnectorHealthIndicator extends AbstractHealthIndicator {
 
 ---
 
-## Open Questions
+## Open Questions (ALL RESOLVED)
 
-1. **Circlead REST API authentication mechanism**
-   - What we know: `WorkitemService.java` shows no `@RolesAllowed` or Spring Security annotation on the list endpoint; `ApplicationFilter.java` exists in the firebase module but not in the rest module
-   - What's unclear: Is the REST endpoint protected by HTTP Basic, Bearer, or open? The `RestClient.java` in `circlead-rest-client` may show the auth pattern
-   - Recommendation: Check `RestClient.java` before writing the `MappingDefinition` credentials_ref. If open, use `credentials_ref: null` in the mapping.
+1. **Circlead REST API authentication mechanism** — RESOLVED: No auth annotation found on `WorkitemService` list endpoint. MappingDefinition uses `credentials_ref: null` (open endpoint). If auth is later discovered on the deployed instance, add credentials_ref pointing to a Vault path.
 
-2. **Outbox lag metric source**
-   - What we know: `graph_outbox` has a `status` column; `OutboxPoller` runs every 500ms
-   - What's unclear: Whether to measure lag as "count of PENDING rows" or "age of oldest PENDING row in seconds"
-   - Recommendation: Use both — a `Gauge` for count and a `TimeGauge` for oldest row age. This aligns with D-B1's `tessera.outbox.lag` metric name.
+2. **Outbox lag metric source** — RESOLVED: Use both — a `Gauge` for count of PENDING rows (`tessera.outbox.lag.count`) and a `TimeGauge` for age of oldest PENDING row in seconds (`tessera.outbox.lag.age`). Both are passive DB-polled gauges.
 
-3. **DR drill smoke test endpoint**
-   - What we know: The existing `dump_restore_rehearsal.sh` verifies graph data via `verify_queries.sh` (Cypher queries). D-D1 adds a Flyway verify + API smoke test against "circlead mapping endpoints."
-   - What's unclear: Which specific API endpoints constitute the smoke test. POST `/admin/events/snapshot` would require a running Tessera instance.
-   - Recommendation: DR drill smoke test = `GET /actuator/health` (returns 200 UP) + `GET /api/v1/{circlead_model_id}/entities/role` (returns non-error response). No write operations in the smoke test.
+3. **DR drill smoke test endpoint** — RESOLVED: CI job does DB-layer drill only (dump → restore → Flyway validate → psql data queries). Full API smoke test (GET /actuator/health + GET /api/v1/{model}/entities/role) runs in IONOS VPS manual drill per revised D-D1.
 
 ---
 

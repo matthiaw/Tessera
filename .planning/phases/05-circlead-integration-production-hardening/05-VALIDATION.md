@@ -19,7 +19,7 @@ created: 2026-04-17
 |----------|-------|
 | **Framework** | JUnit 5 + Spring Boot Test + Testcontainers + WireMock |
 | **Config file** | `fabric-app/src/test/resources/application-test.yml` |
-| **Quick run command** | `mvn test -pl fabric-core,fabric-projections,fabric-app -Dtest=CircleadMapping*,EventRetention*,Snapshot*,*HealthIndicator* -Dspotless.check.skip=true` |
+| **Quick run command** | `mvn test -pl fabric-core,fabric-projections,fabric-app -Dtest=CircleadConnector*,EventRetention*,EventSnapshot*,*HealthIndicator*,TesseraMetrics* -Dspotless.check.skip=true` |
 | **Full suite command** | `mvn verify -Dspotless.check.skip=true` |
 | **Estimated runtime** | ~90 seconds |
 
@@ -38,22 +38,28 @@ created: 2026-04-17
 
 | Task ID | Plan | Wave | Requirement | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|-----------|-------------------|-------------|--------|
-| 05-01-01 | 01 | 1 | CIRC-01 | integration | `mvn test -Dtest=CircleadMappingIT` | ❌ W0 | ⬜ pending |
-| 05-01-02 | 01 | 1 | CIRC-02, CIRC-03 | integration | `mvn test -Dtest=CircleadGracefulDegradationIT` | ❌ W0 | ⬜ pending |
-| 05-02-01 | 02 | 1 | OPS-01 | unit | `mvn test -Dtest=*MetricsTest` | ❌ W0 | ⬜ pending |
-| 05-02-02 | 02 | 1 | OPS-02 | integration | `mvn test -Dtest=*HealthIndicatorIT` | ❌ W0 | ⬜ pending |
-| 05-03-01 | 03 | 2 | OPS-03 | integration | `mvn test -Dtest=EventRetentionIT` | ❌ W0 | ⬜ pending |
-| 05-03-02 | 03 | 2 | OPS-04 | integration | `mvn test -Dtest=SnapshotCompactionIT` | ❌ W0 | ⬜ pending |
-| 05-04-01 | 04 | 2 | OPS-05 | script | `bash scripts/dr_drill.sh --dry-run` | N/A | ⬜ pending |
+| 05-02-01 | 02 | 1 | CIRC-01 | integration | `mvn test -Dtest=CircleadConnectorIT` | ❌ W0 | ⬜ pending |
+| 05-02-02 | 02 | 1 | CIRC-02, CIRC-03 | integration | `mvn test -Dtest=CircleadConnectorIT` | ❌ W0 | ⬜ pending |
+| 05-01-01 | 01 | 1 | OPS-01 | unit | `mvn test -Dtest=TesseraMetricsTest` | ❌ W0 | ⬜ pending |
+| 05-01-02 | 01 | 1 | OPS-02 | integration | `mvn test -Dtest=AgeGraphHealthIndicatorIT,ConnectorHealthIndicatorIT` | ❌ W0 | ⬜ pending |
+| 05-03-01 | 03 | 2 | OPS-03 | integration | `mvn test -Dtest=EventRetentionJobTest` | ❌ W0 | ⬜ pending |
+| 05-03-02 | 03 | 2 | OPS-04 | integration | `mvn test -Dtest=EventSnapshotServiceTest` | ❌ W0 | ⬜ pending |
+| 05-04-01 | 04 | 3 | OPS-05 | script | `grep -q 'pg_dump\|pg_restore\|flyway' scripts/dr_drill.sh` | N/A | ⬜ pending |
+
+*Note: CIRC-03 (graceful degradation) is circlead-side responsibility. Tessera delivers: documented circuit breaker pattern + connector disconnect test in CircleadConnectorIT. See D-A3 scope note.*
+
+*Note: OPS-05 DR drill API smoke test runs in IONOS manual drill only (not CI). CI job validates DB-layer: dump → restore → Flyway → psql queries. See D-D1 scope note.*
 
 ---
 
 ## Wave 0 Requirements
 
-- [ ] `CircleadMappingIT.java` — stubs for CIRC-01 mapping round-trip
-- [ ] `CircleadGracefulDegradationIT.java` — stubs for CIRC-02/03 degradation
-- [ ] `EventRetentionIT.java` — stubs for OPS-03 retention
-- [ ] `SnapshotCompactionIT.java` — stubs for OPS-04 snapshot
+- [ ] `CircleadConnectorIT.java` — stubs for CIRC-01 mapping + connector disconnect
+- [ ] `TesseraMetricsTest.java` — stubs for OPS-01 metrics registration
+- [ ] `AgeGraphHealthIndicatorIT.java` — stubs for OPS-02 health
+- [ ] `ConnectorHealthIndicatorIT.java` — stubs for OPS-02 connector health
+- [ ] `EventRetentionJobTest.java` — stubs for OPS-03 retention
+- [ ] `EventSnapshotServiceTest.java` — stubs for OPS-04 snapshot
 
 ---
 
@@ -62,7 +68,8 @@ created: 2026-04-17
 | Behavior | Requirement | Why Manual | Test Instructions |
 |----------|-------------|------------|-------------------|
 | Live circlead integration | CIRC-01 | Requires running circlead instance | Point connector at live circlead, verify Role/Circle/Activity data in graph |
-| DR drill end-to-end | OPS-05 | Requires pg_dump/restore cycle | Run scripts/dr_drill.sh against IONOS VPS |
+| Circlead graceful degradation | CIRC-03 | Requires circlead-side circuit breaker | Implement circuit breaker in circlead per docs/circlead-mapping.md, verify fallback |
+| DR drill API smoke test | OPS-05 | Requires full Tessera on IONOS VPS | Run scripts/dr_drill.sh on VPS, verify /actuator/health + GET /api/v1/{model}/entities/role |
 
 ---
 

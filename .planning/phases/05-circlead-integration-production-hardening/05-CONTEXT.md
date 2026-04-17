@@ -32,7 +32,7 @@ Deliver the circlead integration proving Tessera's full stack against a real con
 
 - **D-A2:** A **documented mapping** (markdown) maps circlead's JPA entities (Role, Circle, Activity, Rolegroup) to Tessera node types and edge types. The mapping includes field-level correspondence, cardinality, and any transformation rules.
 
-- **D-A3:** Circlead must **gracefully degrade** when Tessera is unavailable — a circuit breaker (Resilience4j or Spring Retry) wraps Tessera REST/MCP calls. When the circuit is open, circlead falls back to its local JPA data. The circuit breaker configuration is documented.
+- **D-A3:** Circlead must **gracefully degrade** when Tessera is unavailable — a circuit breaker (Resilience4j or Spring Retry) wraps Tessera REST/MCP calls. When the circuit is open, circlead falls back to its local JPA data. The circuit breaker configuration is documented. **Scope note:** The circuit breaker is circlead-side code, not Tessera-side. Tessera delivers: (1) documented circuit breaker pattern in `circlead-mapping.md`, (2) a connector-disconnect test in `CircleadConnectorIT` proving Tessera's connector handles circlead unavailability gracefully. Circlead-side implementation is tracked separately.
 
 - **D-A4:** Integration testing uses a **circlead-stub** module or WireMock that simulates circlead's API responses for Tessera's REST connector, rather than requiring a live circlead instance.
 
@@ -54,7 +54,7 @@ Deliver the circlead integration proving Tessera's full stack against a real con
 
 ### D. DR Drill & CI
 
-- **D-D1:** A **DR drill script** (`scripts/dr_drill.sh`) performs: pg_dump → pg_restore to a fresh container → Flyway verify → API smoke test against circlead mapping endpoints. The script is runnable in CI and locally.
+- **D-D1:** A **DR drill script** (`scripts/dr_drill.sh`) performs: pg_dump → pg_restore to a fresh container → Flyway verify → DB-layer data integrity queries. The CI job validates the DB layer only (no Spring Boot startup). The full API smoke test (GET /actuator/health + GET /api/v1/{model}/entities/role) runs in the IONOS VPS manual drill documented in `docs/DR-DRILL.md`.
 
 - **D-D2:** **CI pipeline** (`ci.yml`) runs all milestone-1 phases' test suites (unit + integration tests) on every push. The Testcontainers AGE image is used for integration tests. The pipeline must remain green after Phase 5 is complete.
 
