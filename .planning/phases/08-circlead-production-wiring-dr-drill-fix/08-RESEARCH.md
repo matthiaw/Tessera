@@ -462,22 +462,25 @@ void sourceUrl_placeholder_is_resolved_before_reaching_uri_create() {
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **What is the production circlead tenant `model_id` UUID?**
    - What we know: `model_id` in `graph_events` is `UUID NOT NULL`. The seed migration needs a real UUID.
    - What's unclear: No UUID for the circlead tenant is documented anywhere in the codebase.
    - Recommendation: Use a configurable property `tessera.connectors.circlead.model-id` (defaulting to a fixed dev UUID) and pass it into the startup upsert or make it a Flyway placeholder.
+   - RESOLVED: Plan 08-01 Task 1 adds `@Value("${tessera.connectors.circlead.model-id:00000000-0000-0000-0000-000000000001}")` and `application.yml` key `tessera.connectors.circlead.model-id` with `TESSERA_CIRCLEAD_MODEL_ID` env-var override.
 
 2. **What `credentials_ref` value should the circlead connectors use?**
    - What we know: `ConnectorRunner` passes `credentialsRef` to the Vault lookup to get a bearer token.
    - What's unclear: No Vault path for circlead credentials is defined.
    - Recommendation: Use `vault:secret/tessera/circlead/api-token` as the default; document it in the application config.
+   - RESOLVED: Plan 08-01 Task 1 adds `@Value("${tessera.connectors.circlead.credentials-ref:vault:secret/tessera/circlead/api-token}")` and documents the Vault path in `application.yml`.
 
 3. **Should `dr_drill.sh` also start a Tessera Spring Boot process for the smoke test, or only test the DB layer?**
    - What we know: The current drill comment explicitly says "does NOT start a full Tessera Spring Boot instance in CI (too heavy)".
    - What's unclear: OPS-05 says "consumer smoke test" — does this mean a real HTTP call or a unit/IT test?
    - Recommendation: Keep the DB layer drill as-is; run `CircleadDrillSmokeIT` (a WireMock-backed IT) as a Maven failsafe test that is explicitly invoked at the end of the drill script via `./mvnw -pl fabric-connectors failsafe:integration-test -Dtest=CircleadDrillSmokeIT`.
+   - RESOLVED: Plan 08-02 Task 1 adds failsafe invocation to dr_drill.sh step 9 using `-Dit.test=CircleadDrillSmokeIT -Dsurefire.skip=true`. Plan 08-02 Task 2 creates CircleadDrillSmokeIT.
 
 ---
 
