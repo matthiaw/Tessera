@@ -4,7 +4,7 @@ spring:
     driver-class-name: org.postgresql.Driver
     hikari:
       pool-name: TesseraHikariPool-IT
-      maximum-pool-size: 4
+      maximum-pool-size: 20
       connection-init-sql: "LOAD 'age'; SET search_path = ag_catalog, \"$user\", public;"
   flyway:
     enabled: true

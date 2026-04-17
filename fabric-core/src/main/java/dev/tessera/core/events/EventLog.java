@@ -32,9 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -65,16 +67,33 @@ public final class EventLog {
                 payload, delta, caused_by, source_type, source_id, source_system,
                 confidence, extractor_version, llm_model_id,
                 source_document_id, source_chunk_range,
-                origin_connector_id, origin_change_id
+                origin_connector_id, origin_change_id, prev_hash
             ) VALUES (
                 :model_id::uuid, :sequence_nr, :event_type, :node_uuid::uuid, :edge_uuid::uuid, :type_slug,
                 :payload::jsonb, :delta::jsonb, :caused_by, :source_type, :source_id, :source_system,
                 :confidence, :extractor_version, :llm_model_id,
                 :source_document_id, :source_chunk_range,
-                :origin_connector_id, :origin_change_id
+                :origin_connector_id, :origin_change_id, :prev_hash
             )
             RETURNING id
             """;
+
+    // D-C2: per-tenant hash_chain_enabled flag cache — avoids a DB round-trip per event.
+    // Invalidate via invalidateHashChainConfig(modelId) when tenant config changes.
+    private final ConcurrentHashMap<UUID, Boolean> hashChainEnabledCache = new ConcurrentHashMap<>();
+
+    // D-C4: per-tenant JVM lock objects to serialize hash-chain appends within a single JVM.
+    // ConcurrentHashMap.computeIfAbsent ensures exactly one lock object per tenant UUID.
+    // This is sufficient for MVP (single-instance deployment). Multi-instance deployments
+    // require distributed locking (e.g., pg_advisory_lock) — deferred to Phase 5.
+    private final ConcurrentHashMap<UUID, Object> tenantLocks = new ConcurrentHashMap<>();
+
+    private static final String HASH_CHAIN_CONFIG_SQL =
+            "SELECT hash_chain_enabled FROM model_config WHERE model_id = :mid::uuid";
+
+    private static final String PREDECESSOR_HASH_SQL =
+            "SELECT prev_hash FROM graph_events WHERE model_id = :mid::uuid "
+                    + "ORDER BY sequence_nr DESC LIMIT 1 FOR UPDATE";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
@@ -85,6 +104,14 @@ public final class EventLog {
     public EventLog(NamedParameterJdbcTemplate jdbc, SequenceAllocator allocator) {
         this.jdbc = jdbc;
         this.allocator = allocator;
+    }
+
+    /**
+     * D-C2: Invalidate the cached {@code hash_chain_enabled} flag for a tenant.
+     * Call this when the tenant's {@code model_config} row is updated.
+     */
+    public void invalidateHashChainConfig(UUID modelId) {
+        hashChainEnabledCache.remove(modelId);
     }
 
     /**
@@ -267,11 +294,69 @@ public final class EventLog {
         p.addValue("origin_connector_id", mutation.originConnectorId(), Types.VARCHAR);
         p.addValue("origin_change_id", mutation.originChangeId(), Types.VARCHAR);
 
-        UUID id = jdbc.queryForObject(INSERT, p, UUID.class);
-        if (id == null) {
-            throw new IllegalStateException("graph_events insert returned null id");
+        // D-C2/C4: hash chain — compute prev_hash and INSERT within the per-tenant JVM lock
+        // so that no other thread can read the same predecessor between our read and our commit.
+        return appendWithHashChain(ctx.modelId(), payloadJson, p, seq);
+    }
+
+    /**
+     * D-C2/C4: Execute the INSERT with hash-chain prev_hash computation, serialized per
+     * tenant via a JVM lock that spans both the predecessor read AND the INSERT.
+     *
+     * <p>For non-hash-chain tenants: performs the INSERT immediately with {@code null}
+     * prev_hash — no locking overhead.
+     *
+     * <p>For hash-chain-enabled tenants: acquires a per-tenant JVM {@code synchronized}
+     * lock that covers the full sequence: read predecessor → compute hash → INSERT.
+     * This prevents two threads from reading the same predecessor and producing duplicate
+     * prev_hash values (Pitfall 5 / READ COMMITTED race). The lock is held until the
+     * INSERT completes — the surrounding {@code @Transactional} commits immediately after
+     * {@code append()} returns, so the lock hold time equals one INSERT round-trip.
+     *
+     * <p>For multi-instance deployments, replace the JVM lock with a distributed lock
+     * (e.g., {@code pg_advisory_lock} session-scoped) before Phase 5.
+     */
+    private Appended appendWithHashChain(
+            UUID modelId, String payloadJson, MapSqlParameterSource p, long seq) {
+        boolean enabled = hashChainEnabledCache.computeIfAbsent(modelId, mid -> {
+            MapSqlParameterSource cp = new MapSqlParameterSource("mid", mid.toString());
+            List<Boolean> rows = jdbc.queryForList(HASH_CHAIN_CONFIG_SQL, cp, Boolean.class);
+            return !rows.isEmpty() && Boolean.TRUE.equals(rows.get(0));
+        });
+
+        if (!enabled) {
+            // Non-hash-chain tenant: insert with null prev_hash immediately, no lock needed.
+            p.addValue("prev_hash", null, Types.VARCHAR);
+            UUID id = jdbc.queryForObject(INSERT, p, UUID.class);
+            if (id == null) throw new IllegalStateException("graph_events insert returned null id");
+            return new Appended(id, seq);
         }
-        return new Appended(id, seq);
+
+        // D-C4: per-tenant JVM lock covers read → compute → INSERT atomically within this JVM.
+        // Without this, two concurrent transactions read the same predecessor under READ COMMITTED
+        // isolation and produce identical prev_hash values, breaking the linear chain (Pitfall 5).
+        Object tenantLock = tenantLocks.computeIfAbsent(modelId, id -> new Object());
+        synchronized (tenantLock) {
+            MapSqlParameterSource pp = new MapSqlParameterSource("mid", modelId.toString());
+            List<String> predecessors = jdbc.queryForList(PREDECESSOR_HASH_SQL, pp, String.class);
+
+            String prevHash;
+            if (predecessors.isEmpty()) {
+                prevHash = HashChain.genesis();
+            } else {
+                prevHash = predecessors.get(0);
+                if (prevHash == null) {
+                    prevHash = HashChain.genesis();
+                }
+            }
+
+            String newHash = HashChain.compute(prevHash, payloadJson);
+            p.addValue("prev_hash", newHash, Types.VARCHAR);
+
+            UUID id = jdbc.queryForObject(INSERT, p, UUID.class);
+            if (id == null) throw new IllegalStateException("graph_events insert returned null id");
+            return new Appended(id, seq);
+        }
     }
 
     /** EVENT-03 delta computation. Public for cross-package unit testing (TimestampOwnershipTest). */
