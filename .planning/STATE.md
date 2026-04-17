@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-circlead-integration-production-hardening plan 02 (Circlead Integration)
-last_updated: "2026-04-17T10:59:25.667Z"
+stopped_at: Completed 05-circlead-integration-production-hardening plan 03 (Event-Log Lifecycle)
+last_updated: "2026-04-17T11:07:51.595Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 32
-  completed_plans: 30
-  percent: 94
+  completed_plans: 31
+  percent: 97
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 5
 - **Plan:** Not started
 - **Status:** Executing Phase 05
-- **Progress:** [█████████░] 94%
+- **Progress:** [██████████] 97%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Plan: 1 of 5
 | Phase 05 P00 | 256 | 2 tasks | 26 files |
 | Phase 05-circlead-integration-production-hardening P01 | 389 | 2 tasks | 6 files |
 | Phase 05-circlead-integration-production-hardening P02 | 414 | 2 tasks | 10 files |
+| Phase 05-circlead-integration-production-hardening P03 | 372 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,12 @@ Plan: 1 of 5
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 05 Plan 03 — Event-Log Lifecycle)
+
+- `spring-boot-starter-web` and `oauth2-resource-server` added to `fabric-core` pom — `EventLifecycleController` requires `ResponseEntity` and `Jwt`; consistent with `fabric-connectors` and `fabric-projections` module pattern
+- `TransactionTemplate` injected into `EventSnapshotService` constructor — allows mocking in unit tests; three-phase compaction keeps each phase in a separate TX to avoid blocking the ingest write path
+- `HashMap` used for test fixture maps with nullable `snapshot_boundary` — `Map.of()` rejects null values; `HashMap` is the correct choice for fixtures with optional fields
 
 ### Decisions (Phase 05 Plan 02 — Circlead Integration)
 
@@ -171,8 +178,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T10:59:25.653Z
-**Stopped at:** Completed 05-circlead-integration-production-hardening plan 02 (Circlead Integration)
+**Last session:** 2026-04-17T11:07:51.585Z
+**Stopped at:** Completed 05-circlead-integration-production-hardening plan 03 (Event-Log Lifecycle)
 
 **Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 
