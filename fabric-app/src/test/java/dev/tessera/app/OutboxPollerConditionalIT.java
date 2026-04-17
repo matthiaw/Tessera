@@ -15,49 +15,84 @@
  */
 package dev.tessera.app;
 
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import dev.tessera.core.events.OutboxPoller;
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * KAFKA-02: Verifies that the {@code OutboxPoller} is conditionally registered based on
  * the {@code tessera.kafka.enabled} property.
  *
- * <p>By default (Kafka disabled), the OutboxPoller must be present in the Spring context
- * and actively polling the outbox table. When {@code tessera.kafka.enabled=true}, the
- * OutboxPoller must be absent — Debezium/Kafka takes over outbox delivery and the poller
- * must not run concurrently.
+ * <p>Uses {@link ApplicationContextRunner} for lightweight context bootstrap — no
+ * Testcontainers, no Flyway, no Spring Security needed. The test only verifies
+ * bean presence/absence based on the conditional property.
  *
- * <p>Note: Each conditional variant requires its own nested test class or separate
- * {@code @SpringBootTest} context with distinct properties. The implementation in
- * Plan 04-03 will use {@code @SpringBootTest(properties = ...)} nested classes or
- * {@code ApplicationContextRunner} to test both branches.
+ * <p>IMPORTANT: {@code OutboxPoller.class} is registered via
+ * {@code withUserConfiguration} (not {@code withBean}) so that
+ * {@code @ConditionalOnProperty} is evaluated during context refresh. Using
+ * {@code withBean} bypasses Spring's condition processing.
  *
- * <p>Wave 0 stub — enabled by Plan 04-03.
+ * <p>Plan 04-03 implementation replacing the Wave 0 stub.
  */
-@Disabled("Wave 0 stub — implementation in Plan 04-03")
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 class OutboxPollerConditionalIT {
+
+    /** Minimal configuration that wires the OutboxPoller's two constructor dependencies. */
+    @Configuration
+    static class MinimalConfig {
+
+        @Bean
+        NamedParameterJdbcTemplate namedParameterJdbcTemplate() {
+            // Mocked — OutboxPoller constructor only stores the reference; it is never
+            // called in these context-presence tests.
+            return org.mockito.Mockito.mock(NamedParameterJdbcTemplate.class);
+        }
+
+        @Bean
+        ApplicationEventPublisher applicationEventPublisher() {
+            return org.mockito.Mockito.mock(ApplicationEventPublisher.class);
+        }
+    }
+
+    // withUserConfiguration — NOT withBean — so @ConditionalOnProperty is evaluated.
+    private final ApplicationContextRunner runner = new ApplicationContextRunner()
+            .withUserConfiguration(MinimalConfig.class, OutboxPoller.class);
 
     /**
      * KAFKA-02: With the default configuration ({@code tessera.kafka.enabled} absent or
-     * {@code false}), the OutboxPoller bean must be present in the application context
-     * and functional.
+     * {@code false}), the OutboxPoller bean must be present in the application context.
      */
     @Test
     void pollerExistsWhenKafkaDisabled() {
-        fail("Not yet implemented — KAFKA-02: default config = OutboxPoller active (Plan 04-03)");
+        runner
+                // Default: property absent — matchIfMissing=true means poller is created
+                .run(ctx -> assertThat(ctx).hasSingleBean(OutboxPoller.class));
+    }
+
+    /**
+     * KAFKA-02: With {@code tessera.kafka.enabled=false} explicit, the poller must exist.
+     */
+    @Test
+    void pollerExistsWhenKafkaExplicitlyFalse() {
+        runner
+                .withPropertyValues("tessera.kafka.enabled=false")
+                .run(ctx -> assertThat(ctx).hasSingleBean(OutboxPoller.class));
     }
 
     /**
      * KAFKA-02: When {@code tessera.kafka.enabled=true}, the OutboxPoller bean must NOT
-     * be registered in the application context — Kafka/Debezium is responsible for
+     * be registered in the application context — Debezium/Kafka is responsible for
      * outbox delivery and the in-process poller must not run.
      */
     @Test
     void pollerAbsentWhenKafkaEnabled() {
-        fail("Not yet implemented — KAFKA-02: kafka enabled = OutboxPoller absent from context (Plan 04-03)");
+        runner
+                .withPropertyValues("tessera.kafka.enabled=true")
+                .run(ctx -> assertThat(ctx).doesNotHaveBean(OutboxPoller.class));
     }
 }

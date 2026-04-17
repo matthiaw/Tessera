@@ -27,6 +27,7 @@ import java.util.UUID;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -37,7 +38,13 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Phase 1 / Wave 2 / 01-W2-03 (EVENT-05): in-process outbox poller.
+ * Phase 4 Plan 03 (KAFKA-01): conditionalized on {@code tessera.kafka.enabled=false}
+ * (default). When Kafka/Debezium is enabled the poller bean is excluded from the
+ * application context entirely, and Debezium CDC takes over outbox fan-out from the WAL.
+ * Set {@code tessera.kafka.enabled=true} to switch; this bean then disappears and the
+ * {@link dev.tessera.projections.kafka.DebeziumSlotHealthIndicator} activates instead.
+ *
+ * <p>Phase 1 / Wave 2 / 01-W2-03 (EVENT-05): in-process outbox poller.
  *
  * <p>Runs every 500 ms, picks up to {@value #BATCH_SIZE} {@code PENDING}
  * {@code graph_outbox} rows using {@code FOR UPDATE SKIP LOCKED}, publishes
@@ -67,6 +74,10 @@ import org.springframework.transaction.annotation.Transactional;
  * we chose polling so the write path stays ignorant of delivery and so Phase 4
  * can swap this poller for Debezium without touching {@code GraphServiceImpl}.
  */
+@ConditionalOnProperty(
+        name = "tessera.kafka.enabled",
+        havingValue = "false",
+        matchIfMissing = true)
 @Component
 public class OutboxPoller {
 
@@ -84,7 +95,8 @@ public class OutboxPoller {
             + "FOR UPDATE SKIP LOCKED";
 
     private static final String MARK_DELIVERED_SQL =
-            "UPDATE graph_outbox SET status = 'DELIVERED', delivered_at = clock_timestamp() " + "WHERE id = :id::uuid";
+            "UPDATE graph_outbox SET status = 'DELIVERED', delivered_at = clock_timestamp(), published = true "
+                    + "WHERE id = :id::uuid";
 
     private final NamedParameterJdbcTemplate jdbc;
     private final ApplicationEventPublisher publisher;

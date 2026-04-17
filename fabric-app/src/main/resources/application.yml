@@ -31,6 +31,9 @@ server:
 # later phase.
 tessera:
   version: 0.1.0-SNAPSHOT
+  kafka:
+    enabled: false  # Set to true to enable Debezium/Kafka; disables in-process OutboxPoller
+    lag-threshold-bytes: 104857600  # 100MB default for DebeziumSlotHealthIndicator
   security:
     field-encryption:
       enabled: false

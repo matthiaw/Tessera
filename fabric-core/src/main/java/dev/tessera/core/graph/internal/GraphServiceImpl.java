@@ -188,10 +188,14 @@ public class GraphServiceImpl implements GraphService {
             }
         }
 
+        // Phase 4 Plan 03 (KAFKA-01): aggregatetype carries "{model_id}.{type_slug}" so Debezium
+        // EventRouter SMT routes to topic "tessera.{model_id}.{type_slug}". The dot-separated
+        // format is safe for Kafka topic names and allows per-tenant topic isolation.
+        String aggregateType = effective.tenantContext().modelId() + "." + effective.type();
         outbox.append(
                 effective.tenantContext(),
                 appended.eventId(),
-                effective.type(),
+                aggregateType,
                 state.uuid(),
                 eventType,
                 state.properties(),
