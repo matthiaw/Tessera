@@ -280,8 +280,11 @@ public class ConnectorRunner {
                         candidate.extractionConfidence());
                 GraphMutation mutation = mergedCandidate.toMutation(instance.tenant());
                 GraphMutationOutcome outcome = graphService.apply(mutation);
-                if (outcome instanceof GraphMutationOutcome.Committed committed && embeddingService != null) {
-                    storeEmbeddingSafe(committed.nodeUuid(), instance, candidate);
+                if (outcome instanceof GraphMutationOutcome.Committed committed) {
+                    if (metricsPort != null) metricsPort.recordIngest();
+                    if (embeddingService != null) {
+                        storeEmbeddingSafe(committed.nodeUuid(), instance, candidate);
+                    }
                 }
             } catch (Exception e) {
                 LOG.warn("Failed to apply merged candidate: {}", e.getMessage());
