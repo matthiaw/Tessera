@@ -23,6 +23,7 @@ import dev.tessera.core.tenant.TenantContext;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,18 +49,21 @@ public class SchemaRegistry {
     private final SchemaAliasService aliases;
     private final SchemaDescriptorCache cache;
     private final SchemaChangeReplayer replayer;
+    private final ApplicationEventPublisher publisher;
 
     public SchemaRegistry(
             SchemaRepository repo,
             SchemaVersionService versions,
             SchemaAliasService aliases,
             SchemaDescriptorCache cache,
-            SchemaChangeReplayer replayer) {
+            SchemaChangeReplayer replayer,
+            ApplicationEventPublisher publisher) {
         this.repo = repo;
         this.versions = versions;
         this.aliases = aliases;
         this.cache = cache;
         this.replayer = replayer;
+        this.publisher = publisher;
     }
 
     // ---------- node types (SCHEMA-01) ----------
@@ -70,6 +74,7 @@ public class SchemaRegistry {
         String payload = "{\"changeType\":\"CREATE_TYPE\",\"typeSlug\":\"" + spec.slug() + "\"}";
         versions.applyChange(ctx, "CREATE_TYPE", payload, "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "CREATE_TYPE", spec.slug()));
         return repo.findNodeType(ctx, spec.slug(), versions.currentVersion(ctx))
                 .orElseThrow(() -> new IllegalStateException("createNodeType: inserted but not found"));
     }
@@ -87,6 +92,7 @@ public class SchemaRegistry {
                 "{\"changeType\":\"UPDATE_TYPE\",\"typeSlug\":\"" + typeSlug + "\"}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "UPDATE_TYPE", typeSlug));
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -98,6 +104,7 @@ public class SchemaRegistry {
                 "{\"changeType\":\"DEPRECATE_TYPE\",\"typeSlug\":\"" + typeSlug + "\"}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "DEPRECATE_TYPE", typeSlug));
     }
 
     // ---------- properties (SCHEMA-02) ----------
@@ -109,6 +116,7 @@ public class SchemaRegistry {
                 + spec.slug() + "\",\"dataType\":\"" + spec.dataType() + "\",\"required\":" + spec.required() + "}";
         versions.applyChange(ctx, "ADD_PROPERTY", payload, "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "ADD_PROPERTY", typeSlug));
         return repo.listProperties(ctx, typeSlug).stream()
                 .filter(p -> p.slug().equals(spec.slug()))
                 .findFirst()
@@ -125,6 +133,7 @@ public class SchemaRegistry {
                         + propertySlug + "\"}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "DEPRECATE_PROPERTY", typeSlug));
     }
 
     // ---------- edge types (SCHEMA-03) ----------
@@ -138,6 +147,7 @@ public class SchemaRegistry {
                 "{\"changeType\":\"CREATE_EDGE_TYPE\",\"slug\":\"" + spec.slug() + "\"}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "CREATE_EDGE_TYPE", spec.slug()));
         return repo.findEdgeType(ctx, spec.slug())
                 .orElseThrow(() -> new IllegalStateException("createEdgeType: inserted but not found"));
     }
@@ -195,6 +205,7 @@ public class SchemaRegistry {
                         + "\",\"newSlug\":\"" + newSlug + "\"}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "RENAME_PROPERTY", typeSlug));
     }
 
     public Optional<String> resolvePropertySlug(TenantContext ctx, String typeSlug, String maybeOldSlug) {
@@ -244,5 +255,6 @@ public class SchemaRegistry {
                         + propertySlug + "\",\"force\":" + force + "}",
                 "schema-registry");
         cache.invalidateAll(ctx.modelId());
+        publisher.publishEvent(new SchemaChangeEvent(ctx.modelId(), "REMOVE_PROPERTY", typeSlug));
     }
 }
