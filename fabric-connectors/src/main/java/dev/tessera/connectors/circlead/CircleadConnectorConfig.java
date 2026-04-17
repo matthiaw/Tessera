@@ -17,24 +17,35 @@ package dev.tessera.connectors.circlead;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.connectors.MappingDefinition;
+import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * CIRC-01 / CIRC-02: Spring configuration that loads the circlead MappingDefinition
- * JSON resources from the classpath and exposes them as named beans.
+ * JSON resources from the classpath, resolves Spring placeholders in {@code sourceUrl},
+ * exposes the mappings as named beans, and registers the three circlead connector rows
+ * in the {@code connectors} DB table at startup.
  *
- * <p>Each bean is consumed by {@code ConnectorRunner} / {@code ConnectorRegistry}
- * when wiring a circlead connector instance. The {@code sourceUrl} field in each
- * JSON contains a {@code ${tessera.connectors.circlead.base-url}} placeholder;
- * callers must resolve this property before passing the mapping to
- * {@code GenericRestPollerConnector.poll()}.
+ * <p>Each bean's {@code sourceUrl} is resolved via {@link Environment#resolvePlaceholders}
+ * so that {@code URI.create()} never receives a raw {@code ${...}} placeholder string.
+ *
+ * <p>The {@code @PostConstruct} upsert uses {@code ON CONFLICT DO NOTHING} and is
+ * idempotent across restarts.
  */
 @Configuration
 public class CircleadConnectorConfig {
+
+    private static final Logger LOG = LoggerFactory.getLogger(CircleadConnectorConfig.class);
 
     @Value("classpath:connectors/circlead-role-mapping.json")
     private Resource roleMappingResource;
@@ -45,30 +56,109 @@ public class CircleadConnectorConfig {
     @Value("classpath:connectors/circlead-activity-mapping.json")
     private Resource activityMappingResource;
 
-    /**
-     * MappingDefinition for circlead Role entities.
-     * Identity field: {@code circlead_id} (maps to circlead WorkItem UUID).
-     */
-    @Bean
-    public MappingDefinition circleadRoleMapping(ObjectMapper objectMapper) throws IOException {
-        return objectMapper.readValue(roleMappingResource.getInputStream(), MappingDefinition.class);
+    private final Environment env;
+    private final NamedParameterJdbcTemplate jdbc;
+    private final ObjectMapper objectMapper;
+
+    @Value("${tessera.connectors.circlead.model-id:00000000-0000-0000-0000-000000000001}")
+    private String circleadModelId;
+
+    @Value("${tessera.connectors.circlead.credentials-ref:vault:secret/tessera/circlead/api-token}")
+    private String circleadCredentialsRef;
+
+    @Value("${tessera.connectors.circlead.poll-interval-seconds:300}")
+    private int circleadPollIntervalSeconds;
+
+    public CircleadConnectorConfig(Environment env, NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
+        this.env = env;
+        this.jdbc = jdbc;
+        this.objectMapper = objectMapper;
     }
 
     /**
-     * MappingDefinition for circlead Circle entities.
+     * MappingDefinition for circlead Role entities, with {@code sourceUrl} placeholder resolved.
      * Identity field: {@code circlead_id} (maps to circlead WorkItem UUID).
      */
     @Bean
-    public MappingDefinition circleadCircleMapping(ObjectMapper objectMapper) throws IOException {
-        return objectMapper.readValue(circleMappingResource.getInputStream(), MappingDefinition.class);
+    public MappingDefinition circleadRoleMapping() throws IOException {
+        MappingDefinition raw = objectMapper.readValue(roleMappingResource.getInputStream(), MappingDefinition.class);
+        return withResolvedUrl(raw, env.resolvePlaceholders(raw.sourceUrl()));
     }
 
     /**
-     * MappingDefinition for circlead Activity entities.
+     * MappingDefinition for circlead Circle entities, with {@code sourceUrl} placeholder resolved.
      * Identity field: {@code circlead_id} (maps to circlead WorkItem UUID).
      */
     @Bean
-    public MappingDefinition circleadActivityMapping(ObjectMapper objectMapper) throws IOException {
-        return objectMapper.readValue(activityMappingResource.getInputStream(), MappingDefinition.class);
+    public MappingDefinition circleadCircleMapping() throws IOException {
+        MappingDefinition raw = objectMapper.readValue(circleMappingResource.getInputStream(), MappingDefinition.class);
+        return withResolvedUrl(raw, env.resolvePlaceholders(raw.sourceUrl()));
+    }
+
+    /**
+     * MappingDefinition for circlead Activity entities, with {@code sourceUrl} placeholder resolved.
+     * Identity field: {@code circlead_id} (maps to circlead WorkItem UUID).
+     */
+    @Bean
+    public MappingDefinition circleadActivityMapping() throws IOException {
+        MappingDefinition raw =
+                objectMapper.readValue(activityMappingResource.getInputStream(), MappingDefinition.class);
+        return withResolvedUrl(raw, env.resolvePlaceholders(raw.sourceUrl()));
+    }
+
+    /**
+     * Registers the three circlead connector rows in the {@code connectors} table.
+     * Uses {@code ON CONFLICT DO NOTHING} for idempotence across restarts.
+     *
+     * <p>Must run BEFORE {@code ConnectorRegistry.loadAll()} — enforced via
+     * {@code @DependsOn("circleadConnectorConfig")} on {@code ConnectorRegistry}.
+     */
+    @PostConstruct
+    void registerCircleadConnectors() {
+        try {
+            List<MappingDefinition> mappings =
+                    List.of(circleadRoleMapping(), circleadCircleMapping(), circleadActivityMapping());
+            for (MappingDefinition m : mappings) {
+                jdbc.update(
+                        """
+                        INSERT INTO connectors (model_id, type, mapping_def, auth_type, credentials_ref,
+                                                poll_interval_seconds, enabled)
+                        VALUES (:modelId::uuid, 'rest-poll', :mappingJson::jsonb, 'BEARER',
+                                :credentialsRef, :interval, true)
+                        ON CONFLICT DO NOTHING
+                        """,
+                        Map.of(
+                                "modelId", circleadModelId,
+                                "mappingJson", objectMapper.writeValueAsString(m),
+                                "credentialsRef", circleadCredentialsRef,
+                                "interval", circleadPollIntervalSeconds));
+            }
+            LOG.info("CircleadConnectorConfig: registered {} circlead connector(s)", mappings.size());
+        } catch (Exception e) {
+            LOG.warn(
+                    "CircleadConnectorConfig: failed to register circlead connectors"
+                            + " (table may not exist yet): {}",
+                    e.getMessage());
+        }
+    }
+
+    /**
+     * Returns a copy of {@code raw} with the {@code sourceUrl} replaced by {@code resolvedUrl}.
+     * Package-private for unit testing.
+     */
+    static MappingDefinition withResolvedUrl(MappingDefinition raw, String resolvedUrl) {
+        return new MappingDefinition(
+                raw.sourceEntityType(),
+                raw.targetNodeTypeSlug(),
+                raw.rootPath(),
+                raw.fields(),
+                raw.identityFields(),
+                resolvedUrl,
+                raw.folderPath(),
+                raw.globPattern(),
+                raw.chunkStrategy(),
+                raw.chunkOverlapChars(),
+                raw.confidenceThreshold(),
+                raw.provider());
     }
 }

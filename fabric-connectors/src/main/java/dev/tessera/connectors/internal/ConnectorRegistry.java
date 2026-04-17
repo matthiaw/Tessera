@@ -40,7 +40,12 @@ import org.springframework.stereotype.Component;
  * CONN-03 / CONTEXT Decision 7: in-memory registry of connector instances.
  * Loaded from the {@code connectors} table on startup and hot-reloaded
  * on {@link ConnectorMutatedEvent} from admin CRUD endpoints.
+ *
+ * <p>CIRC-01: {@code @DependsOn("circleadConnectorConfig")} guarantees that
+ * {@code CircleadConnectorConfig.registerCircleadConnectors()} has upserted the
+ * three circlead connector rows before {@link #loadAll()} queries the table.
  */
+@org.springframework.context.annotation.DependsOn("circleadConnectorConfig")
 @Component
 public class ConnectorRegistry {
 

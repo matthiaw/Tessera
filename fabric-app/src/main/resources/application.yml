@@ -46,6 +46,12 @@ tessera:
     max-tokens: 4096
     temperature: 0.0
     max-retries: 3
+  connectors:
+    circlead:
+      base-url: "${TESSERA_CIRCLEAD_BASE_URL:http://localhost:8080}"
+      model-id: "${TESSERA_CIRCLEAD_MODEL_ID:00000000-0000-0000-0000-000000000001}"
+      credentials-ref: "${TESSERA_CIRCLEAD_CREDENTIALS_REF:vault:secret/tessera/circlead/api-token}"
+      poll-interval-seconds: 300
 
 springdoc:
   cache:
