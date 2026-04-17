@@ -128,20 +128,20 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 ### SQL View Projection (SQL)
 
-- [ ] **SQL-01**: Per-tenant per-type SQL views materialize flat row shapes (`v_{model}_{typeSlug}`) readable by Metabase / Looker / PowerBI
-- [ ] **SQL-02**: Views bypass Cypher for aggregate queries, reading AGE label tables directly — mitigates the ~15× aggregation cliff (CRIT-3)
+- [x] **SQL-01**: Per-tenant per-type SQL views materialize flat row shapes (`v_{model}_{typeSlug}`) readable by Metabase / Looker / PowerBI
+- [x] **SQL-02**: Views bypass Cypher for aggregate queries, reading AGE label tables directly — mitigates the ~15× aggregation cliff (CRIT-3)
 - [ ] **SQL-03**: View definitions are regenerated when schema changes and survive restart
 
 ### Kafka Projection (KAFKA)
 
-- [ ] **KAFKA-01**: Kafka topic per `(model_id, typeSlug)` — `fabric.{model}.{typeSlug}.events`
-- [ ] **KAFKA-02**: Debezium 3.4 + Outbox Event Router SMT replaces the in-process outbox poller without changing the write path
+- [ ] **KAFKA-01**: Kafka topic per `(model_id, typeSlug)` — `tessera.{model_id}.{type_slug}` (decided in Phase 4 CONTEXT D-B1)
+- [x] **KAFKA-02**: Debezium 3.4 + Outbox Event Router SMT replaces the in-process outbox poller without changing the write path
 - [ ] **KAFKA-03**: Replication slot lifecycle is monitored with `max_slot_wal_keep_size` and alerts on lag
 
 ### Audit Integrity (AUDIT)
 
-- [ ] **AUDIT-01**: Hash-chained audit log — each event row records the hash of the previous event plus its own payload; tampering is detectable (opt-in per tenant; compliance use cases: GxP, SOX, BSI C5)
-- [ ] **AUDIT-02**: Audit integrity verification job can be run on demand and in CI
+- [x] **AUDIT-01**: Hash-chained audit log — each event row records the hash of the previous event plus its own payload; tampering is detectable (opt-in per tenant; compliance use cases: GxP, SOX, BSI C5)
+- [x] **AUDIT-02**: Audit integrity verification job can be run on demand and in CI
 
 ### Circlead Integration (CIRC)
 
@@ -318,14 +318,14 @@ Explicitly excluded. Documented to prevent scope creep.
 | MCP-07 | Phase 3 | Complete |
 | MCP-08 | Phase 3 | Complete |
 | MCP-09 | Phase 3 | Complete |
-| SQL-01 | Phase 4 | Pending |
-| SQL-02 | Phase 4 | Pending |
+| SQL-01 | Phase 4 | Complete |
+| SQL-02 | Phase 4 | Complete |
 | SQL-03 | Phase 4 | Pending |
 | KAFKA-01 | Phase 4 | Pending |
-| KAFKA-02 | Phase 4 | Pending |
+| KAFKA-02 | Phase 4 | Complete |
 | KAFKA-03 | Phase 4 | Pending |
-| AUDIT-01 | Phase 4 | Pending |
-| AUDIT-02 | Phase 4 | Pending |
+| AUDIT-01 | Phase 4 | Complete |
+| AUDIT-02 | Phase 4 | Complete |
 | CIRC-01 | Phase 5 | Pending |
 | CIRC-02 | Phase 5 | Pending |
 | CIRC-03 | Phase 5 | Pending |

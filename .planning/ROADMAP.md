@@ -140,7 +140,7 @@ Plans:
 | 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 3/5 | In Progress|  |
-| 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/3 | Planned | - |
+| 4. SQL View + Kafka Projections, Hash-Chained Audit | 1/4 | In Progress|  |
 | 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
 
 ## Coverage
