@@ -45,6 +45,10 @@ import org.springframework.stereotype.Component;
  * {@code CircleadConnectorConfig.registerCircleadConnectors()} has upserted the
  * three circlead connector rows before {@link #loadAll()} queries the table.
  */
+// IMPORTANT: the string below must match the Spring-derived bean name of
+// CircleadConnectorConfig (class name with first letter lowercased).
+// If that class is renamed, this string must be updated too — there is no
+// compile-time validation and a mismatch causes a silent startup ordering race.
 @org.springframework.context.annotation.DependsOn("circleadConnectorConfig")
 @Component
 public class ConnectorRegistry {
