@@ -59,6 +59,14 @@ spring.ai:
     embedding:
       options:
         model: nomic-embed-text
+  mcp:
+    server:
+      name: tessera-mcp
+      version: 1.0.0
+      type: SYNC
+      sse-endpoint: /mcp/sse
+      sse-message-endpoint: /mcp/message
+      tool-change-notification: true
 
 management:
   endpoints:

@@ -69,6 +69,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/admin/**")
                         .hasAnyRole("ADMIN", "TOKEN_ISSUER")
+                        // MCP agents (ROLE_AGENT) access /mcp/sse and /mcp/message via this rule
                         .anyRequest()
                         .authenticated());
         return http.build();
