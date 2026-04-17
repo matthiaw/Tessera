@@ -207,6 +207,11 @@ Plans:
   1. Schema properties with role ACL annotations are filtered from REST/MCP responses when the caller lacks the required role.
   2. Row-level role filtering is enforced in the projection engine before response serialization.
   3. A deployment runbook for Postgres TDE (LUKS/dm-crypt) on IONOS VPS exists and is reviewed.
+**Plans**: 3 plans
+Plans:
+- [ ] 10-01-PLAN.md — V29 migration (ACL role columns), PropertyDescriptor/NodeTypeDescriptor extension, SchemaRepository wiring, AclFilterService + AclPropertyCache + unit tests
+- [ ] 10-02-PLAN.md — Postgres TDE deployment runbook (LUKS/dm-crypt for IONOS VPS)
+- [ ] 10-03-PLAN.md — Wire AclFilterService into EntityDispatcher + GenericEntityController + ToolNodeSerializer + MCP tools, integration tests (AclFilterRestIT, TypeRoleGatingIT)
 
 ## Progress
 
@@ -223,7 +228,7 @@ Plans:
 | 7. SchemaChangeEvent Infrastructure | 0/1 | Planned | - |
 | 8. Circlead Production Wiring & DR Drill Fix | 0/2 | Planned | - |
 | 9. Vault Dependency & Health Indicator | 0/1 | Planned | - |
-| 10. Field-Level Access Control & Security Docs | 0/0 | Not started | - |
+| 10. Field-Level Access Control & Security Docs | 0/3 | Planned | - |
 
 ## Coverage
 
