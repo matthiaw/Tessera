@@ -110,6 +110,13 @@ public class CircleadConnectorConfig {
      * Registers the three circlead connector rows in the {@code connectors} table.
      * Uses {@code ON CONFLICT DO NOTHING} for idempotence across restarts.
      *
+     * <p><strong>First-registration semantics:</strong> connector properties
+     * ({@code credentials_ref}, {@code poll_interval_seconds}, {@code mapping_def})
+     * set here are only applied at first registration. If any of these values change
+     * in {@code application.yml} after the rows already exist, the database rows are
+     * NOT automatically updated. To apply updated values either delete the affected
+     * row(s) and restart, or use the admin connector CRUD API.
+     *
      * <p>Must run BEFORE {@code ConnectorRegistry.loadAll()} — enforced via
      * {@code @DependsOn("circleadConnectorConfig")} on {@code ConnectorRegistry}.
      *
