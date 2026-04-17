@@ -482,7 +482,7 @@ The ArchUnit isolation boundary (MCP tools must not call schema mutations) is no
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **@EventListener vs @TransactionalEventListener — which to use?**
    - What we know: `@EventListener` fires synchronously mid-TX; `@TransactionalEventListener(AFTER_COMMIT)` fires after commit but does not fire in `@Transactional` test methods.

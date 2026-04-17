@@ -19,7 +19,7 @@ created: 2026-04-17
 |----------|-------|
 | **Framework** | JUnit 5 + Spring Boot Test + Testcontainers |
 | **Config file** | `fabric-projections/src/test/resources/application-test.yml` |
-| **Quick run command** | `mvn test -pl fabric-core -Dtest=SchemaChangeEventTest` |
+| **Quick run command** | `mvn test -pl fabric-core -Dtest=SchemaRegistryEventPublishingTest` |
 | **Full suite command** | `mvn test -pl fabric-core,fabric-projections` |
 | **Estimated runtime** | ~45 seconds |
 
@@ -27,7 +27,7 @@ created: 2026-04-17
 
 ## Sampling Rate
 
-- **After every task commit:** Run `mvn test -pl fabric-core -Dtest=SchemaChangeEventTest`
+- **After every task commit:** Run `mvn test -pl fabric-core -Dtest=SchemaRegistryEventPublishingTest`
 - **After every plan wave:** Run `mvn test -pl fabric-core,fabric-projections`
 - **Before `/gsd-verify-work`:** Full suite must be green
 - **Max feedback latency:** 45 seconds
@@ -38,9 +38,9 @@ created: 2026-04-17
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 7-01-01 | 01 | 1 | SQL-02 | — | N/A | unit | `mvn test -pl fabric-core -Dtest=SchemaChangeEventTest` | ❌ W0 | ⬜ pending |
+| 7-01-01 | 01 | 1 | SQL-02 | — | N/A | unit | `mvn test -pl fabric-core -Dtest=SchemaRegistryEventPublishingTest` | ❌ W0 | ⬜ pending |
 | 7-01-02 | 01 | 1 | SQL-02 | — | N/A | integration | `mvn test -pl fabric-projections -Dtest=SqlViewSchemaChangeIT` | ✅ | ⬜ pending |
-| 7-02-01 | 02 | 2 | MCP-08 | — | N/A | integration | `mvn test -pl fabric-projections -Dtest=McpSchemaChangeIT` | ❌ W0 | ⬜ pending |
+| 7-01-03 | 01 | 1 | MCP-08 | — | N/A | unit | `mvn test -pl fabric-projections -Dtest=SchemaChangeMcpWiringTest` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -48,7 +48,7 @@ created: 2026-04-17
 
 ## Wave 0 Requirements
 
-- [ ] `SchemaChangeEventTest.java` — unit tests for event record construction and payload
+- [ ] `SchemaRegistryEventPublishingTest.java` — unit tests for event publishing from SchemaRegistry
 - [ ] Enable `SqlViewSchemaChangeIT` — remove @Disabled, implement test methods
 
 *If none: "Existing infrastructure covers all phase requirements."*
