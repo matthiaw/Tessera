@@ -21,6 +21,8 @@ spring:
     problemdetails:
       enabled: true
   cloud:
+    compatibility-verifier:
+      enabled: false  # Spring Cloud 2024.0.x reports 3.5.x incompatible; verifier is overly strict
     vault:
       enabled: false  # Vault disabled by default; application-prod.yml activates via spring.config.import
 
