@@ -147,7 +147,12 @@ public class ConnectorRegistry {
         }
 
         try {
-            String mappingJson = row.get("mapping_def").toString();
+            Object mappingObj = row.get("mapping_def");
+            if (mappingObj == null) {
+                LOG.warn("Connector {} has null mapping_def, skipping", id);
+                return;
+            }
+            String mappingJson = mappingObj.toString();
             MappingDefinition mapping = objectMapper.readValue(mappingJson, MappingDefinition.class);
 
             List<String> errors = MappingDefinitionValidator.validate(mapping, authType, pollInterval, type);
