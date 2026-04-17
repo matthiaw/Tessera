@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: completed
-stopped_at: Phase 3 context gathered
-last_updated: "2026-04-17T05:12:44.011Z"
+status: executing
+stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 00 (Wave 0 spike + test stubs)
+last_updated: "2026-04-17T06:09:59.743Z"
 progress:
   total_phases: 7
   completed_phases: 4
-  total_plans: 18
-  completed_plans: 18
-  percent: 100
+  total_plans: 23
+  completed_plans: 19
+  percent: 83
 ---
 
 # State: Tessera
@@ -20,20 +20,20 @@ progress:
 ## Project Reference
 
 **Core Value:** The graph is the truth; everything else is a projection.
-**Current Focus:** Phase 02.5 — unstructured-ingestion-entity-extraction
+**Current Focus:** Phase 03 — MCP Projection (Flagship Differentiator)
 **Granularity:** standard
 **Mode:** yolo, parallel execution enabled, research + plan-check + verifier all on.
 
 ## Current Position
 
-Phase: 02.5 (unstructured-ingestion-entity-extraction) — COMPLETE
-Plan: 4 of 4
+Phase: 03 (MCP Projection (Flagship Differentiator)) — EXECUTING
+Plan: 1 of 5
 
 - **Milestone:** 1
 - **Phase:** 0 (Foundations & Risk Burndown) — not started
 - **Plan:** none
-- **Status:** Phase 02.5 complete
-- **Progress:** [██████████] 100%
+- **Status:** Executing Phase 03
+- **Progress:** [████████░░] 83%
 
 ## Performance Metrics
 
@@ -53,6 +53,7 @@ Plan: 4 of 4
 | Phase 02.5 P02 | 10m | 2 tasks | 14 files |
 | Phase 02.5 P03 | 26m | 2 tasks | 15 files |
 | Phase 02.5 P04 | 30m | 2 tasks | 14 files |
+| Phase 03-mcp-projection-flagship-differentiator P00 | 28 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -66,6 +67,12 @@ Plan: 4 of 4
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 03 Plan 00 — Wave 0 Spike)
+
+- Assumption A3 CONFIRMED: AGE shortestPath() nodes(path) returns parseable vertex array; WHERE ALL model_id filter enforces cross-tenant isolation mid-traversal (FindPathTool de-risked)
+- FindPathTool must apply `WHERE ALL(n IN nodes(path) WHERE n.model_id = tenant)` in Cypher, not post-filter in Java, to prevent T-03-S1 information disclosure
+- commons-text pinned in parent dependencyManagement to fix installed fabric-rules POM version resolution (pre-existing build bug)
 
 ### Open Todos
 
@@ -87,8 +94,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T05:12:43.999Z
-**Stopped at:** Phase 3 context gathered
+**Last session:** 2026-04-17T06:09:59.738Z
+**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 00 (Wave 0 spike + test stubs)
 
 **Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
 
