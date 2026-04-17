@@ -146,8 +146,8 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 ### Circlead Integration (CIRC)
 
 - [x] **CIRC-01**: circlead reads from Tessera via REST and MCP projections in addition to its own JPA model (parallel operation, no big-bang migration)
-- [ ] **CIRC-02**: Mapping from circlead entities (Role, Circle, Activity) to Tessera node types is documented and round-trips cleanly
-- [ ] **CIRC-03**: circlead continues to function if Tessera is unavailable (graceful degradation)
+- [x] **CIRC-02**: Mapping from circlead entities (Role, Circle, Activity) to Tessera node types is documented and round-trips cleanly
+- [x] **CIRC-03**: circlead continues to function if Tessera is unavailable (graceful degradation)
 
 ### Observability & Operations (OPS)
 
@@ -327,8 +327,8 @@ Explicitly excluded. Documented to prevent scope creep.
 | AUDIT-01 | Phase 4 | Complete |
 | AUDIT-02 | Phase 4 | Complete |
 | CIRC-01 | Phase 5 | Complete |
-| CIRC-02 | Phase 5 | Pending |
-| CIRC-03 | Phase 5 | Pending |
+| CIRC-02 | Phase 5 | Complete |
+| CIRC-03 | Phase 5 | Complete |
 | OPS-01 | Phase 5 | Complete |
 | OPS-02 | Phase 5 | Complete |
 | OPS-03 | Phase 5 | Complete |

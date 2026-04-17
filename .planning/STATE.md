@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-circlead-integration-production-hardening plan 01 (Wave 1 Observability)
-last_updated: "2026-04-17T10:49:40.409Z"
+stopped_at: Completed 05-circlead-integration-production-hardening plan 02 (Circlead Integration)
+last_updated: "2026-04-17T10:59:25.667Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 32
-  completed_plans: 29
-  percent: 91
+  completed_plans: 30
+  percent: 94
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 5
 - **Plan:** Not started
 - **Status:** Executing Phase 05
-- **Progress:** [█████████░] 91%
+- **Progress:** [█████████░] 94%
 
 ## Performance Metrics
 
@@ -64,6 +64,7 @@ Plan: 1 of 5
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P03 | 5 | 2 tasks | 9 files |
 | Phase 05 P00 | 256 | 2 tasks | 26 files |
 | Phase 05-circlead-integration-production-hardening P01 | 389 | 2 tasks | 6 files |
+| Phase 05-circlead-integration-production-hardening P02 | 414 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,11 @@ Plan: 1 of 5
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 05 Plan 02 — Circlead Integration)
+
+- FieldMapping JSON key for second parameter is `sourcePath` (camelCase), not `source` — patterns doc example had the wrong key; verified against FieldMapping record definition and MappingDefinitionValidationTest
+- `findShortestPath` + `executeTenantCypher` no-op impls added to all anonymous GraphRepository test implementations in fabric-connectors — GraphRepository gained these abstract methods in Phase 3; pre-existing broken test-compile on master fixed as part of this plan
 
 ### Decisions (Phase 05 Plan 01 — Wave 1 Observability)
 
@@ -165,8 +171,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T10:49:40.396Z
-**Stopped at:** Completed 05-circlead-integration-production-hardening plan 01 (Wave 1 Observability)
+**Last session:** 2026-04-17T10:59:25.653Z
+**Stopped at:** Completed 05-circlead-integration-production-hardening plan 02 (Circlead Integration)
 
 **Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 
