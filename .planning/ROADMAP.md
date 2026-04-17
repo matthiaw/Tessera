@@ -101,7 +101,7 @@ Plans:
 - [x] 03-00-PLAN.md — Wave 0: AGE shortestPath spike (resolve Research Q1) + test stubs for Waves 1-2 behavioral verification
 - [x] 03-01-PLAN.md — Infrastructure + contracts: Flyway V22/V23 (mcp_audit_log, mcp_agent_quotas), ToolProvider/ToolResponse interfaces, GraphRepository extensions (executeTenantCypher, findShortestPath), SpringAiMcpAdapter + ToolResponseWrapper + McpProjectionConfig, SecurityConfig ROLE_AGENT, enable ToolResponseWrapperTest
 - [x] 03-02-PLAN.md — 7 MCP tool implementations: ListEntityTypes, DescribeType, QueryEntities, GetEntity (depth 0-3), Traverse (read-only Cypher), FindPath (AGE shortestPath), GetStateAt (EventLog temporal replay)
-- [ ] 03-03-PLAN.md — Audit + quota: McpAuditLog JDBC writer, AgentQuotaService (AtomicLong counters + DB quota table), McpAuditController (GET /admin/mcp/audit + /quotas), wire audit/quota into SpringAiMcpAdapter, enable McpAuditLogTest + AgentQuotaServiceTest
+- [x] 03-03-PLAN.md — Audit + quota: McpAuditLog JDBC writer, AgentQuotaService (AtomicLong counters + DB quota table), McpAuditController (GET /admin/mcp/audit + /quotas), wire audit/quota into SpringAiMcpAdapter, enable McpAuditLogTest + AgentQuotaServiceTest
 - [ ] 03-04-PLAN.md — Tests: ArchUnit McpMutationAllowlistTest, McpPromptInjectionIT (adversarial seeds), McpCrossTenantIT, McpAuditLogIT, McpQuotaEnforcementIT (full dispatch layer with mock write tool), spotless:check
 
 ### Phase 4: SQL View + Kafka Projections, Hash-Chained Audit

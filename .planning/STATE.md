@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 02 (MCP tool implementations)
-last_updated: "2026-04-17T06:24:35.873Z"
+stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 03 (MCP audit + quota enforcement)
+last_updated: "2026-04-17T06:31:19.034Z"
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 21
-  percent: 91
+  completed_plans: 22
+  percent: 96
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 0 (Foundations & Risk Burndown) — not started
 - **Plan:** none
 - **Status:** Executing Phase 03
-- **Progress:** [█████████░] 91%
+- **Progress:** [██████████] 96%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Plan: 1 of 5
 | Phase 03-mcp-projection-flagship-differentiator P00 | 28 | 2 tasks | 7 files |
 | Phase 03-mcp-projection-flagship-differentiator P01 | 14 | 2 tasks | 14 files |
 | Phase 03-mcp-projection-flagship-differentiator P02 | 8 | 2 tasks | 8 files |
+| Phase 03-mcp-projection-flagship-differentiator P03 | 4 | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,12 @@ Plan: 1 of 5
 - QueryEntitiesTool in-memory filter applied post-queryAllAfter: avoids Cypher injection risk from agent-provided filter key/value pairs; acceptable for MVP query shapes
 - DescribeTypeTool edge type derivation via REFERENCE PropertyDescriptor: SchemaRegistry has no listEdgeTypes() API; REFERENCE dataType with referenceTarget is the correct schema model signal
 
+### Decisions (Phase 03 Plan 03 — MCP Audit + Quota)
+
+- Window reset detection via Instant equality in AgentQuotaService: hourlyWindowStarts.compute() returns now when newly set; counter re-seeded only on reset, avoiding redundant DB round-trips in steady state
+- ctx-conditional audit on exception path in SpringAiMcpAdapter: audit skipped if ctx is null (auth failure before tenant extraction); log.warn fires instead to avoid NPE
+- LENIENT Mockito strictness on AgentQuotaServiceTest: auditLog.countForAgentSince stub in @BeforeEach is unused by rejection tests (quota throws before warm-up); lenient is correct DRY placement
+
 ### Open Todos
 
 - Kick off Phase 0 via `/gsd-plan-phase 0`
@@ -111,8 +118,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T06:24:35.866Z
-**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 02 (MCP tool implementations)
+**Last session:** 2026-04-17T06:31:19.023Z
+**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 03 (MCP audit + quota enforcement)
 
 **Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
 
