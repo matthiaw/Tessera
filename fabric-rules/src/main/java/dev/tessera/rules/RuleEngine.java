@@ -66,7 +66,8 @@ public class RuleEngine implements RuleEnginePort {
 
         List<Rule> rules = ruleRepository.activeRulesFor(ctx.tenantContext().modelId());
 
-        Map<String, Object> properties = new LinkedHashMap<>(ctx.mutation().payload());
+        Map<String, Object> properties = new LinkedHashMap<>(
+                ctx.mutation().payload() != null ? ctx.mutation().payload() : Map.of());
         Map<String, Object> routingHints = new LinkedHashMap<>();
         List<ConflictRecord> conflicts = new ArrayList<>();
 
