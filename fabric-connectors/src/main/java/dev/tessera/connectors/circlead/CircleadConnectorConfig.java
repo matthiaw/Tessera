@@ -112,12 +112,14 @@ public class CircleadConnectorConfig {
      *
      * <p>Must run BEFORE {@code ConnectorRegistry.loadAll()} — enforced via
      * {@code @DependsOn("circleadConnectorConfig")} on {@code ConnectorRegistry}.
+     *
+     * <p>Loads mappings directly from classpath resources (not via {@code @Bean} methods)
+     * to avoid circular-bean-creation errors during {@code @PostConstruct}.
      */
     @PostConstruct
     void registerCircleadConnectors() {
         try {
-            List<MappingDefinition> mappings =
-                    List.of(circleadRoleMapping(), circleadCircleMapping(), circleadActivityMapping());
+            List<MappingDefinition> mappings = loadAndResolveMappings();
             for (MappingDefinition m : mappings) {
                 jdbc.update(
                         """
@@ -140,6 +142,21 @@ public class CircleadConnectorConfig {
                             + " (table may not exist yet): {}",
                     e.getMessage());
         }
+    }
+
+    /**
+     * Loads and resolves all three circlead mapping definitions directly from classpath
+     * resources, bypassing the Spring bean factory to avoid circular-creation issues in
+     * {@code @PostConstruct}.
+     */
+    private List<MappingDefinition> loadAndResolveMappings() throws Exception {
+        Resource[] resources = {roleMappingResource, circleMappingResource, activityMappingResource};
+        List<MappingDefinition> result = new java.util.ArrayList<>();
+        for (Resource r : resources) {
+            MappingDefinition raw = objectMapper.readValue(r.getInputStream(), MappingDefinition.class);
+            result.add(withResolvedUrl(raw, env.resolvePlaceholders(raw.sourceUrl())));
+        }
+        return result;
     }
 
     /**
