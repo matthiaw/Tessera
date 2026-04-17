@@ -196,7 +196,7 @@ Plans:
   3. `spring.config.import=vault://` resolves at startup when Vault is available.
 **Plans**: 1 plan
 Plans:
-- [ ] 09-01-PLAN.md — Add spring-cloud-starter-vault-config dependency + YAML guard + VaultHealthIndicator unit test + VaultAppRoleAuthIT
+- [x] 09-01-PLAN.md — Add spring-cloud-starter-vault-config dependency + YAML guard + VaultHealthIndicator unit test + VaultAppRoleAuthIT
 
 ### Phase 10: Field-Level Access Control & Security Docs
 **Goal**: Implement per-property read/write role ACL in the projection engine so REST and MCP responses are filtered by caller role (beyond tenant isolation), and produce the Postgres TDE deployment runbook for IONOS VPS.
