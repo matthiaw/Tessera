@@ -20,6 +20,9 @@ spring:
   mvc:
     problemdetails:
       enabled: true
+  cloud:
+    vault:
+      enabled: false  # Vault disabled by default; application-prod.yml activates via spring.config.import
 
 server:
   forward-headers-strategy: framework
@@ -87,3 +90,6 @@ management:
       show-details: when-authorized
     prometheus:
       access: unrestricted
+  health:
+    vault:
+      enabled: true  # Show vault health component when spring-cloud-vault is active
