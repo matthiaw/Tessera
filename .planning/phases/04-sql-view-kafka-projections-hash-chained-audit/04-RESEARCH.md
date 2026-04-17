@@ -192,7 +192,7 @@ String ddl = """
     """.formatted(viewName, descriptor.schemaVersion(), modelId, type, columnList, graphSchema, labelName, tenantId);
 ```
 
-**Critical detail — AGE graph namespace:** The AGE graph namespace (schema) for a given graph is `ag_catalog.create_graph(graph_name)`. Tessera uses the `model_id` UUID string as the graph name (verified by searching `GraphSession` usage). The SQL view must reference the correct schema. This needs verification against the actual `GraphSession` code before coding.
+**Critical detail — AGE graph namespace:** The AGE graph namespace (schema) for a given graph is created by `ag_catalog.create_graph(graph_name)`. Tessera uses a single fixed graph named `tessera_main` (defined in `GraphSession.GRAPH_NAME` and created by `V1__enable_age.sql`). It is NOT per-tenant — all tenants share this graph, with `model_id` filtering at the Cypher/SQL level. The SQL view must reference the `tessera_main` schema: `FROM tessera_main."LabelName"`. RESOLVED: verified via `GraphSession.java` line 58: `public static final String GRAPH_NAME = "tessera_main";`
 
 **Staleness detection:**
 ```sql
@@ -647,22 +647,16 @@ public class DebeziumSlotHealthIndicator extends AbstractHealthIndicator {
 
 ---
 
-## Open Questions
+## Open Questions (ALL RESOLVED)
 
 1. **What is the actual AGE graph name used per tenant?**
-   - What we know: `SchemaRegistry.createNodeType()` calls `repo.insertNodeType()` which presumably calls AGE Cypher DDL. The graph must have a name.
-   - What's unclear: Is the graph named after `model_id` UUID string, a slug, or "tessera"? The `SqlViewProjection` must query `ag_catalog.ag_graph` with the correct name.
-   - Recommendation: Read `GraphSession` (or `GraphRepository`) initialization code before implementing `SqlViewProjection`. Add a `getGraphSchema(TenantContext)` helper to `GraphSession` or `SchemaRegistry` if not already present.
+   - **RESOLVED:** Tessera uses a single fixed graph named `tessera_main`, NOT per-tenant graphs. Verified via `GraphSession.java` line 58: `public static final String GRAPH_NAME = "tessera_main";` and `V1__enable_age.sql`: `SELECT create_graph('tessera_main');`. All tenants share this graph; tenant isolation is via `model_id` filtering in Cypher WHERE clauses and SQL view WHERE clauses. The `SqlViewProjection` must use `tessera_main` as the graph schema name: `FROM tessera_main."LabelName"`.
 
 2. **`published` column purpose vs Debezium CDC model**
-   - What we know: D-B4 says "Debezium reads unpublished rows; after routing, marks them published." But Debezium reads via WAL (CDC) — it does NOT query the table directly and does NOT update rows.
-   - What's unclear: The `published` column seems intended for the `OutboxPoller` fallback, not for Debezium. Debezium tracks its own position via the replication slot `confirmed_flush_lsn`. The column may be redundant for Debezium, but useful for `OutboxPoller` to avoid re-polling already-sent events.
-   - Recommendation: The planner should clarify: the `published` column is written by `OutboxPoller` (not Debezium) to mark delivered rows. Debezium does not interact with the column. This avoids confusion during implementation.
+   - **RESOLVED:** The `published` column is for the `OutboxPoller` fallback path, NOT for Debezium. Debezium reads via WAL (CDC) using the replication slot `confirmed_flush_lsn` — it does NOT query or update rows. The `OutboxPoller` must set `published = true` after successful dispatch to prevent re-processing rows on restart. Current `OutboxPoller` uses `status = 'DELIVERED'` (via `MARK_DELIVERED_SQL`); the `published` column adds a secondary coordination flag. The `OutboxPoller.poll()` method must be updated to also set `published = true` in its `MARK_DELIVERED_SQL` update.
 
 3. **Debezium connector registration timing in Docker Compose**
-   - What we know: Debezium must be registered via `POST http://debezium-connect:8083/connectors` after Tessera has run Flyway and Kafka is ready.
-   - What's unclear: Whether a `curl` init container, a Spring `ApplicationRunner`, or a `docker-compose.yml` `depends_on` with healthcheck is the right registration approach.
-   - Recommendation: Use a Docker Compose `entrypoint.sh` init script in the `debezium-connect` service that waits for Tessera health (`/actuator/health`) and then registers the connector via `curl`. This keeps connector config in `docker/debezium/` where it belongs.
+   - **RESOLVED:** Use a one-shot `debezium-connector-init` service (Docker Compose `restart: "no"`) following the existing `ollama-init` pattern in docker-compose.yml. The init container uses `curlimages/curl` and `depends_on: debezium-connect: condition: service_healthy`. It does NOT need to wait for Tessera/Flyway because Debezium reads from the WAL (not the table directly) and the replication slot is created by the connector, not by Flyway. The connector registration fires after Debezium Connect is healthy.
 
 ---
 
