@@ -173,6 +173,18 @@
                 <version>${jqwik.version}</version>
                 <scope>test</scope>
             </dependency>
+            <!--
+              Pin commons-text in dependencyManagement so that the installed
+              fabric-rules POM resolves the version correctly when consumed as
+              a transitive dependency. Without this entry, Maven embeds the
+              literal ${commons-text.version} string in the installed POM
+              (Rule 1 auto-fix — pre-existing build bug).
+            -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-text</artifactId>
+                <version>${commons-text.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
