@@ -113,7 +113,11 @@ Plans:
   2. Debezium 3.4 with Outbox Event Router SMT replaces the in-process outbox poller and publishes one topic per `(model_id, typeSlug)` — crucially, nothing on the write path changes (same `graph_outbox` rows, same `GraphService.apply` transaction).
   3. Replication slot lag and `max_slot_wal_keep_size` are monitored, with alerts firing before WAL bloat threatens the primary.
   4. For a tenant with audit integrity enabled, each event row records the hash of the previous event plus its own payload; an on-demand verification job (also runnable in CI) detects any tampering and reports the first broken link.
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 04-01-PLAN.md — Flyway V24-V27 migrations + SQL View Projection (SqlViewProjection, SqlViewNameResolver, SqlViewAdminController, schema-change listener, startup regeneration, ITs)
+- [ ] 04-02-PLAN.md — Hash-Chained Audit (HashChain helper, EventLog.append() hash extension, AuditVerificationService, AuditVerificationController, concurrency IT)
+- [ ] 04-03-PLAN.md — Kafka/Debezium Projection (Docker Compose Kafka+Debezium, Outbox Event Router config, OutboxPoller conditionalization, DebeziumSlotHealthIndicator)
 
 ### Phase 5: Circlead Integration & Production Hardening
 **Goal**: Prove the whole stack against the first real consumer (circlead) without a big-bang migration, and harden operations with observability, snapshots, retention, and a rehearsed DR drill so Tessera is safe to run on IONOS VPS.
@@ -136,7 +140,7 @@ Plans:
 | 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 3/5 | In Progress|  |
-| 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/0 | Not started | - |
+| 4. SQL View + Kafka Projections, Hash-Chained Audit | 0/3 | Planned | - |
 | 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
 
 ## Coverage
