@@ -194,6 +194,9 @@ Plans:
   1. `spring-cloud-starter-vault-config` is a compile-scope dependency in the appropriate POM(s).
   2. Spring Boot Actuator `/actuator/health` includes a Vault health component.
   3. `spring.config.import=vault://` resolves at startup when Vault is available.
+**Plans**: 1 plan
+Plans:
+- [ ] 09-01-PLAN.md — Add spring-cloud-starter-vault-config dependency + YAML guard + VaultHealthIndicator unit test + VaultAppRoleAuthIT
 
 ### Phase 10: Field-Level Access Control & Security Docs
 **Goal**: Implement per-property read/write role ACL in the projection engine so REST and MCP responses are filtered by caller role (beyond tenant isolation), and produce the Postgres TDE deployment runbook for IONOS VPS.
@@ -219,7 +222,7 @@ Plans:
 | 6. Metrics Instrumentation Wiring | 1/1 | Complete   | 2026-04-17 |
 | 7. SchemaChangeEvent Infrastructure | 0/1 | Planned | - |
 | 8. Circlead Production Wiring & DR Drill Fix | 0/2 | Planned | - |
-| 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |
+| 9. Vault Dependency & Health Indicator | 0/1 | Planned | - |
 | 10. Field-Level Access Control & Security Docs | 0/0 | Not started | - |
 
 ## Coverage
