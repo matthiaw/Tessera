@@ -15,23 +15,81 @@
  */
 package dev.tessera.app.health;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.Disabled;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.Status;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
- * OPS-02: Test stub for ConnectorHealthIndicator — connector health check tests.
+ * OPS-02: Unit tests for ConnectorHealthIndicator — per-connector sync status health check.
  *
- * <p>Phase 5 Wave 2 will implement ConnectorHealthIndicator to aggregate per-connector
- * sync status into the /actuator/health endpoint.
- * This stub satisfies Nyquist compliance for the production class before implementation begins.
+ * <p>Uses Mockito to return controlled query rows; verifies UP/DOWN aggregation logic.
  */
-@Disabled("Phase 5 Wave 2 — stub for Nyquist compliance")
 class ConnectorHealthIndicatorTest {
 
+    private NamedParameterJdbcTemplate jdbc;
+    private ConnectorHealthIndicator indicator;
+
+    @BeforeEach
+    void setUp() {
+        jdbc = mock(NamedParameterJdbcTemplate.class);
+        indicator = new ConnectorHealthIndicator(jdbc);
+    }
+
     @Test
-    void placeholder() {
-        fail("Not yet implemented");
+    void upWithEmptyDetailsWhenNoEnabledConnectors() {
+        when(jdbc.queryForList(anyString(), any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class)))
+                .thenReturn(List.of());
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).isEmpty();
+    }
+
+    @Test
+    void upWhenAllConnectorsHaveSuccessOutcome() {
+        Map<String, Object> row = Map.of("id", "conn-1", "last_outcome", "SUCCESS");
+        when(jdbc.queryForList(anyString(), any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class)))
+                .thenReturn(List.of(row));
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsKey("conn-1");
+    }
+
+    @Test
+    void downWhenAnyConnectorHasFailedOutcome() {
+        Map<String, Object> row = Map.of("id", "conn-2", "last_outcome", "FAILED");
+        when(jdbc.queryForList(anyString(), any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class)))
+                .thenReturn(List.of(row));
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsKey("conn-2");
+    }
+
+    @Test
+    void downWhenMixedSuccessAndFailedConnectors() {
+        Map<String, Object> successRow = Map.of("id", "conn-ok", "last_outcome", "SUCCESS");
+        Map<String, Object> failedRow = Map.of("id", "conn-fail", "last_outcome", "FAILED");
+        when(jdbc.queryForList(anyString(), any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class)))
+                .thenReturn(List.of(successRow, failedRow));
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
+        assertThat(health.getDetails()).containsKeys("conn-ok", "conn-fail");
     }
 }

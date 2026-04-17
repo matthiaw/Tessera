@@ -15,23 +15,74 @@
  */
 package dev.tessera.app.health;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.Disabled;
+import java.util.List;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.actuate.health.Health;
+import org.springframework.boot.actuate.health.Status;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
- * OPS-02: Test stub for AgeGraphHealthIndicator — AGE graph health check tests.
+ * OPS-02: Unit tests for AgeGraphHealthIndicator — AGE graph health check.
  *
- * <p>Phase 5 Wave 2 will implement AgeGraphHealthIndicator extending Spring Boot
- * AbstractHealthIndicator to verify the Apache AGE extension is reachable.
- * This stub satisfies Nyquist compliance for the production class before implementation begins.
+ * <p>Uses Mockito to control the JDBC query results; exercises all three expected outcomes:
+ * graphs found (UP), AGE loaded but empty (UP), AGE not loaded / exception (DOWN).
  */
-@Disabled("Phase 5 Wave 2 — stub for Nyquist compliance")
 class AgeGraphHealthIndicatorTest {
 
+    private NamedParameterJdbcTemplate jdbc;
+    private AgeGraphHealthIndicator indicator;
+
+    @BeforeEach
+    void setUp() {
+        jdbc = mock(NamedParameterJdbcTemplate.class);
+        indicator = new AgeGraphHealthIndicator(jdbc);
+    }
+
     @Test
-    void placeholder() {
-        fail("Not yet implemented");
+    void upWithGraphCountWhenGraphsExist() {
+        when(jdbc.queryForList(
+                        anyString(),
+                        any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class),
+                        any(Class.class)))
+                .thenReturn(List.of("tessera_graph"));
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("graphs_count", 1);
+    }
+
+    @Test
+    void upWithZeroCountWhenAgeLoadedButNoGraphs() {
+        when(jdbc.queryForList(
+                        anyString(),
+                        any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class),
+                        any(Class.class)))
+                .thenReturn(List.of());
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.UP);
+        assertThat(health.getDetails()).containsEntry("graphs_count", 0);
+    }
+
+    @Test
+    void downWhenAgeQueryThrowsException() {
+        when(jdbc.queryForList(
+                        anyString(),
+                        any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class),
+                        any(Class.class)))
+                .thenThrow(new org.springframework.dao.DataAccessException("AGE extension not loaded") {});
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus()).isEqualTo(Status.DOWN);
     }
 }
