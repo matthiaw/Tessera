@@ -166,13 +166,17 @@ Plans:
   3. SpringAiMcpAdapter.notifySchemaChanged() is called on schema change, notifying connected MCP clients.
 
 ### Phase 8: Circlead Production Wiring & DR Drill Fix
-**Goal**: Construct `ConnectorInstance` objects from circlead `MappingDefinition` beans and register them with `ConnectorRegistry` so the scheduler actually dispatches circlead syncs in production. Fix the DR drill script to include event-log replay, a circlead consumer smoke test, and the column name mismatch.
+**Goal**: Construct `ConnectorInstance` objects from circlead `MappingDefinition` beans and register them with `ConnectorRegistry` so the scheduler actually dispatches circlead syncs in production. Fix the sourceUrl Spring-placeholder resolution bug that prevents circlead connectors from polling. Fix the DR drill script column name mismatch, add event-log replay, and add a circlead consumer smoke test.
 **Depends on**: Phase 5
 **Requirements**: CIRC-01, CIRC-02, OPS-05
 **Gap Closure:** Closes gaps from audit — Integration: CircleadConnectorConfig → ConnectorRegistry; Flows: "Circlead full sync E2E", "DR drill end-to-end"
+**Integration checker findings (2026-04-17):**
+  - sourceUrl in circlead mapping JSONs contains `${tessera.connectors.circlead.base-url}` but Jackson `ObjectMapper.readValue()` does not resolve Spring property placeholders. `GenericRestPollerConnector.poll()` passes the literal `${...}` to `URI.create()` which throws `IllegalArgumentException`. Fix: resolve placeholders via `Environment.resolvePlaceholders()` in `CircleadConnectorConfig` or use a pre-resolved config pattern.
+  - `scripts/dr_drill.sh` step 4 seeds `graph_events` with columns `entity_id` and `created_at` but V2 migration defines `node_uuid` and `event_time`. Drill fails at step 4.
 **Success Criteria** (what must be TRUE):
   1. On application startup, ConnectorScheduler.tick() includes the three circlead connector instances and dispatches syncs.
-  2. dr_drill.sh runs without column mismatch errors, includes event-log replay verification, and executes a circlead consumer smoke test.
+  2. Circlead mapping sourceUrl placeholders are resolved before reaching `URI.create()` — a test proves `GenericRestPollerConnector.poll()` receives a valid URI.
+  3. dr_drill.sh runs without column mismatch errors, includes event-log replay verification, and executes a circlead consumer smoke test.
 
 ### Phase 9: Vault Dependency & Health Indicator
 **Goal**: Add `spring-cloud-starter-vault-config` to the compile classpath so Vault config-data import works at runtime, and implement a `VaultHealthIndicator` for the Actuator health endpoint.
