@@ -123,7 +123,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 - [ ] **MCP-05**: MCP tool `traverse(query)` accepting Cypher (tenant-scoped) or a natural-language hint resolved to Cypher
 - [x] **MCP-06**: MCP tool `find_path(from, to)` shortest path between two nodes
 - [ ] **MCP-07**: MCP tool `get_state_at(entity_id, timestamp)` serving temporal queries from the event log
-- [ ] **MCP-08**: MCP tool set is dynamically registered from the Schema Registry — adding a type surfaces new tools without redeploy (fallback: restart on schema change if Spring AI doesn't support runtime registration)
+- [x] **MCP-08**: MCP tool set is dynamically registered from the Schema Registry — adding a type surfaces new tools without redeploy (fallback: restart on schema change if Spring AI doesn't support runtime registration)
 - [ ] **MCP-09**: MCP audit log: every tool invocation records agent identity, tool, arguments, and outcome
 
 ### SQL View Projection (SQL)
@@ -316,7 +316,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | MCP-05 | Phase 3 | Pending |
 | MCP-06 | Phase 3 | Complete |
 | MCP-07 | Phase 3 | Pending |
-| MCP-08 | Phase 3 | Pending |
+| MCP-08 | Phase 3 | Complete |
 | MCP-09 | Phase 3 | Pending |
 | SQL-01 | Phase 4 | Pending |
 | SQL-02 | Phase 4 | Pending |

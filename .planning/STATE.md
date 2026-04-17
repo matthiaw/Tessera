@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 00 (Wave 0 spike + test stubs)
-last_updated: "2026-04-17T06:09:59.743Z"
+stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 01 (MCP infrastructure bootstrap)
+last_updated: "2026-04-17T06:17:48.949Z"
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 23
-  completed_plans: 19
-  percent: 83
+  completed_plans: 20
+  percent: 87
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 0 (Foundations & Risk Burndown) — not started
 - **Plan:** none
 - **Status:** Executing Phase 03
-- **Progress:** [████████░░] 83%
+- **Progress:** [█████████░] 87%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Plan: 1 of 5
 | Phase 02.5 P03 | 26m | 2 tasks | 15 files |
 | Phase 02.5 P04 | 30m | 2 tasks | 14 files |
 | Phase 03-mcp-projection-flagship-differentiator P00 | 28 | 2 tasks | 7 files |
+| Phase 03-mcp-projection-flagship-differentiator P01 | 14 | 2 tasks | 14 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,14 @@ Plan: 1 of 5
 - Assumption A3 CONFIRMED: AGE shortestPath() nodes(path) returns parseable vertex array; WHERE ALL model_id filter enforces cross-tenant isolation mid-traversal (FindPathTool de-risked)
 - FindPathTool must apply `WHERE ALL(n IN nodes(path) WHERE n.model_id = tenant)` in Cypher, not post-filter in Java, to prevent T-03-S1 information disclosure
 - commons-text pinned in parent dependencyManagement to fix installed fabric-rules POM version resolution (pre-existing build bug)
+
+### Decisions (Phase 03 Plan 01 — MCP Infrastructure Bootstrap)
+
+- D-A2 isolation: SpringAiMcpAdapter is the sole Spring AI import point; ToolProvider implementors never import Spring AI types (enforced by McpIsolationArchTest)
+- isWriteTool() placed on ToolProvider interface (not private adapter logic) for testability and to let future write tools override without touching the adapter
+- No ToolRequest carrier record: ToolProvider.execute() takes direct parameters (TenantContext, agentId, Map); carrier adds indirection with no benefit
+- McpSyncServer auto-configured by spring-ai-starter-mcp-server-webmvc; no explicit @Bean needed in McpProjectionConfig
+- SchemaChangeEvent listener deferred: event type does not exist yet in fabric-core; SpringAiMcpAdapter.notifySchemaChanged() is a public method ready for wiring
 
 ### Open Todos
 
@@ -94,8 +103,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T06:09:59.738Z
-**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 00 (Wave 0 spike + test stubs)
+**Last session:** 2026-04-17T06:17:48.939Z
+**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 01 (MCP infrastructure bootstrap)
 
 **Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
 
