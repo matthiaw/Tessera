@@ -182,7 +182,7 @@ Plans:
   3. dr_drill.sh runs without column mismatch errors, includes event-log replay verification, and executes a circlead consumer smoke test.
 **Plans**: 2 plans
 Plans:
-- [ ] 08-01-PLAN.md — CircleadConnectorConfig placeholder resolution + DB registration + unit test
+- [x] 08-01-PLAN.md — CircleadConnectorConfig placeholder resolution + DB registration + unit test
 - [ ] 08-02-PLAN.md — DR drill script fix (column names, partition, replay, smoke test) + CircleadDrillSmokeIT
 
 ### Phase 9: Vault Dependency & Health Indicator
