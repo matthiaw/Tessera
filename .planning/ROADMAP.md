@@ -151,6 +151,9 @@ Plans:
   1. After a connector sync completes, `tessera_ingest_total` counter increments by the number of entities processed.
   2. Every rule evaluation increments `tessera_rule_evaluations_total`; every conflict increments `tessera_conflicts_total`.
   3. SHACL validation time is recorded in `tessera_shacl_validation_seconds` timer.
+**Plans**: 1 plan
+Plans:
+- [ ] 06-01-PLAN.md — MetricsPort SPI + TesseraMetricsAdapter + wire into ShaclValidator, RuleEngine, ConnectorRunner
 
 ### Phase 7: SchemaChangeEvent Infrastructure
 **Goal**: Create a `SchemaChangeEvent` application event in fabric-core, publish it from SchemaRegistry on type/property mutations, and wire listeners in SqlViewProjection (view regeneration) and SpringAiMcpAdapter (client notification) — so projections stay fresh after runtime schema changes without restart.
@@ -202,7 +205,7 @@ Plans:
 | 3. MCP Projection | 3/5 | In Progress | - |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress | - |
 | 5. Circlead Integration & Production Hardening | 5/5 | Complete | 2026-04-17 |
-| 6. Metrics Instrumentation Wiring | 0/0 | Not started | - |
+| 6. Metrics Instrumentation Wiring | 0/1 | Planned | - |
 | 7. SchemaChangeEvent Infrastructure | 0/0 | Not started | - |
 | 8. Circlead Production Wiring & DR Drill Fix | 0/0 | Not started | - |
 | 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |
