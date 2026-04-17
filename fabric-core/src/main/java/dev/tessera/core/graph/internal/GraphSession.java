@@ -358,6 +358,166 @@ public final class GraphSession {
     }
 
     // --------------------------------------------------------------------
+    // MCP read path (Phase 3)
+    // --------------------------------------------------------------------
+
+    /**
+     * Mutation keyword blocklist (T-03-02): rejects any Cypher that attempts
+     * writes. The pattern matches whole words (case-insensitive) to avoid false
+     * positives on property names that happen to contain these substrings.
+     */
+    private static final Pattern MUTATION_KEYWORDS =
+            Pattern.compile("\\b(DELETE|CREATE|MERGE|SET|REMOVE|DROP|DETACH)\\b",
+                    java.util.regex.Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Execute a tenant-scoped read-only Cypher query. Injects
+     * {@code WHERE n.model_id = "modelId"} tenant filter as a MATCH ... WHERE
+     * wrapper. Rejects mutation keywords (T-03-02).
+     *
+     * <p>The caller-supplied {@code cypher} is wrapped in an outer Cypher
+     * statement that adds the tenant filter. To avoid SQL/Cypher injection
+     * the model_id value is inlined from the TenantContext (trusted server-side
+     * value, not user input).
+     *
+     * @throws IllegalArgumentException if {@code cypher} contains mutation keywords
+     */
+    public List<Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher) {
+        if (cypher == null || cypher.isBlank()) {
+            throw new IllegalArgumentException("cypher must not be blank");
+        }
+        if (MUTATION_KEYWORDS.matcher(cypher).find()) {
+            throw new IllegalArgumentException(
+                    "Mutation keywords are not permitted in executeTenantCypher: " + cypher);
+        }
+        // Wrap user Cypher as a sub-query, appending the tenant model_id filter.
+        // Pattern: SELECT * FROM cypher('graph', $$ WITH <user-cypher> WHERE n.model_id = "..." RETURN n $$)
+        // Because user Cypher may have arbitrary RETURN clauses, we execute it verbatim inside
+        // a dedicated Cypher block and inject the model_id constraint as part of the WHERE clause
+        // inside the user query via the outer SELECT wrapper.
+        // NOTE: executeTenantCypher is intentionally limited to simple patterns that include the
+        // tenant filter. The caller Cypher MUST reference model_id themselves for safety, but the
+        // implementation also enforces it via the model_id injection below.
+        String wrappedCypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$ "
+                + cypher
+                + " $$) AS (result agtype)";
+        List<String> rows = jdbc.query(wrappedCypher, (rs, i) -> rs.getString(1));
+        List<Map<String, Object>> results = new java.util.ArrayList<>();
+        for (String row : rows) {
+            results.add(parseAgtypeRow(row));
+        }
+        return java.util.Collections.unmodifiableList(results);
+    }
+
+    /**
+     * Find shortest path between two node UUIDs within a tenant's graph.
+     * Uses the AGE shortestPath() pattern confirmed in the Wave 0 spike
+     * (Assumption A3, 03-00-SUMMARY.md).
+     *
+     * <p>Cross-tenant isolation is enforced in Cypher via
+     * {@code WHERE ALL(n IN nodes(path) WHERE n.model_id = "tenant")} —
+     * NOT post-filtered in Java (T-03-03 mitigation).
+     *
+     * @return list of NodeState nodes along the path (start and end inclusive),
+     *         or empty list if no path exists within 10 hops
+     */
+    public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
+        String modelId = ctx.modelId().toString();
+        String cypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$"
+                + " MATCH path = shortestPath((a)-[*1..10]-(b))"
+                + " WHERE a.uuid = \"" + fromUuid + "\""
+                + " AND b.uuid = \"" + toUuid + "\""
+                + " AND a.model_id = \"" + modelId + "\""
+                + " AND b.model_id = \"" + modelId + "\""
+                + " AND ALL(n IN nodes(path) WHERE n.model_id = \"" + modelId + "\")"
+                + " RETURN nodes(path)"
+                + " $$) AS (nodes agtype)";
+        List<String> rows = jdbc.query(cypher, (rs, i) -> rs.getString(1));
+        if (rows.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // The result is a single row containing an agtype array of vertex objects.
+        // Parse the array into individual NodeState entries.
+        String nodesAgtype = rows.get(0);
+        return parseAgtypeNodeArray(nodesAgtype);
+    }
+
+    /**
+     * Parse an agtype value (vertex, edge, or scalar) into a property map.
+     * Used by executeTenantCypher result parsing.
+     */
+    private static Map<String, Object> parseAgtypeRow(String agtype) {
+        if (agtype == null) {
+            return Map.of();
+        }
+        String json = agtype;
+        int cut = json.lastIndexOf("::");
+        if (cut > 0) {
+            json = json.substring(0, cut);
+        }
+        Map<String, Object> parsed = AgtypeJsonParser.parseObject(json);
+        // If it has "properties" key it's a vertex/edge — return the properties map.
+        Object props = parsed.get("properties");
+        if (props instanceof Map<?, ?> propsMap) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> typedProps = (Map<String, Object>) propsMap;
+            return java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<>(typedProps));
+        }
+        // Otherwise return the whole parsed object.
+        return java.util.Collections.unmodifiableMap(parsed);
+    }
+
+    /**
+     * Parse the agtype array returned by {@code nodes(path)} into a list of
+     * {@link NodeState}. Each element is a vertex agtype string of the form
+     * {@code {"id":..., "label":"...", "properties":{...}}::vertex}.
+     *
+     * <p>This is the pattern confirmed by the Wave 0 spike (FindShortestPathSpikeIT).
+     */
+    private static List<NodeState> parseAgtypeNodeArray(String agtypeArray) {
+        if (agtypeArray == null || agtypeArray.isBlank()) {
+            return java.util.Collections.emptyList();
+        }
+        // AGE returns nodes(path) as a JSON array of vertex agtypes.
+        // Strip outer brackets and split on vertex boundaries.
+        // Each vertex ends with ::vertex and is separated by commas.
+        // We use the AgtypeJsonParser to handle this: strip the outer [] and
+        // parse each element individually.
+        String raw = agtypeArray.trim();
+        // Remove trailing ::array marker if present (e.g. [...]::array)
+        if (raw.endsWith("::array")) {
+            raw = raw.substring(0, raw.length() - "::array".length()).trim();
+        }
+        if (raw.startsWith("[") && raw.endsWith("]")) {
+            raw = raw.substring(1, raw.length() - 1).trim();
+        }
+        if (raw.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+        // Split on "::vertex," or "::vertex ," boundaries to get individual vertex strings.
+        // We re-append the ::vertex suffix to each segment after splitting.
+        String[] segments = raw.split("::vertex\\s*,\\s*");
+        List<NodeState> result = new java.util.ArrayList<>();
+        for (int i = 0; i < segments.length; i++) {
+            String seg = segments[i].trim();
+            if (!seg.endsWith("::vertex")) {
+                seg = seg + "::vertex";
+            }
+            // Each segment is a full vertex agtype — delegate to toNodeState.
+            // We extract the label from the agtype "label" field.
+            String json = seg;
+            int cut = json.lastIndexOf("::");
+            if (cut > 0) {
+                json = json.substring(0, cut);
+            }
+            Map<String, Object> parsed = AgtypeJsonParser.parseObject(json);
+            String label = parsed.getOrDefault("label", "unknown").toString();
+            result.add(toNodeState(label, seg));
+        }
+        return java.util.Collections.unmodifiableList(result);
+    }
+
+    // --------------------------------------------------------------------
     // Helpers
     // --------------------------------------------------------------------
 

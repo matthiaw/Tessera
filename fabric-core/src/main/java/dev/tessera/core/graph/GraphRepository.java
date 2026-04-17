@@ -17,6 +17,7 @@ package dev.tessera.core.graph;
 
 import dev.tessera.core.tenant.TenantContext;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -47,4 +48,27 @@ public interface GraphRepository {
     default Optional<NodeState> queryById(TenantContext ctx, String typeSlug, UUID nodeId) {
         return findNode(ctx, typeSlug, nodeId);
     }
+
+    /**
+     * Execute a tenant-scoped read-only Cypher query. The implementation MUST
+     * inject {@code model_id} filtering and MUST reject mutation keywords
+     * (DELETE, CREATE, MERGE, SET, REMOVE, DROP, DETACH).
+     * Used by MCP traverse() tool (MCP-05).
+     *
+     * @throws IllegalArgumentException if {@code cypher} contains mutation keywords
+     */
+    List<Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher);
+
+    /**
+     * Find shortest path between two node UUIDs within a tenant's graph.
+     * Returns list of {@link NodeState} along the path (including start and end
+     * nodes), or empty if no path exists. Uses AGE shortestPath() with the
+     * spike-confirmed pattern from 03-00-SUMMARY.md (Assumption A3).
+     *
+     * <p>Cross-tenant isolation is enforced via
+     * {@code WHERE ALL(n IN nodes(path) WHERE n.model_id = tenant)} in
+     * Cypher — NOT post-filtered in Java (T-03-03 mitigation).
+     * Used by MCP find_path() tool (MCP-06).
+     */
+    List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid);
 }

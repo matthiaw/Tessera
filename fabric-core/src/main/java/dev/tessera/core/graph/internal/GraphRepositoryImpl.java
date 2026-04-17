@@ -19,6 +19,7 @@ import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.tenant.TenantContext;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -49,5 +50,15 @@ public final class GraphRepositoryImpl implements GraphRepository {
     @Override
     public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
         return session.queryAllNodesAfter(ctx, typeSlug, afterSeq, limit);
+    }
+
+    @Override
+    public List<Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher) {
+        return session.executeTenantCypher(ctx, cypher);
+    }
+
+    @Override
+    public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
+        return session.findShortestPath(ctx, fromUuid, toUuid);
     }
 }
