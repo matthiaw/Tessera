@@ -183,7 +183,7 @@ Plans:
 **Plans**: 2 plans
 Plans:
 - [x] 08-01-PLAN.md — CircleadConnectorConfig placeholder resolution + DB registration + unit test
-- [ ] 08-02-PLAN.md — DR drill script fix (column names, partition, replay, smoke test) + CircleadDrillSmokeIT
+- [x] 08-02-PLAN.md — DR drill script fix (column names, partition, replay, smoke test) + CircleadDrillSmokeIT
 
 ### Phase 9: Vault Dependency & Health Indicator
 **Goal**: Add `spring-cloud-starter-vault-config` to the compile classpath so Vault config-data import works at runtime, and implement a `VaultHealthIndicator` for the Actuator health endpoint.
