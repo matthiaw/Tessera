@@ -89,6 +89,15 @@
             <artifactId>awaitility</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- EventLifecycleController: REST endpoints + JWT tenant guard (OPS-03/OPS-04) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
