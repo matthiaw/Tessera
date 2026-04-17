@@ -215,8 +215,7 @@ echo "  event-log replay: $REPLAY_COUNT person events for tenant OK"
 
 # Circlead consumer smoke test via Maven failsafe
 echo "  running circlead consumer smoke test..."
-./mvnw -B -ntp -pl fabric-connectors failsafe:integration-test \
-  -Dit.test=CircleadDrillSmokeIT \
+./mvnw -B -ntp -pl fabric-connectors failsafe:integration-test failsafe:verify \
   -Dsurefire.skip=true \
   -Dfailsafe.useFile=false
 echo "  circlead consumer smoke test PASSED"
