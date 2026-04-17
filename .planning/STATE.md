@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 03 (MCP audit + quota enforcement)
-last_updated: "2026-04-17T06:31:19.034Z"
+stopped_at: Completed 03-mcp-projection-flagship-differentiator plan 04 (MCP security test suite)
+last_updated: "2026-04-17T06:42:14.839Z"
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 23
-  completed_plans: 22
-  percent: 96
+  completed_plans: 23
+  percent: 100
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 0 (Foundations & Risk Burndown) — not started
 - **Plan:** none
 - **Status:** Executing Phase 03
-- **Progress:** [██████████] 96%
+- **Progress:** [██████████] 100%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Plan: 1 of 5
 | Phase 03-mcp-projection-flagship-differentiator P01 | 14 | 2 tasks | 14 files |
 | Phase 03-mcp-projection-flagship-differentiator P02 | 8 | 2 tasks | 8 files |
 | Phase 03-mcp-projection-flagship-differentiator P03 | 4 | 2 tasks | 7 files |
+| Phase 03-mcp-projection-flagship-differentiator P04 | 7 | 2 tasks | 15 files |
 
 ## Accumulated Context
 
@@ -98,6 +99,12 @@ Plan: 1 of 5
 - ctx-conditional audit on exception path in SpringAiMcpAdapter: audit skipped if ctx is null (auth failure before tenant extraction); log.warn fires instead to avoid NPE
 - LENIENT Mockito strictness on AgentQuotaServiceTest: auditLog.countForAgentSince stub in @BeforeEach is unused by rejection tests (quota throws before warm-up); lenient is correct DRY placement
 
+### Decisions (Phase 03 Plan 04 — MCP Security Test Suite)
+
+- ArchUnit DescribedPredicate<JavaCall<?>> for callMethodWhere in McpMutationAllowlistTest: checks owner class isEquivalentTo(SchemaRegistry.class) plus method name prefix to block mutation verbs; placed in arch package alongside ProjectionsModuleDependencyTest
+- MockWriteTool dispatch simulation in McpQuotaEnforcementIT: mirrors SpringAiMcpAdapter.invokeTool() inline (not @SpyBean); proves SEC-07 at full dispatch layer via isWriteTool()=true override with QUOTA_EXCEEDED audit row verified
+- V14-V23 migrations copied to fabric-projections test resources: ITs need mcp_audit_log and mcp_agent_quotas tables; intermediate migrations included for Flyway baseline integrity
+
 ### Open Todos
 
 - Kick off Phase 0 via `/gsd-plan-phase 0`
@@ -118,8 +125,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T06:31:19.023Z
-**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 03 (MCP audit + quota enforcement)
+**Last session:** 2026-04-17T06:42:14.834Z
+**Stopped at:** Completed 03-mcp-projection-flagship-differentiator plan 04 (MCP security test suite)
 
 **Next action on resume:** Transition Phase 02.5 or start Phase 0 via `/gsd-plan-phase 0`.
 
