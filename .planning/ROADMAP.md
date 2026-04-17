@@ -128,7 +128,13 @@ Plans:
   2. An operator can view Prometheus / OpenTelemetry metrics for ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, and SHACL validation time, and the Spring Boot Actuator health endpoint reports the status of Postgres, AGE, Vault, and every registered connector.
   3. An operator can configure per-tenant event-log retention and trigger a per-tenant snapshot that compacts the event log while preserving the ability to answer temporal queries above the snapshot boundary.
   4. A full DR drill (dump → restore → replay → consumer smoke test against circlead) is rehearsed end-to-end and documented, and the whole milestone-1 scope (all prior phases) remains green on CI.
-**Plans**: TBD
+**Plans**: 5 plans
+Plans:
+- [ ] 05-00-PLAN.md — Wave 0: V28 migration (retention_days, snapshot_boundary), Prometheus/OTel deps, application.yml, test stubs
+- [ ] 05-01-PLAN.md — Observability: TesseraMetrics (6 Micrometer meters), AgeGraphHealthIndicator, ConnectorHealthIndicator
+- [ ] 05-02-PLAN.md — Circlead integration: 3 MappingDefinition JSONs, CircleadConnectorConfig, CircleadConnectorIT, circlead-mapping.md
+- [ ] 05-03-PLAN.md — Event-log lifecycle: EventRetentionJob (daily sweep), EventSnapshotService (3-TX compaction), EventLifecycleController
+- [ ] 05-04-PLAN.md — DR drill: dr_drill.sh (dump/restore/validate/smoke), DR-DRILL.md, CI pipeline extension
 **UI hint**: yes
 
 ## Progress
@@ -141,7 +147,7 @@ Plans:
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 3/5 | In Progress|  |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress|  |
-| 5. Circlead Integration & Production Hardening | 0/0 | Not started | - |
+| 5. Circlead Integration & Production Hardening | 0/5 | Planned | - |
 
 ## Coverage
 
