@@ -105,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after Phase 6 (metrics-instrumentation-wiring) completion — MetricsPort SPI wired into ConnectorRunner, RuleEngine, ShaclValidator; OPS-01 gap closed*
+*Last updated: 2026-04-17 after Phase 8 (circlead-production-wiring-dr-drill-fix) completion — CircleadConnectorConfig resolves placeholders + registers 3 connectors in DB; DR drill script fixed with correct column names, replay verification, and smoke test*
