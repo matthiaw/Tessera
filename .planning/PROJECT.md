@@ -105,4 +105,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-13 after initialization*
+*Last updated: 2026-04-17 after Phase 6 (metrics-instrumentation-wiring) completion — MetricsPort SPI wired into ConnectorRunner, RuleEngine, ShaclValidator; OPS-01 gap closed*
