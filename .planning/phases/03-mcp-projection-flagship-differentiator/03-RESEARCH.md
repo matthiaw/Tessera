@@ -522,22 +522,17 @@ CREATE TABLE mcp_agent_quotas (
 
 ---
 
-## Open Questions
+## Open Questions — RESOLVED
 
-1. **AGE path agtype serialization**
+1. **AGE path agtype serialization** — RESOLVED via Plan 03-00 (Wave 0 spike)
    - What we know: `shortestPath()` returns an `agtype` path object; `nodes(path)` and `relationships(path)` functions extract collections
-   - What's unclear: Whether AGE 1.6.0's `toNodeState()` pattern in `GraphSession` can parse path agtypes, or whether a separate parser is needed
-   - Recommendation: The planner should include a spike task (Wave 0 or Wave 1) to test `shortestPath()` return value serialization with the existing `AgtypeJsonParser`. If it fails, add a `PathAgtypeParser` helper.
+   - Resolution: Plan 03-00 Task 1 (`FindShortestPathSpikeIT`) validates `shortestPath()` + `nodes(path)` parsing against AGE Testcontainer. The spike result (documented in 03-00-SUMMARY.md) determines whether `FindPathTool` uses the native pattern or a variable-length MATCH fallback. Assumption A3 is resolved by execution, not assumption.
 
-2. **`McpSyncServer` bean injection in Spring Boot 1.0.5**
-   - What we know: `McpServerAutoConfiguration` creates the `McpSyncServer` bean; `type=SYNC` is default
-   - What's unclear: Whether `McpSyncServer` can be `@Autowired` directly or requires `McpServer.sync(...)` factory
-   - Recommendation: Inject via `@Autowired McpSyncServer mcpServer`; add a smoke test to fail early if the bean is absent
+2. **`McpSyncServer` bean injection in Spring Boot 1.0.5** — RESOLVED by design
+   - Resolution: Plan 03-01 Task 2 creates `SpringAiMcpAdapter` with `McpSyncServer` injection. If the bean is absent at startup, Spring context fails fast with a clear error. No separate smoke test needed — the `ApplicationRunner.run()` method that calls `mcpServer.addTool()` serves as the implicit verification.
 
-3. **`traverse()` Cypher injection defense depth**
-   - What we know: `GraphSession` uses regex IDENT validation for labels/keys; raw Cypher is passed directly from agents for `traverse()`
-   - What's unclear: Whether a keyword blocklist (`CREATE`, `DELETE`, `MERGE`, `SET`, `REMOVE`) is sufficient or if a Cypher parser dependency is warranted
-   - Recommendation: Start with keyword blocklist + mandatory `RETURN` clause verification. An integration test with adversarial Cypher inputs confirms coverage.
+3. **`traverse()` Cypher injection defense depth** — RESOLVED by keyword blocklist + integration test
+   - Resolution: Plan 03-01 Task 1 implements mutation keyword blocklist in `GraphRepositoryImpl.executeTenantCypher()`. Plan 03-04 Task 2 (`McpCrossTenantIT`) tests with adversarial Cypher. The blocklist approach is sufficient for MVP — a Cypher parser dependency (e.g., openCypher parser) would be overkill given that AGE runs queries through its own parser which rejects invalid syntax anyway.
 
 ---
 
