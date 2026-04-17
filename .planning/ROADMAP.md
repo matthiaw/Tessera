@@ -131,7 +131,7 @@ Plans:
 **Plans**: 5 plans
 Plans:
 - [x] 05-00-PLAN.md — Wave 0: V28 migration (retention_days, snapshot_boundary), Prometheus/OTel deps, application.yml, test stubs
-- [ ] 05-01-PLAN.md — Observability: TesseraMetrics (6 Micrometer meters), AgeGraphHealthIndicator, ConnectorHealthIndicator
+- [x] 05-01-PLAN.md — Observability: TesseraMetrics (6 Micrometer meters), AgeGraphHealthIndicator, ConnectorHealthIndicator
 - [ ] 05-02-PLAN.md — Circlead integration: 3 MappingDefinition JSONs, CircleadConnectorConfig, CircleadConnectorIT, circlead-mapping.md
 - [ ] 05-03-PLAN.md — Event-log lifecycle: EventRetentionJob (daily sweep), EventSnapshotService (3-TX compaction), EventLifecycleController
 - [ ] 05-04-PLAN.md — DR drill: dr_drill.sh (dump/restore/validate/smoke), DR-DRILL.md, CI pipeline extension
@@ -147,7 +147,7 @@ Plans:
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
 | 3. MCP Projection | 3/5 | In Progress|  |
 | 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress|  |
-| 5. Circlead Integration & Production Hardening | 1/5 | In Progress|  |
+| 5. Circlead Integration & Production Hardening | 2/5 | In Progress|  |
 
 ## Coverage
 

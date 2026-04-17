@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-circlead-integration-production-hardening plan 00 (Wave 0 Foundation)
-last_updated: "2026-04-17T10:40:50.802Z"
+stopped_at: Completed 05-circlead-integration-production-hardening plan 01 (Wave 1 Observability)
+last_updated: "2026-04-17T10:49:40.409Z"
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 32
-  completed_plans: 28
-  percent: 88
+  completed_plans: 29
+  percent: 91
 ---
 
 # State: Tessera
@@ -33,7 +33,7 @@ Plan: 1 of 5
 - **Phase:** 5
 - **Plan:** Not started
 - **Status:** Executing Phase 05
-- **Progress:** [█████████░] 88%
+- **Progress:** [█████████░] 91%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Plan: 1 of 5
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P02 | 60 | 2 tasks | 7 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P03 | 5 | 2 tasks | 9 files |
 | Phase 05 P00 | 256 | 2 tasks | 26 files |
+| Phase 05-circlead-integration-production-hardening P01 | 389 | 2 tasks | 6 files |
 
 ## Accumulated Context
 
@@ -76,6 +77,12 @@ Plan: 1 of 5
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 05 Plan 01 — Wave 1 Observability)
+
+- Gauge lambdas take NamedParameterJdbcTemplate as state object (not a captured field) — Micrometer holds a weak reference; null-guard returns 0/-1 in unit tests without DB
+- AgeGraphHealthIndicator returns UP for empty ag_catalog.ag_graph (AGE loaded, no graphs is not a failure); exception path = DOWN (AGE extension not loaded)
+- ConnectorHealthIndicator: any FAILED outcome aggregates to DOWN regardless of other connectors; empty result = UP with no details
 
 ### Decisions (Phase 05 Plan 00 — Wave 0 Foundation)
 
@@ -158,8 +165,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T10:40:50.666Z
-**Stopped at:** Completed 05-circlead-integration-production-hardening plan 00 (Wave 0 Foundation)
+**Last session:** 2026-04-17T10:49:40.396Z
+**Stopped at:** Completed 05-circlead-integration-production-hardening plan 01 (Wave 1 Observability)
 
 **Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 
