@@ -303,6 +303,17 @@ class ConnectorAdminCrudIT {
                 public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
                     return List.of();
                 }
+
+                @Override
+                public java.util.List<java.util.Map<String, Object>> executeTenantCypher(
+                        TenantContext ctx, String cypher) {
+                    return List.of();
+                }
+
+                @Override
+                public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
+                    return List.of();
+                }
             };
         }
 

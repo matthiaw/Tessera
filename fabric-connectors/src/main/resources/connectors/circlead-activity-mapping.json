@@ -1,0 +1,14 @@
+{
+  "sourceEntityType": "activity",
+  "targetNodeTypeSlug": "activity",
+  "rootPath": "$.content[*]",
+  "sourceUrl": "${tessera.connectors.circlead.base-url}/circlead/workitem/list?type=ACTIVITY&details=true",
+  "identityFields": ["circlead_id"],
+  "fields": [
+    {"target": "circlead_id",  "sourcePath": "$.id",           "required": true},
+    {"target": "title",        "sourcePath": "$.title",         "required": true},
+    {"target": "abbreviation", "sourcePath": "$.abbreviation",  "required": false},
+    {"target": "purpose",      "sourcePath": "$.purpose",       "required": false},
+    {"target": "status",       "sourcePath": "$.status",        "required": false}
+  ]
+}

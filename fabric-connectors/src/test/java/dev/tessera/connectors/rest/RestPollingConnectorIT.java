@@ -69,6 +69,16 @@ class RestPollingConnectorIT {
         public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
             return List.of();
         }
+
+        @Override
+        public List<Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher) {
+            return List.of();
+        }
+
+        @Override
+        public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
+            return List.of();
+        }
     };
 
     @Test
@@ -100,7 +110,12 @@ class RestPollingConnectorIT {
                         new FieldMapping("email", "$.email", "lowercase", false)),
                 List.of("name"),
                 wm.baseUrl() + "/api/customers",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         ConnectorState state = new ConnectorState(
                 null, null, null, 0L, Map.of("bearer_token", "test-token-123", "connector_id", "conn-001"));
@@ -144,7 +159,12 @@ class RestPollingConnectorIT {
                         new FieldMapping("email", "$.email", null, false)),
                 List.of("name"),
                 wm.baseUrl() + "/api/customers",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         ConnectorState state = new ConnectorState(null, null, null, 0L, Map.of("connector_id", "conn-002"));
         TenantContext tenant = TenantContext.of(UUID.randomUUID());
@@ -174,6 +194,16 @@ class RestPollingConnectorIT {
 
             @Override
             public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
+                return List.of();
+            }
+
+            @Override
+            public List<Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher) {
+                return List.of();
+            }
+
+            @Override
+            public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
                 return List.of();
             }
         };

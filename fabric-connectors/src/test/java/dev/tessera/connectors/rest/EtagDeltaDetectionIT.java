@@ -65,6 +65,16 @@ class EtagDeltaDetectionIT {
         public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
             return List.of();
         }
+
+        @Override
+        public List<java.util.Map<String, Object>> executeTenantCypher(TenantContext ctx, String cypher) {
+            return List.of();
+        }
+
+        @Override
+        public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
+            return List.of();
+        }
     };
 
     private MappingDefinition mapping(String baseUrl) {
@@ -75,7 +85,12 @@ class EtagDeltaDetectionIT {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
                 baseUrl + "/api/data",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test

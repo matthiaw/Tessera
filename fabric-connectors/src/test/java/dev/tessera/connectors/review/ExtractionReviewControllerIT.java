@@ -313,16 +313,17 @@ class ExtractionReviewControllerIT {
     @EnableAutoConfiguration(
             exclude = FlywayAutoConfiguration.class,
             excludeName = {
-                    "org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration",
-                    "org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration",
-                    "org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration"
+                "org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration",
+                "org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration",
+                "org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration"
             })
     @EnableScheduling
     @ComponentScan(
             basePackages = {"dev.tessera.connectors"},
-            excludeFilters = @ComponentScan.Filter(
-                    type = org.springframework.context.annotation.FilterType.REGEX,
-                    pattern = "dev\\.tessera\\.connectors\\.extraction\\..*"))
+            excludeFilters =
+                    @ComponentScan.Filter(
+                            type = org.springframework.context.annotation.FilterType.REGEX,
+                            pattern = "dev\\.tessera\\.connectors\\.extraction\\..*"))
     static class TestApp {
 
         @Bean
@@ -347,6 +348,17 @@ class ExtractionReviewControllerIT {
 
                 @Override
                 public List<NodeState> queryAllAfter(TenantContext ctx, String typeSlug, long afterSeq, int limit) {
+                    return List.of();
+                }
+
+                @Override
+                public java.util.List<java.util.Map<String, Object>> executeTenantCypher(
+                        TenantContext ctx, String cypher) {
+                    return List.of();
+                }
+
+                @Override
+                public List<NodeState> findShortestPath(TenantContext ctx, UUID fromUuid, UUID toUuid) {
                     return List.of();
                 }
             };
