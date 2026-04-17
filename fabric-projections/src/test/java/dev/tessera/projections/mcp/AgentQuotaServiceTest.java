@@ -15,48 +15,92 @@
  */
 package dev.tessera.projections.mcp;
 
+import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 
-import org.junit.jupiter.api.Disabled;
+import dev.tessera.core.tenant.TenantContext;
+import dev.tessera.projections.mcp.audit.McpAuditLog;
+import dev.tessera.projections.mcp.quota.AgentQuotaService;
+import dev.tessera.projections.mcp.quota.QuotaExceededException;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * SEC-07: AgentQuotaService must enforce per-agent write quotas.
  *
- * <p>Default quota = 0 writes (read-only by default). Stub created in Wave 0; fleshed out after
- * Plan 03 creates AgentQuotaService.
+ * <p>Default quota = 0 writes (read-only by default).
  */
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AgentQuotaServiceTest {
 
+    @Mock
+    private NamedParameterJdbcTemplate jdbc;
+
+    @Mock
+    private McpAuditLog auditLog;
+
+    private AgentQuotaService quotaService;
+
+    private TenantContext ctx;
+    private static final String AGENT_ID = "agent-test-001";
+
+    @BeforeEach
+    void setUp() {
+        quotaService = new AgentQuotaService(jdbc, auditLog);
+        ctx = TenantContext.of(UUID.randomUUID());
+        // Default: countForAgentSince returns 0 (no history)
+        when(auditLog.countForAgentSince(any(), anyString(), any())).thenReturn(0L);
+    }
+
     @Test
-    @Disabled("Stub: enable after Plan 03 creates AgentQuotaService")
     void rejects_write_when_no_quota_row_exists() {
-        // checkWriteQuota() with no mcp_agent_quotas row -> QuotaExceededException
-        assertThatThrownBy(() -> {
-                    throw new UnsupportedOperationException("stub");
-                })
-                .isInstanceOf(UnsupportedOperationException.class); // replace with real assertion
+        // No row in mcp_agent_quotas -> empty list from queryForList
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class), any(Class.class)))
+                .thenReturn(Collections.emptyList());
+
+        assertThatThrownBy(() -> quotaService.checkWriteQuota(ctx, AGENT_ID))
+                .isInstanceOf(QuotaExceededException.class)
+                .hasMessageContaining("no write quota");
     }
 
     @Test
-    @Disabled("Stub: enable after Plan 03 creates AgentQuotaService")
     void rejects_write_when_quota_is_zero() {
-        // Insert quota row with writes_per_hour=0, checkWriteQuota() -> QuotaExceededException
-        assertThatThrownBy(() -> {
-                    throw new UnsupportedOperationException("stub");
-                })
-                .isInstanceOf(UnsupportedOperationException.class); // replace with real assertion
+        // Row exists but writes_per_hour = 0
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class), any(Class.class)))
+                .thenReturn(List.of(0));
+
+        assertThatThrownBy(() -> quotaService.checkWriteQuota(ctx, AGENT_ID))
+                .isInstanceOf(QuotaExceededException.class)
+                .hasMessageContaining("no write quota");
     }
 
     @Test
-    @Disabled("Stub: enable after Plan 03 creates AgentQuotaService")
     void allows_writes_within_quota_then_rejects() {
-        // Insert quota row with writes_per_hour=2
-        // checkWriteQuota() x2 -> success
-        // checkWriteQuota() x1 -> QuotaExceededException
-        assertThatThrownBy(() -> {
-                    throw new UnsupportedOperationException("stub");
-                })
-                .isInstanceOf(UnsupportedOperationException.class); // replace with real assertion
+        // writes_per_hour = 2 -> first 2 succeed, 3rd throws
+        when(jdbc.queryForList(anyString(), any(MapSqlParameterSource.class), any(Class.class)))
+                .thenReturn(List.of(2));
+
+        // First two calls should pass
+        assertThatCode(() -> quotaService.checkWriteQuota(ctx, AGENT_ID)).doesNotThrowAnyException();
+        assertThatCode(() -> quotaService.checkWriteQuota(ctx, AGENT_ID)).doesNotThrowAnyException();
+
+        // Third call should throw
+        assertThatThrownBy(() -> quotaService.checkWriteQuota(ctx, AGENT_ID))
+                .isInstanceOf(QuotaExceededException.class)
+                .hasMessageContaining("exceeded");
     }
 }
