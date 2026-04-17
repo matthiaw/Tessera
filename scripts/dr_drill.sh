@@ -45,7 +45,7 @@ SRC_NAME="tessera-dr-src"
 DST_NAME="tessera-dr-dst"
 SRC_PORT="${DR_SRC_PORT:-56432}"
 DST_PORT="${DR_DST_PORT:-56433}"
-TEST_TENANT="dr-rehearsal-tenant"
+TENANT_UUID="00000000-0000-0000-0000-000000000099"
 
 WORKDIR=$(mktemp -d)
 cleanup() {
@@ -107,21 +107,45 @@ echo "==> [3/9] running Flyway migrate against source"
 # Step 4: Seed test data
 # ---------------------------------------------------------------------------
 echo "==> [4/9] seeding test data on source"
-psql_src <<'SQL'
--- Seed model_config for test tenant
-INSERT INTO model_config (model_id, hash_chain_enabled, retention_days, created_at, updated_at)
-VALUES ('dr-rehearsal-tenant', false, 30, NOW(), NOW())
-ON CONFLICT (model_id) DO UPDATE
-  SET hash_chain_enabled = EXCLUDED.hash_chain_enabled,
-      retention_days     = EXCLUDED.retention_days,
-      updated_at         = EXCLUDED.updated_at;
 
--- Seed a few graph_events rows for the test tenant
-INSERT INTO graph_events (model_id, event_type, type_slug, entity_id, payload, created_at)
-VALUES
-  ('dr-rehearsal-tenant', 'CREATE', 'person', gen_random_uuid(), '{"name":"Alice"}', NOW()),
-  ('dr-rehearsal-tenant', 'CREATE', 'person', gen_random_uuid(), '{"name":"Bob"}',   NOW()),
-  ('dr-rehearsal-tenant', 'UPDATE', 'person', gen_random_uuid(), '{"name":"Carol"}', NOW());
+# Create current-month partition if it does not exist (Pitfall 2 from research)
+CURRENT_PARTITION="graph_events_y$(date +%Ym%m)"
+psql_src <<SQL
+DO \$\$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class WHERE relname = '${CURRENT_PARTITION}'
+  ) THEN
+    EXECUTE format(
+      'CREATE TABLE %I PARTITION OF graph_events FOR VALUES FROM (%L) TO (%L)',
+      '${CURRENT_PARTITION}',
+      date_trunc('month', CURRENT_DATE),
+      date_trunc('month', CURRENT_DATE) + interval '1 month'
+    );
+  END IF;
+END
+\$\$;
+SQL
+
+psql_src <<SQL
+-- Seed model_config for test tenant (UUID primary key)
+INSERT INTO model_config (model_id, hash_chain_enabled, retention_days, created_at, updated_at)
+VALUES ('${TENANT_UUID}'::uuid, false, 30, NOW(), NOW())
+ON CONFLICT (model_id) DO UPDATE
+  SET retention_days = EXCLUDED.retention_days,
+      updated_at     = EXCLUDED.updated_at;
+
+-- Seed a few graph_events rows with correct V2 column names
+INSERT INTO graph_events (
+    model_id, sequence_nr, event_type, node_uuid, type_slug,
+    payload, delta, caused_by, source_type, source_id, source_system, event_time
+) VALUES
+  ('${TENANT_UUID}'::uuid, 1, 'CREATE_NODE', gen_random_uuid(), 'person',
+   '{"name":"Alice"}'::jsonb, '{}'::jsonb, 'dr-drill', 'SYSTEM', 'dr-001', 'dr', clock_timestamp()),
+  ('${TENANT_UUID}'::uuid, 2, 'CREATE_NODE', gen_random_uuid(), 'person',
+   '{"name":"Bob"}'::jsonb, '{}'::jsonb, 'dr-drill', 'SYSTEM', 'dr-002', 'dr', clock_timestamp()),
+  ('${TENANT_UUID}'::uuid, 3, 'UPDATE_NODE', gen_random_uuid(), 'person',
+   '{"name":"Carol"}'::jsonb, '{"name":"Carol"}'::jsonb, 'dr-drill', 'SYSTEM', 'dr-003', 'dr', clock_timestamp());
 SQL
 
 # ---------------------------------------------------------------------------
@@ -167,19 +191,35 @@ echo "==> [8/9] running Flyway validate against destination"
 # Step 9: Smoke test — verify data integrity in DST
 # ---------------------------------------------------------------------------
 echo "==> [9/9] smoke test: verifying data integrity in destination"
-RETENTION=$(psql_dst -t -c "SELECT retention_days FROM model_config WHERE model_id = 'dr-rehearsal-tenant'" | tr -d ' \n')
+RETENTION=$(psql_dst -t -c "SELECT retention_days FROM model_config WHERE model_id = '${TENANT_UUID}'::uuid" | tr -d ' \n')
 if [[ "$RETENTION" != "30" ]]; then
   echo "FAIL: model_config.retention_days expected 30, got '${RETENTION}'" >&2
   exit 1
 fi
 echo "  model_config.retention_days = $RETENTION (expected 30) OK"
 
-EVENT_COUNT=$(psql_dst -t -c "SELECT COUNT(*) FROM graph_events WHERE model_id = 'dr-rehearsal-tenant'" | tr -d ' \n')
+EVENT_COUNT=$(psql_dst -t -c "SELECT COUNT(*) FROM graph_events WHERE model_id = '${TENANT_UUID}'::uuid" | tr -d ' \n')
 if [[ "$EVENT_COUNT" -lt "3" ]]; then
   echo "FAIL: graph_events row count expected >= 3, got '${EVENT_COUNT}'" >&2
   exit 1
 fi
 echo "  graph_events row count = $EVENT_COUNT (expected >= 3) OK"
 
-echo "PASS: DR drill complete — dump/restore/validate/smoke all succeeded"
+# Event-log replay verification: confirm person events survived dump/restore
+REPLAY_COUNT=$(psql_dst -t -c "SELECT COUNT(*) FROM graph_events WHERE model_id = '${TENANT_UUID}'::uuid AND type_slug = 'person'" | tr -d ' \n')
+if [[ "$REPLAY_COUNT" -lt "3" ]]; then
+  echo "FAIL: event replay count expected >= 3 person events, got '${REPLAY_COUNT}'" >&2
+  exit 1
+fi
+echo "  event-log replay: $REPLAY_COUNT person events for tenant OK"
+
+# Circlead consumer smoke test via Maven failsafe
+echo "  running circlead consumer smoke test..."
+./mvnw -B -ntp -pl fabric-connectors failsafe:integration-test \
+  -Dit.test=CircleadDrillSmokeIT \
+  -Dsurefire.skip=true \
+  -Dfailsafe.useFile=false
+echo "  circlead consumer smoke test PASSED"
+
+echo "PASS: DR drill complete -- dump/restore/validate/replay/smoke all succeeded"
 exit 0
