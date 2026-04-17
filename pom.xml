@@ -156,6 +156,15 @@
                 <artifactId>snakeyaml</artifactId>
                 <version>2.5</version>
             </dependency>
+            <!--
+              Pin swagger-annotations-jakarta upward: springdoc-openapi 2.8.6
+              pulls 2.2.29, Spring AI 1.0.5 pulls 2.2.30. Pin to higher.
+            -->
+            <dependency>
+                <groupId>io.swagger.core.v3</groupId>
+                <artifactId>swagger-annotations-jakarta</artifactId>
+                <version>2.2.30</version>
+            </dependency>
             <dependency>
                 <groupId>org.awaitility</groupId>
                 <artifactId>awaitility</artifactId>
