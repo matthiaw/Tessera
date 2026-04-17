@@ -74,7 +74,7 @@ public class SchemaRepository {
         p.addValue("slug", slug);
         List<NodeTypeRow> rows = jdbc.query(
                 "SELECT model_id, slug, name, label, description, deprecated_at,"
-                        + " rest_read_enabled, rest_write_enabled"
+                        + " rest_read_enabled, rest_write_enabled, read_roles, write_roles"
                         + " FROM schema_node_types WHERE model_id = :model_id::uuid AND slug = :slug",
                 p,
                 nodeTypeMapper());
@@ -93,7 +93,9 @@ public class SchemaRepository {
                 props,
                 r.deprecatedAt,
                 r.restReadEnabled,
-                r.restWriteEnabled));
+                r.restWriteEnabled,
+                r.readRoles,
+                r.writeRoles));
     }
 
     public List<NodeTypeDescriptor> listNodeTypes(TenantContext ctx, long schemaVersion) {
@@ -101,7 +103,7 @@ public class SchemaRepository {
         p.addValue("model_id", ctx.modelId().toString());
         List<NodeTypeRow> rows = jdbc.query(
                 "SELECT model_id, slug, name, label, description, deprecated_at,"
-                        + " rest_read_enabled, rest_write_enabled"
+                        + " rest_read_enabled, rest_write_enabled, read_roles, write_roles"
                         + " FROM schema_node_types WHERE model_id = :model_id::uuid",
                 p,
                 nodeTypeMapper());
@@ -116,7 +118,9 @@ public class SchemaRepository {
                         listProperties(ctx, r.slug),
                         r.deprecatedAt,
                         r.restReadEnabled,
-                        r.restWriteEnabled))
+                        r.restWriteEnabled,
+                        r.readRoles,
+                        r.writeRoles))
                 .toList();
     }
 
@@ -167,11 +171,17 @@ public class SchemaRepository {
         p.addValue("type_slug", typeSlug);
         return jdbc.query(
                 "SELECT slug, name, data_type, required, default_value, validation_rules, enum_values,"
-                        + " reference_target, deprecated_at, property_encrypted, property_encrypted_alg"
+                        + " reference_target, deprecated_at, property_encrypted, property_encrypted_alg,"
+                        + " read_roles, write_roles"
                         + " FROM schema_properties WHERE model_id = :model_id::uuid AND type_slug = :type_slug"
                         + " ORDER BY slug",
                 p,
-                (rs, i) -> new PropertyDescriptor(
+                (rs, i) -> {
+                    java.sql.Array readArr = rs.getArray("read_roles");
+                    List<String> readRoles = readArr != null ? List.of((String[]) readArr.getArray()) : List.of();
+                    java.sql.Array writeArr = rs.getArray("write_roles");
+                    List<String> writeRoles = writeArr != null ? List.of((String[]) writeArr.getArray()) : List.of();
+                    return new PropertyDescriptor(
                         rs.getString("slug"),
                         rs.getString("name"),
                         rs.getString("data_type"),
@@ -182,7 +192,10 @@ public class SchemaRepository {
                         rs.getString("reference_target"),
                         toInstant(rs.getTimestamp("deprecated_at")),
                         rs.getBoolean("property_encrypted"),
-                        rs.getString("property_encrypted_alg")));
+                        rs.getString("property_encrypted_alg"),
+                        readRoles,
+                        writeRoles);
+                });
     }
 
     public void deprecateProperty(TenantContext ctx, String typeSlug, String propertySlug) {
@@ -214,7 +227,7 @@ public class SchemaRepository {
         p.addValue("model_id", ctx.modelId().toString());
         List<NodeTypeRow> rows = jdbc.query(
                 "SELECT model_id, slug, name, label, description, deprecated_at,"
-                        + " rest_read_enabled, rest_write_enabled"
+                        + " rest_read_enabled, rest_write_enabled, read_roles, write_roles"
                         + " FROM schema_node_types WHERE model_id = :model_id::uuid AND rest_read_enabled = true",
                 p,
                 nodeTypeMapper());
@@ -229,7 +242,9 @@ public class SchemaRepository {
                         listProperties(ctx, r.slug),
                         r.deprecatedAt,
                         r.restReadEnabled,
-                        r.restWriteEnabled))
+                        r.restWriteEnabled,
+                        r.readRoles,
+                        r.writeRoles))
                 .toList();
     }
 
@@ -285,7 +300,12 @@ public class SchemaRepository {
     // ---------------- helpers ----------------
 
     private RowMapper<NodeTypeRow> nodeTypeMapper() {
-        return (rs, i) -> new NodeTypeRow(
+        return (rs, i) -> {
+            java.sql.Array readArr = rs.getArray("read_roles");
+            List<String> readRoles = readArr != null ? List.of((String[]) readArr.getArray()) : List.of();
+            java.sql.Array writeArr = rs.getArray("write_roles");
+            List<String> writeRoles = writeArr != null ? List.of((String[]) writeArr.getArray()) : List.of();
+            return new NodeTypeRow(
                 UUID.fromString(rs.getString("model_id")),
                 rs.getString("slug"),
                 rs.getString("name"),
@@ -293,7 +313,10 @@ public class SchemaRepository {
                 rs.getString("description"),
                 toInstant(rs.getTimestamp("deprecated_at")),
                 rs.getBoolean("rest_read_enabled"),
-                rs.getBoolean("rest_write_enabled"));
+                rs.getBoolean("rest_write_enabled"),
+                readRoles,
+                writeRoles);
+        };
     }
 
     private static Instant toInstant(Timestamp t) {
@@ -308,5 +331,7 @@ public class SchemaRepository {
             String description,
             Instant deprecatedAt,
             boolean restReadEnabled,
-            boolean restWriteEnabled) {}
+            boolean restWriteEnabled,
+            List<String> readRoles,
+            List<String> writeRoles) {}
 }

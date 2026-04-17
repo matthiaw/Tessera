@@ -16,6 +16,7 @@
 package dev.tessera.core.schema;
 
 import java.time.Instant;
+import java.util.List;
 
 /**
  * SCHEMA-02 property descriptor. Immutable record used by the Caffeine cache.
@@ -25,6 +26,10 @@ import java.time.Instant;
  * The SEC-06 startup guard refuses to boot if any row in the Schema Registry
  * has {@code encrypted=true} while the {@code tessera.security.field-encryption.enabled}
  * feature flag is off.
+ *
+ * <p>Phase 10 adds {@code readRoles} / {@code writeRoles} for field-level
+ * ACL (SEC-04, SEC-05). {@code null} or empty means visible/writable by all
+ * authenticated callers (D-02 semantics).
  */
 public record PropertyDescriptor(
         String slug,
@@ -37,12 +42,34 @@ public record PropertyDescriptor(
         String referenceTarget,
         Instant deprecatedAt,
         boolean encrypted,
-        String encryptedAlg) {
+        String encryptedAlg,
+        List<String> readRoles,
+        List<String> writeRoles) {
 
     /**
-     * Backwards-compatible constructor — defaults the Wave 1 encryption flags
-     * to {@code false} / {@code null}. Lets Phase 1 call sites keep compiling
-     * unchanged.
+     * Backwards-compatible 11-arg constructor — defaults the Phase 10 ACL
+     * role lists to empty (visible/writable by all).
+     */
+    public PropertyDescriptor(
+            String slug,
+            String name,
+            String dataType,
+            boolean required,
+            String defaultValue,
+            String validationRules,
+            String enumValues,
+            String referenceTarget,
+            Instant deprecatedAt,
+            boolean encrypted,
+            String encryptedAlg) {
+        this(slug, name, dataType, required, defaultValue, validationRules,
+             enumValues, referenceTarget, deprecatedAt, encrypted, encryptedAlg,
+             List.of(), List.of());
+    }
+
+    /**
+     * Backwards-compatible 9-arg constructor — defaults both encryption flags
+     * and ACL role lists. Lets Phase 1 call sites keep compiling unchanged.
      */
     public PropertyDescriptor(
             String slug,
@@ -54,17 +81,8 @@ public record PropertyDescriptor(
             String enumValues,
             String referenceTarget,
             Instant deprecatedAt) {
-        this(
-                slug,
-                name,
-                dataType,
-                required,
-                defaultValue,
-                validationRules,
-                enumValues,
-                referenceTarget,
-                deprecatedAt,
-                false,
-                null);
+        this(slug, name, dataType, required, defaultValue, validationRules,
+             enumValues, referenceTarget, deprecatedAt, false, null,
+             List.of(), List.of());
     }
 }
