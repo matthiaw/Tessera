@@ -14,6 +14,11 @@
 - [ ] **Phase 3: MCP Projection (Flagship Differentiator)** - Spring AI MCP tools driven by the Schema Registry, read-only by default, audited
 - [ ] **Phase 4: SQL View + Kafka Projections, Hash-Chained Audit** - Aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
 - [x] **Phase 5: Circlead Integration & Production Hardening** - First real consumer, observability, DR drill, snapshots and retention (completed 2026-04-17)
+- [ ] **Phase 6: Metrics Instrumentation Wiring** - Wire TesseraMetrics calls into production code paths (Gap Closure)
+- [ ] **Phase 7: SchemaChangeEvent Infrastructure** - Create and wire schema-change events to SQL views and MCP notifications (Gap Closure)
+- [ ] **Phase 8: Circlead Production Wiring & DR Drill Fix** - Wire circlead ConnectorInstance to registry and complete DR drill (Gap Closure)
+- [ ] **Phase 9: Vault Dependency & Health Indicator** - Add spring-cloud-vault compile dependency and VaultHealthIndicator (Gap Closure)
+- [ ] **Phase 10: Field-Level Access Control & Security Docs** - Per-property role ACL, row-level role filtering, TDE deployment runbook (Gap Closure)
 
 ## Phase Details
 
@@ -137,6 +142,55 @@ Plans:
 - [x] 05-04-PLAN.md — DR drill: dr_drill.sh (dump/restore/validate/smoke), DR-DRILL.md, CI pipeline extension
 **UI hint**: yes
 
+### Phase 6: Metrics Instrumentation Wiring
+**Goal**: Wire TesseraMetrics increment/timer calls into the production code paths that actually handle ingestion, rule evaluation, SHACL validation, and conflict registration — so Prometheus counters reflect real activity instead of staying at zero.
+**Depends on**: Phase 5
+**Requirements**: OPS-01
+**Gap Closure:** Closes gaps from audit — Integration: TesseraMetrics → ConnectorRunner / GraphServiceImpl / ShaclValidator; Flow: "Connector ingest → metrics"
+**Success Criteria** (what must be TRUE):
+  1. After a connector sync completes, `tessera_ingest_total` counter increments by the number of entities processed.
+  2. Every rule evaluation increments `tessera_rule_evaluations_total`; every conflict increments `tessera_conflicts_total`.
+  3. SHACL validation time is recorded in `tessera_shacl_validation_seconds` timer.
+
+### Phase 7: SchemaChangeEvent Infrastructure
+**Goal**: Create a `SchemaChangeEvent` application event in fabric-core, publish it from SchemaRegistry on type/property mutations, and wire listeners in SqlViewProjection (view regeneration) and SpringAiMcpAdapter (client notification) — so projections stay fresh after runtime schema changes without restart.
+**Depends on**: Phase 5
+**Requirements**: SQL-02, MCP-08
+**Gap Closure:** Closes gaps from audit — Integration: SchemaRegistry → SqlViewProjection / SpringAiMcpAdapter; Flow: "Schema change → SQL view refresh"
+**Success Criteria** (what must be TRUE):
+  1. Creating or modifying a node type via SchemaRegistry publishes a `SchemaChangeEvent`.
+  2. SqlViewProjection regenerates affected views within seconds of a schema change — no restart required.
+  3. SpringAiMcpAdapter.notifySchemaChanged() is called on schema change, notifying connected MCP clients.
+
+### Phase 8: Circlead Production Wiring & DR Drill Fix
+**Goal**: Construct `ConnectorInstance` objects from circlead `MappingDefinition` beans and register them with `ConnectorRegistry` so the scheduler actually dispatches circlead syncs in production. Fix the DR drill script to include event-log replay, a circlead consumer smoke test, and the column name mismatch.
+**Depends on**: Phase 5
+**Requirements**: CIRC-01, CIRC-02, OPS-05
+**Gap Closure:** Closes gaps from audit — Integration: CircleadConnectorConfig → ConnectorRegistry; Flows: "Circlead full sync E2E", "DR drill end-to-end"
+**Success Criteria** (what must be TRUE):
+  1. On application startup, ConnectorScheduler.tick() includes the three circlead connector instances and dispatches syncs.
+  2. dr_drill.sh runs without column mismatch errors, includes event-log replay verification, and executes a circlead consumer smoke test.
+
+### Phase 9: Vault Dependency & Health Indicator
+**Goal**: Add `spring-cloud-starter-vault-config` to the compile classpath so Vault config-data import works at runtime, and implement a `VaultHealthIndicator` for the Actuator health endpoint.
+**Depends on**: Phase 5
+**Requirements**: SEC-02, OPS-02
+**Gap Closure:** Closes gaps from audit — Integration: spring-cloud-starter-vault-config → compile POMs
+**Success Criteria** (what must be TRUE):
+  1. `spring-cloud-starter-vault-config` is a compile-scope dependency in the appropriate POM(s).
+  2. Spring Boot Actuator `/actuator/health` includes a Vault health component.
+  3. `spring.config.import=vault://` resolves at startup when Vault is available.
+
+### Phase 10: Field-Level Access Control & Security Docs
+**Goal**: Implement per-property read/write role ACL in the projection engine so REST and MCP responses are filtered by caller role (beyond tenant isolation), and produce the Postgres TDE deployment runbook for IONOS VPS.
+**Depends on**: Phase 9
+**Requirements**: SEC-05, REST-07, SEC-04, SEC-03
+**Gap Closure:** Closes gaps from audit — previously deferred per CONTEXT Decision 10
+**Success Criteria** (what must be TRUE):
+  1. Schema properties with role ACL annotations are filtered from REST/MCP responses when the caller lacks the required role.
+  2. Row-level role filtering is enforced in the projection engine before response serialization.
+  3. A deployment runbook for Postgres TDE (LUKS/dm-crypt) on IONOS VPS exists and is reviewed.
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -145,9 +199,14 @@ Plans:
 | 1. Graph Core, Schema Registry, Validation, Rules | 0/0 | Not started | - |
 | 2. REST Projection, Connector Framework, First Connector, Security Baseline | 0/0 | Not started | - |
 | 2.5. Unstructured Ingestion & Entity Extraction | 0/4 | Planned | - |
-| 3. MCP Projection | 3/5 | In Progress|  |
-| 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress|  |
-| 5. Circlead Integration & Production Hardening | 5/5 | Complete   | 2026-04-17 |
+| 3. MCP Projection | 3/5 | In Progress | - |
+| 4. SQL View + Kafka Projections, Hash-Chained Audit | 2/4 | In Progress | - |
+| 5. Circlead Integration & Production Hardening | 5/5 | Complete | 2026-04-17 |
+| 6. Metrics Instrumentation Wiring | 0/0 | Not started | - |
+| 7. SchemaChangeEvent Infrastructure | 0/0 | Not started | - |
+| 8. Circlead Production Wiring & DR Drill Fix | 0/0 | Not started | - |
+| 9. Vault Dependency & Health Indicator | 0/0 | Not started | - |
+| 10. Field-Level Access Control & Security Docs | 0/0 | Not started | - |
 
 ## Coverage
 

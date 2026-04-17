@@ -106,7 +106,7 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 ### Security (SEC)
 
 - [ ] **SEC-01**: TLS 1.3 minimum on all consumer-facing HTTP endpoints (REST, MCP, WebSocket); HSTS enabled
-- [x] **SEC-02**: Connector credentials and secrets live in HashiCorp Vault, loaded via Spring Cloud Vault Config Data API — never in repo, config files, or the fabric DB
+- [ ] **SEC-02**: Connector credentials and secrets live in HashiCorp Vault, loaded via Spring Cloud Vault Config Data API — never in repo, config files, or the fabric DB
 - [ ] **SEC-03**: Postgres Transparent Data Encryption at rest (LUKS/dm-crypt self-hosted) with CMK-encrypted backups
 - [ ] **SEC-04**: Row-level access control based on caller role, enforced in the Projection Engine before response serialization
 - [ ] **SEC-05**: Field-level access control (read/write roles per `schema_property`), enforced in the Projection Engine
@@ -145,17 +145,17 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 ### Circlead Integration (CIRC)
 
-- [x] **CIRC-01**: circlead reads from Tessera via REST and MCP projections in addition to its own JPA model (parallel operation, no big-bang migration)
-- [x] **CIRC-02**: Mapping from circlead entities (Role, Circle, Activity) to Tessera node types is documented and round-trips cleanly
+- [ ] **CIRC-01**: circlead reads from Tessera via REST and MCP projections in addition to its own JPA model (parallel operation, no big-bang migration)
+- [ ] **CIRC-02**: Mapping from circlead entities (Role, Circle, Activity) to Tessera node types is documented and round-trips cleanly
 - [x] **CIRC-03**: circlead continues to function if Tessera is unavailable (graceful degradation)
 
 ### Observability & Operations (OPS)
 
-- [x] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
-- [x] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
+- [ ] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
+- [ ] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
 - [x] **OPS-03**: Per-tenant snapshot mechanism compacts the event log for long-lived tenants
 - [x] **OPS-04**: Per-tenant event-log retention policies are configurable
-- [x] **OPS-05**: DR drill rehearsed end-to-end: dump → restore → replay → consumer smoke test
+- [ ] **OPS-05**: DR drill rehearsed end-to-end: dump → restore → replay → consumer smoke test
 
 ## v2 Requirements
 
@@ -284,7 +284,7 @@ Explicitly excluded. Documented to prevent scope creep.
 | REST-04 | Phase 2 | Complete |
 | REST-05 | Phase 2 | Complete |
 | REST-06 | Phase 2 | Pending |
-| REST-07 | Phase 2 | Pending |
+| REST-07 | Phase 10 | Pending |
 | CONN-01 | Phase 2 | Complete |
 | CONN-02 | Phase 2 | Complete |
 | CONN-03 | Phase 2 | Complete |
@@ -302,10 +302,10 @@ Explicitly excluded. Documented to prevent scope creep.
 | EXTR-07 | Phase 2.5 | Complete |
 | EXTR-08 | Phase 2.5 | Complete |
 | SEC-01 | Phase 2 | Pending |
-| SEC-02 | Phase 2 | Complete |
-| SEC-03 | Phase 2 | Pending |
-| SEC-04 | Phase 2 | Pending |
-| SEC-05 | Phase 2 | Pending |
+| SEC-02 | Phase 9 | Pending |
+| SEC-03 | Phase 10 | Pending |
+| SEC-04 | Phase 10 | Pending |
+| SEC-05 | Phase 10 | Pending |
 | SEC-06 | Phase 2 | Complete |
 | SEC-07 | Phase 3 | Complete |
 | SEC-08 | Phase 3 | Complete |
@@ -316,24 +316,24 @@ Explicitly excluded. Documented to prevent scope creep.
 | MCP-05 | Phase 3 | Complete |
 | MCP-06 | Phase 3 | Complete |
 | MCP-07 | Phase 3 | Complete |
-| MCP-08 | Phase 3 | Complete |
+| MCP-08 | Phase 7 | Pending |
 | MCP-09 | Phase 3 | Complete |
 | SQL-01 | Phase 4 | Complete |
-| SQL-02 | Phase 4 | Complete |
+| SQL-02 | Phase 7 | Pending |
 | SQL-03 | Phase 4 | Complete |
 | KAFKA-01 | Phase 4 | Complete |
 | KAFKA-02 | Phase 4 | Complete |
 | KAFKA-03 | Phase 4 | Complete |
 | AUDIT-01 | Phase 4 | Complete |
 | AUDIT-02 | Phase 4 | Complete |
-| CIRC-01 | Phase 5 | Complete |
-| CIRC-02 | Phase 5 | Complete |
+| CIRC-01 | Phase 8 | Pending |
+| CIRC-02 | Phase 8 | Pending |
 | CIRC-03 | Phase 5 | Complete |
-| OPS-01 | Phase 5 | Complete |
-| OPS-02 | Phase 5 | Complete |
+| OPS-01 | Phase 6 | Pending |
+| OPS-02 | Phase 9 | Pending |
 | OPS-03 | Phase 5 | Complete |
 | OPS-04 | Phase 5 | Complete |
-| OPS-05 | Phase 5 | Complete |
+| OPS-05 | Phase 8 | Pending |
 
 **Coverage:**
 - v1 requirements: 98 total
