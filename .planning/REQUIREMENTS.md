@@ -145,16 +145,16 @@ Extends the Connector Framework with a second mode — LLM-based extraction of t
 
 ### Circlead Integration (CIRC)
 
-- [ ] **CIRC-01**: circlead reads from Tessera via REST and MCP projections in addition to its own JPA model (parallel operation, no big-bang migration)
+- [x] **CIRC-01**: circlead reads from Tessera via REST and MCP projections in addition to its own JPA model (parallel operation, no big-bang migration)
 - [ ] **CIRC-02**: Mapping from circlead entities (Role, Circle, Activity) to Tessera node types is documented and round-trips cleanly
 - [ ] **CIRC-03**: circlead continues to function if Tessera is unavailable (graceful degradation)
 
 ### Observability & Operations (OPS)
 
-- [ ] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
-- [ ] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
-- [ ] **OPS-03**: Per-tenant snapshot mechanism compacts the event log for long-lived tenants
-- [ ] **OPS-04**: Per-tenant event-log retention policies are configurable
+- [x] **OPS-01**: Prometheus / OpenTelemetry metrics for: ingest rate, rule evaluations per second, conflict count, outbox lag, replication slot lag, SHACL validation time
+- [x] **OPS-02**: Spring Boot Actuator health endpoint exposes Postgres, AGE, Vault, and connector health
+- [x] **OPS-03**: Per-tenant snapshot mechanism compacts the event log for long-lived tenants
+- [x] **OPS-04**: Per-tenant event-log retention policies are configurable
 - [ ] **OPS-05**: DR drill rehearsed end-to-end: dump → restore → replay → consumer smoke test
 
 ## v2 Requirements
@@ -326,13 +326,13 @@ Explicitly excluded. Documented to prevent scope creep.
 | KAFKA-03 | Phase 4 | Complete |
 | AUDIT-01 | Phase 4 | Complete |
 | AUDIT-02 | Phase 4 | Complete |
-| CIRC-01 | Phase 5 | Pending |
+| CIRC-01 | Phase 5 | Complete |
 | CIRC-02 | Phase 5 | Pending |
 | CIRC-03 | Phase 5 | Pending |
-| OPS-01 | Phase 5 | Pending |
-| OPS-02 | Phase 5 | Pending |
-| OPS-03 | Phase 5 | Pending |
-| OPS-04 | Phase 5 | Pending |
+| OPS-01 | Phase 5 | Complete |
+| OPS-02 | Phase 5 | Complete |
+| OPS-03 | Phase 5 | Complete |
+| OPS-04 | Phase 5 | Complete |
 | OPS-05 | Phase 5 | Pending |
 
 **Coverage:**

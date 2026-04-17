@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Completed 04-sql-view-kafka-projections-hash-chained-audit plan 03 (Debezium/Kafka CDC Fan-out)
-last_updated: "2026-04-17T09:58:04.531Z"
+status: executing
+stopped_at: Completed 05-circlead-integration-production-hardening plan 00 (Wave 0 Foundation)
+last_updated: "2026-04-17T10:40:50.802Z"
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 27
-  completed_plans: 27
-  percent: 100
+  total_plans: 32
+  completed_plans: 28
+  percent: 88
 ---
 
 # State: Tessera
@@ -20,20 +20,20 @@ progress:
 ## Project Reference
 
 **Core Value:** The graph is the truth; everything else is a projection.
-**Current Focus:** Phase 04 — SQL View + Kafka Projections, Hash-Chained Audit
+**Current Focus:** Phase 05 — Circlead Integration & Production Hardening
 **Granularity:** standard
 **Mode:** yolo, parallel execution enabled, research + plan-check + verifier all on.
 
 ## Current Position
 
-Phase: 04 (SQL View + Kafka Projections, Hash-Chained Audit) — EXECUTING
-Plan: 2 of 4
+Phase: 05 (Circlead Integration & Production Hardening) — EXECUTING
+Plan: 1 of 5
 
 - **Milestone:** 1
 - **Phase:** 5
 - **Plan:** Not started
-- **Status:** Ready to plan
-- **Progress:** [██████████] 100%
+- **Status:** Executing Phase 05
+- **Progress:** [█████████░] 88%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Plan: 2 of 4
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P01 | 6 | 2 tasks | 13 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P02 | 60 | 2 tasks | 7 files |
 | Phase 04-sql-view-kafka-projections-hash-chained-audit P03 | 5 | 2 tasks | 9 files |
+| Phase 05 P00 | 256 | 2 tasks | 26 files |
 
 ## Accumulated Context
 
@@ -75,6 +76,12 @@ Plan: 2 of 4
 - circlead stays standalone and consumes Tessera in parallel (ADR-6)
 - First connector: generic REST polling, read-only
 - Self-hosted on IONOS VPS; Apache 2.0 license; open to contributors from day one
+
+### Decisions (Phase 05 Plan 00 — Wave 0 Foundation)
+
+- V28 uses `ADD COLUMN IF NOT EXISTS` for idempotent schema extension of model_config (`retention_days INT NULL`, `snapshot_boundary TIMESTAMPTZ NULL`)
+- `prometheus.access: unrestricted` deliberate for unauthenticated Prometheus scraper; network-level firewall on IONOS VPS restricts scraper IP (T-05-00-01 accepted risk)
+- fabric-rules test migrations were missing V14-V27; V27 added as real CREATE TABLE model_config DDL since V28 ALTER TABLE depends on it; V14-V25 added as SELECT 1 no-ops
 
 ### Decisions (Phase 04 Plan 03 — Debezium/Kafka CDC Fan-out)
 
@@ -151,8 +158,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-04-17T09:49:30.886Z
-**Stopped at:** Completed 04-sql-view-kafka-projections-hash-chained-audit plan 03 (Debezium/Kafka CDC Fan-out)
+**Last session:** 2026-04-17T10:40:50.666Z
+**Stopped at:** Completed 05-circlead-integration-production-hardening plan 00 (Wave 0 Foundation)
 
 **Next action on resume:** Execute plan 04-03 (next plan in phase 04).
 
