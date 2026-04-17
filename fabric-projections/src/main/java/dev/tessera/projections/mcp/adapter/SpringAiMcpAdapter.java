@@ -15,6 +15,7 @@
  */
 package dev.tessera.projections.mcp.adapter;
 
+import dev.tessera.core.schema.SchemaChangeEvent;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.mcp.api.ToolProvider;
 import dev.tessera.projections.mcp.api.ToolResponse;
@@ -36,6 +37,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * D-A2 isolation boundary: the ONLY class in the codebase that imports Spring AI /
@@ -81,8 +84,8 @@ public class SpringAiMcpAdapter implements ApplicationRunner {
         for (ToolProvider tool : tools) {
             McpSchema.Tool mcpTool =
                     new McpSchema.Tool(tool.toolName(), tool.toolDescription(), tool.inputSchemaJson());
-            McpServerFeatures.SyncToolSpecification spec =
-                    new McpServerFeatures.SyncToolSpecification(mcpTool, (exchange, params) -> invokeTool(tool, params));
+            McpServerFeatures.SyncToolSpecification spec = new McpServerFeatures.SyncToolSpecification(
+                    mcpTool, (exchange, params) -> invokeTool(tool, params));
             mcpServer.addTool(spec);
             log.info("Registered MCP tool: {}", tool.toolName());
         }
@@ -92,13 +95,25 @@ public class SpringAiMcpAdapter implements ApplicationRunner {
     /**
      * Notify connected MCP clients that the tools list has changed.
      * Call this when the schema changes to trigger client re-discovery.
-     *
-     * <p>TODO Plan 03: wire to SchemaChangeEvent via ApplicationListener once
-     * the event type is defined in fabric-core.
      */
     public void notifySchemaChanged() {
         mcpServer.notifyToolsListChanged();
         log.debug("Notified MCP clients of tools list change");
+    }
+
+    /**
+     * MCP-08: Notify connected MCP clients that the tools list may have changed after a schema
+     * mutation. Uses AFTER_COMMIT to ensure the notification fires only once the schema change is
+     * durably persisted. Resolves the previous TODO in notifySchemaChanged().
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onSchemaChange(SchemaChangeEvent event) {
+        log.debug(
+                "SpringAiMcpAdapter: schema change {}/{} — notifying MCP clients (model_id={})",
+                event.changeType(),
+                event.typeSlug(),
+                event.modelId());
+        notifySchemaChanged();
     }
 
     /**
@@ -143,8 +158,7 @@ public class SpringAiMcpAdapter implements ApplicationRunner {
             long durationMs = (System.nanoTime() - start) / 1_000_000;
             mcpAuditLog.record(ctx, agentId, tool.toolName(), params, outcome, durationMs);
 
-            return new McpSchema.CallToolResult(
-                    List.of(new McpSchema.TextContent(wrapped)), !response.success());
+            return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(wrapped)), !response.success());
 
         } catch (Exception ex) {
             long durationMs = (System.nanoTime() - start) / 1_000_000;

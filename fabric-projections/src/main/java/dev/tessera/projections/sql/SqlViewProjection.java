@@ -17,11 +17,11 @@ package dev.tessera.projections.sql;
 
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.schema.PropertyDescriptor;
+import dev.tessera.core.schema.SchemaChangeEvent;
 import dev.tessera.core.schema.SchemaRegistry;
 import dev.tessera.core.schema.SchemaVersionService;
 import dev.tessera.core.tenant.TenantContext;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -32,6 +32,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * SQL-01/SQL-02 / D-A2/D-D3: Generates per-tenant per-type PostgreSQL views over AGE label tables.
@@ -69,9 +71,7 @@ public class SqlViewProjection implements ApplicationRunner {
     private final ConcurrentHashMap<String, ViewMetadata> activeViews = new ConcurrentHashMap<>();
 
     public SqlViewProjection(
-            SchemaRegistry schemaRegistry,
-            SchemaVersionService schemaVersionService,
-            NamedParameterJdbcTemplate jdbc) {
+            SchemaRegistry schemaRegistry, SchemaVersionService schemaVersionService, NamedParameterJdbcTemplate jdbc) {
         this.schemaRegistry = schemaRegistry;
         this.schemaVersionService = schemaVersionService;
         this.jdbc = jdbc;
@@ -88,6 +88,37 @@ public class SqlViewProjection implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         regenerateAll();
+    }
+
+    // -----------------------------------------------------------------------
+    // Schema change listener (SQL-02)
+    // -----------------------------------------------------------------------
+
+    /**
+     * SQL-02: Regenerate SQL views for the affected tenant after the schema mutation transaction
+     * commits. Uses {@code AFTER_COMMIT} to avoid aborting the SchemaRegistry transaction when
+     * the DDL staleness check queries a non-existent view (Postgres aborts the parent transaction
+     * on any SQL error, even if Java catches it).
+     *
+     * <p>Exceptions from {@link #regenerateForTenant} are caught and logged — a failed view
+     * regeneration must not propagate.
+     */
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onSchemaChange(SchemaChangeEvent event) {
+        log.info(
+                "SqlViewProjection: schema change {}/{} — regenerating views for model_id={}",
+                event.changeType(),
+                event.typeSlug(),
+                event.modelId());
+        try {
+            regenerateForTenant(TenantContext.of(event.modelId()));
+        } catch (Exception e) {
+            log.warn(
+                    "SqlViewProjection: regeneration failed for model_id={} after schema change: {}",
+                    event.modelId(),
+                    e.getMessage(),
+                    e);
+        }
     }
 
     // -----------------------------------------------------------------------
@@ -108,8 +139,11 @@ public class SqlViewProjection implements ApplicationRunner {
             try {
                 regenerateForTenant(TenantContext.of(modelId));
             } catch (Exception e) {
-                log.warn("SqlViewProjection.regenerateAll: failed to regenerate views for model_id={}: {}",
-                        modelId, e.getMessage(), e);
+                log.warn(
+                        "SqlViewProjection.regenerateAll: failed to regenerate views for model_id={}: {}",
+                        modelId,
+                        e.getMessage(),
+                        e);
             }
         }
     }
@@ -124,7 +158,8 @@ public class SqlViewProjection implements ApplicationRunner {
         List<NodeTypeDescriptor> types = schemaRegistry.listNodeTypes(ctx);
 
         if (types.isEmpty()) {
-            log.debug("SqlViewProjection.regenerateForTenant: no node types for model_id={}; nothing to do",
+            log.debug(
+                    "SqlViewProjection.regenerateForTenant: no node types for model_id={}; nothing to do",
                     ctx.modelId());
             return;
         }
@@ -137,8 +172,13 @@ public class SqlViewProjection implements ApplicationRunner {
             try {
                 regenerateView(ctx, type, viewName, schemaVersion, labelMap);
             } catch (Exception e) {
-                log.warn("SqlViewProjection: failed to regenerate view {} for type {} (model_id={}): {}",
-                        viewName, type.slug(), ctx.modelId(), e.getMessage(), e);
+                log.warn(
+                        "SqlViewProjection: failed to regenerate view {} for type {} (model_id={}): {}",
+                        viewName,
+                        type.slug(),
+                        ctx.modelId(),
+                        e.getMessage(),
+                        e);
             }
         }
     }
@@ -177,7 +217,8 @@ public class SqlViewProjection implements ApplicationRunner {
         // Staleness check — skip if view exists and schema version matches.
         if (viewIsCurrentVersion(viewName, schemaVersion)) {
             log.debug("SqlViewProjection: view {} is current (schema_version={}); skipping", viewName, schemaVersion);
-            activeViews.put(viewName, new ViewMetadata(viewName, ctx.modelId(), type.slug(), schemaVersion, Instant.now()));
+            activeViews.put(
+                    viewName, new ViewMetadata(viewName, ctx.modelId(), type.slug(), schemaVersion, Instant.now()));
             return;
         }
 
@@ -185,9 +226,11 @@ public class SqlViewProjection implements ApplicationRunner {
         // AGE label names are the type slug (same as the Cypher label used in GraphSession).
         LabelTableInfo tableInfo = labelMap.get(type.slug());
         if (tableInfo == null) {
-            log.debug("SqlViewProjection: no AGE label table found for type '{}' in graph '{}'; "
-                    + "skipping view generation (type may not have any nodes yet)",
-                    type.slug(), GRAPH_NAME);
+            log.debug(
+                    "SqlViewProjection: no AGE label table found for type '{}' in graph '{}'; "
+                            + "skipping view generation (type may not have any nodes yet)",
+                    type.slug(),
+                    GRAPH_NAME);
             return;
         }
 
@@ -195,8 +238,12 @@ public class SqlViewProjection implements ApplicationRunner {
         jdbc.getJdbcTemplate().execute(ddl);
 
         activeViews.put(viewName, new ViewMetadata(viewName, ctx.modelId(), type.slug(), schemaVersion, Instant.now()));
-        log.info("SqlViewProjection: (re)generated view {} for type '{}' model_id={} schema_version={}",
-                viewName, type.slug(), ctx.modelId(), schemaVersion);
+        log.info(
+                "SqlViewProjection: (re)generated view {} for type '{}' model_id={} schema_version={}",
+                viewName,
+                type.slug(),
+                ctx.modelId(),
+                schemaVersion);
     }
 
     /**
@@ -207,11 +254,7 @@ public class SqlViewProjection implements ApplicationRunner {
      * with double-quotes to prevent SQL injection via crafted property names.
      */
     private String buildViewDdl(
-            String viewName,
-            UUID modelId,
-            NodeTypeDescriptor type,
-            LabelTableInfo tableInfo,
-            long schemaVersion) {
+            String viewName, UUID modelId, NodeTypeDescriptor type, LabelTableInfo tableInfo, long schemaVersion) {
 
         StringBuilder cols = new StringBuilder();
 
@@ -281,9 +324,8 @@ public class SqlViewProjection implements ApplicationRunner {
                 return false;
             }
             // Parse "schema_version:N" from the comment embedded in the view DDL.
-            java.util.regex.Matcher m = java.util.regex.Pattern
-                    .compile("schema_version:(\\d+)")
-                    .matcher(viewDef);
+            java.util.regex.Matcher m =
+                    java.util.regex.Pattern.compile("schema_version:(\\d+)").matcher(viewDef);
             if (m.find()) {
                 long existingVersion = Long.parseLong(m.group(1));
                 return existingVersion == schemaVersion;
@@ -300,7 +342,8 @@ public class SqlViewProjection implements ApplicationRunner {
      * Returns a map keyed by label name (= type slug).
      */
     private java.util.Map<String, LabelTableInfo> resolveLabelTables() {
-        String sql = """
+        String sql =
+                """
                 SELECT l.name AS label_name, n.nspname AS schema_name,
                        l.relation::regclass::text AS table_fqn
                   FROM ag_catalog.ag_label l
@@ -309,23 +352,24 @@ public class SqlViewProjection implements ApplicationRunner {
                  WHERE g.name = :graph_name AND l.kind = 'v'
                 """;
         try {
-            List<java.util.Map<String, Object>> rows = jdbc.queryForList(
-                    sql, new MapSqlParameterSource("graph_name", GRAPH_NAME));
+            List<java.util.Map<String, Object>> rows =
+                    jdbc.queryForList(sql, new MapSqlParameterSource("graph_name", GRAPH_NAME));
             java.util.Map<String, LabelTableInfo> result = new java.util.HashMap<>();
             for (java.util.Map<String, Object> row : rows) {
                 String labelName = (String) row.get("label_name");
                 String schemaName = (String) row.get("schema_name");
                 // table_fqn is "schema.table" or just "table" depending on search_path
                 String tableFqn = (String) row.get("table_fqn");
-                String tableName = tableFqn.contains(".")
-                        ? tableFqn.substring(tableFqn.lastIndexOf('.') + 1)
-                        : tableFqn;
+                String tableName =
+                        tableFqn.contains(".") ? tableFqn.substring(tableFqn.lastIndexOf('.') + 1) : tableFqn;
                 result.put(labelName, new LabelTableInfo(schemaName, tableName));
             }
             return result;
         } catch (Exception e) {
-            log.warn("SqlViewProjection: could not resolve AGE label tables from ag_catalog: {}; "
-                    + "SQL view generation will be skipped", e.getMessage());
+            log.warn(
+                    "SqlViewProjection: could not resolve AGE label tables from ag_catalog: {}; "
+                            + "SQL view generation will be skipped",
+                    e.getMessage());
             return java.util.Map.of();
         }
     }
@@ -344,11 +388,7 @@ public class SqlViewProjection implements ApplicationRunner {
      * @param generatedAt   timestamp when the view was last regenerated
      */
     public record ViewMetadata(
-            String viewName,
-            UUID modelId,
-            String typeSlug,
-            long schemaVersion,
-            Instant generatedAt) {}
+            String viewName, UUID modelId, String typeSlug, long schemaVersion, Instant generatedAt) {}
 
     /**
      * Resolved AGE label table location.
