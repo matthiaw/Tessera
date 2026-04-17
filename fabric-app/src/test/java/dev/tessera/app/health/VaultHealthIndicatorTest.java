@@ -64,8 +64,7 @@ class VaultHealthIndicatorTest {
     @Test
     void vaultHealthPresentWhenVaultOperationsAvailable() {
         new ApplicationContextRunner()
-                .withConfiguration(
-                        AutoConfigurations.of(VaultHealthIndicatorAutoConfiguration.class))
+                .withConfiguration(AutoConfigurations.of(VaultHealthIndicatorAutoConfiguration.class))
                 .withUserConfiguration(MockVaultConfig.class)
                 .run(ctx -> assertThat(ctx).hasBean("vaultHealthIndicator"));
     }
@@ -84,8 +83,7 @@ class VaultHealthIndicatorTest {
         VaultHealthIndicator indicator = new VaultHealthIndicator(vaultOps);
         org.springframework.boot.actuate.health.Health health = indicator.health();
 
-        assertThat(health.getStatus())
-                .isEqualTo(org.springframework.boot.actuate.health.Status.DOWN);
+        assertThat(health.getStatus()).isEqualTo(org.springframework.boot.actuate.health.Status.DOWN);
     }
 
     @Configuration

@@ -57,9 +57,9 @@ import org.testcontainers.vault.VaultContainer;
 @SpringBootTest(
         classes = VaultAppRoleAuthIT.TestConfig.class,
         properties = {
-                "spring.cloud.compatibility-verifier.enabled=false",
-                "spring.autoconfigure.exclude="
-                        + "org.springframework.cloud.configuration.CompatibilityVerifierAutoConfiguration"
+            "spring.cloud.compatibility-verifier.enabled=false",
+            "spring.autoconfigure.exclude="
+                    + "org.springframework.cloud.configuration.CompatibilityVerifierAutoConfiguration"
         })
 @Testcontainers
 class VaultAppRoleAuthIT {
@@ -95,7 +95,8 @@ class VaultAppRoleAuthIT {
     @Test
     void secretLoadedFromVault() {
         // Verify Vault connectivity first
-        org.springframework.vault.support.VaultHealth health = vaultTemplate.opsForSys().health();
+        org.springframework.vault.support.VaultHealth health =
+                vaultTemplate.opsForSys().health();
         assertThat(health.isInitialized()).isTrue();
 
         // Write secret programmatically via VaultTemplate to guarantee correctness
@@ -122,11 +123,12 @@ class VaultAppRoleAuthIT {
     }
 
     @Configuration
-    @EnableAutoConfiguration(exclude = {
-            DataSourceAutoConfiguration.class,
-            HibernateJpaAutoConfiguration.class,
-            FlywayAutoConfiguration.class,
-            CompatibilityVerifierAutoConfiguration.class
-    })
+    @EnableAutoConfiguration(
+            exclude = {
+                DataSourceAutoConfiguration.class,
+                HibernateJpaAutoConfiguration.class,
+                FlywayAutoConfiguration.class,
+                CompatibilityVerifierAutoConfiguration.class
+            })
     static class TestConfig {}
 }
