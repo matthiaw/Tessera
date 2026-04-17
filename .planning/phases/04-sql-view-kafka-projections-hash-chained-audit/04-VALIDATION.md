@@ -40,11 +40,10 @@ created: 2026-04-17
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
 | 04-01-01 | 01 | 1 | SQL-01 | — | N/A | integration | `mvn test -pl fabric-projections -Dtest=SqlViewProjectionIT` | ❌ W0 | ⬜ pending |
 | 04-01-02 | 01 | 1 | SQL-02 | — | N/A | integration | `mvn test -pl fabric-projections -Dtest=SqlViewSchemaChangeIT` | ❌ W0 | ⬜ pending |
-| 04-02-01 | 02 | 2 | KAFKA-01 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=DebeziumOutboxIT` | ❌ W0 | ⬜ pending |
-| 04-02-02 | 02 | 2 | KAFKA-02 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=DebeziumTopicRoutingIT` | ❌ W0 | ⬜ pending |
-| 04-03-01 | 03 | 2 | AUDIT-01 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=HashChainAppendIT` | ❌ W0 | ⬜ pending |
-| 04-03-02 | 03 | 2 | AUDIT-02 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=HashChainVerifyIT` | ❌ W0 | ⬜ pending |
-| 04-04-01 | 04 | 3 | KAFKA-03 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=ReplicationSlotHealthIT` | ❌ W0 | ⬜ pending |
+| 04-02-01 | 02 | 2 | AUDIT-01 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=HashChainAppendIT` | ❌ W0 | ⬜ pending |
+| 04-02-02 | 02 | 2 | AUDIT-02 | — | N/A | integration | `mvn test -pl fabric-core -Dtest=HashChainVerifyIT` | ❌ W0 | ⬜ pending |
+| 04-03-01 | 03 | 2 | KAFKA-01, KAFKA-02 | — | N/A | integration | `mvn test -pl fabric-app -Dtest=OutboxPollerConditionalIT` | ❌ W0 | ⬜ pending |
+| 04-03-02 | 03 | 2 | KAFKA-03 | — | N/A | unit | `mvn test -pl fabric-projections -Dtest=DebeziumSlotHealthIndicatorTest` | ❌ W0 | ⬜ pending |
 
 *Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
 
@@ -54,9 +53,9 @@ created: 2026-04-17
 
 - [ ] `SqlViewProjectionIT.java` — stubs for SQL-01 view generation
 - [ ] `SqlViewSchemaChangeIT.java` — stubs for SQL-02 schema-driven regeneration
-- [ ] `DebeziumOutboxIT.java` — stubs for KAFKA-01 outbox CDC
 - [ ] `HashChainAppendIT.java` — stubs for AUDIT-01 hash chain write
 - [ ] `HashChainVerifyIT.java` — stubs for AUDIT-02 verification endpoint
+- [ ] `OutboxPollerConditionalIT.java` — stubs for KAFKA-01/02 outbox conditionalization
 
 ---
 
