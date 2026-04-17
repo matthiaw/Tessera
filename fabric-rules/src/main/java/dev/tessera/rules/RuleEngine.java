@@ -16,6 +16,7 @@
 package dev.tessera.rules;
 
 import dev.tessera.core.graph.GraphMutation;
+import dev.tessera.core.metrics.MetricsPort;
 import dev.tessera.core.rules.RuleEnginePort;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.tenant.TenantContext;
@@ -26,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -46,6 +48,9 @@ public class RuleEngine implements RuleEnginePort {
     private final ChainExecutor chainExecutor;
     private final EchoLoopSuppressionRule echoLoopSuppressionRule;
 
+    @Autowired(required = false)
+    private MetricsPort metricsPort;
+
     public RuleEngine(
             RuleRepository ruleRepository,
             ChainExecutor chainExecutor,
@@ -57,6 +62,8 @@ public class RuleEngine implements RuleEnginePort {
 
     /** Native pipeline run over a {@link RuleContext}. Tests and {@link #run(TenantContext, NodeTypeDescriptor, Map, Map, GraphMutation)} share this. */
     public EngineResult run(RuleContext ctx) {
+        if (metricsPort != null) metricsPort.recordRuleEvaluation();
+
         List<Rule> rules = ruleRepository.activeRulesFor(ctx.tenantContext().modelId());
 
         Map<String, Object> properties = new LinkedHashMap<>(ctx.mutation().payload());
@@ -83,7 +90,11 @@ public class RuleEngine implements RuleEnginePort {
         properties = new LinkedHashMap<>(route.properties());
         routingHints.putAll(route.routingHints());
 
-        return new EngineResult(false, null, null, properties, routingHints, conflicts);
+        EngineResult result = new EngineResult(false, null, null, properties, routingHints, conflicts);
+        if (metricsPort != null) {
+            result.conflicts().forEach(c -> metricsPort.recordConflict());
+        }
+        return result;
     }
 
     // ------------------------------------------------------------------

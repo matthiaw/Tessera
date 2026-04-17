@@ -25,6 +25,7 @@ import dev.tessera.connectors.review.ReviewQueueEntry;
 import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.GraphMutationOutcome;
 import dev.tessera.core.graph.GraphService;
+import dev.tessera.core.metrics.MetricsPort;
 import dev.tessera.rules.resolution.EmbeddingService;
 import dev.tessera.rules.resolution.EntityResolutionService;
 import dev.tessera.rules.resolution.ResolutionCandidate;
@@ -33,7 +34,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +63,7 @@ public class ConnectorRunner {
     private final EntityResolutionService entityResolutionService;
     private final EmbeddingService embeddingService;
     private final ExtractionReviewRepository reviewRepository;
+    private final MetricsPort metricsPort;
 
     public ConnectorRunner(
             GraphService graphService,
@@ -70,13 +71,15 @@ public class ConnectorRunner {
             Clock clock,
             @Autowired(required = false) EntityResolutionService entityResolutionService,
             @Autowired(required = false) EmbeddingService embeddingService,
-            @Autowired(required = false) ExtractionReviewRepository reviewRepository) {
+            @Autowired(required = false) ExtractionReviewRepository reviewRepository,
+            @Autowired(required = false) MetricsPort metricsPort) {
         this.graphService = graphService;
         this.syncStatusRepo = syncStatusRepo;
         this.clock = clock;
         this.entityResolutionService = entityResolutionService;
         this.embeddingService = embeddingService;
         this.reviewRepository = reviewRepository;
+        this.metricsPort = metricsPort;
     }
 
     /**
@@ -128,6 +131,7 @@ public class ConnectorRunner {
                 GraphMutationOutcome outcome = graphService.apply(mutation);
                 if (outcome instanceof GraphMutationOutcome.Committed committed) {
                     successCount++;
+                    if (metricsPort != null) metricsPort.recordIngest();
 
                     // Phase 2.5: Store embedding after successful apply
                     if (isExtractionCandidate(candidate) && embeddingService != null) {
@@ -239,7 +243,11 @@ public class ConnectorRunner {
                         candidate.llmModelId(),
                         rq.tier(),
                         BigDecimal.valueOf(rq.score()),
-                        null, null, null, null, null);
+                        null,
+                        null,
+                        null,
+                        null,
+                        null);
                 reviewRepository.insert(entry);
                 LOG.info(
                         "Extraction candidate '{}' (type={}) routed to review queue (tier={}, score={})",
@@ -293,11 +301,7 @@ public class ConnectorRunner {
             String entityName = (String) candidate.properties().getOrDefault("name", "");
             if (!entityName.isBlank()) {
                 float[] embedding = embeddingService.embed(entityName);
-                embeddingService.store(
-                        nodeUuid,
-                        instance.tenant().modelId(),
-                        DEFAULT_EMBEDDING_MODEL,
-                        embedding);
+                embeddingService.store(nodeUuid, instance.tenant().modelId(), DEFAULT_EMBEDDING_MODEL, embedding);
             }
         } catch (Exception embEx) {
             LOG.warn("Embedding storage failed for node {} (non-fatal): {}", nodeUuid, embEx.getMessage());

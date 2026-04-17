@@ -16,6 +16,7 @@
 package dev.tessera.core.validation;
 
 import dev.tessera.core.graph.GraphMutation;
+import dev.tessera.core.metrics.MetricsPort;
 import dev.tessera.core.schema.NodeTypeDescriptor;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.core.validation.internal.ShapeCache;
@@ -33,6 +34,7 @@ import org.apache.jena.shacl.Shapes;
 import org.apache.jena.shacl.ValidationReport;
 import org.apache.jena.sparql.graph.GraphFactory;
 import org.apache.jena.vocabulary.RDF;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -57,6 +59,9 @@ public class ShaclValidator {
     private final ShapeCache shapeCache;
     private final ValidationReportFilter reportFilter;
 
+    @Autowired(required = false)
+    private MetricsPort metricsPort;
+
     public ShaclValidator(ShapeCache shapeCache, ValidationReportFilter reportFilter) {
         this.shapeCache = shapeCache;
         this.reportFilter = reportFilter;
@@ -71,7 +76,11 @@ public class ShaclValidator {
         Shapes shapes = shapeCache.shapesFor(ctx, descriptor);
         UUID focusUuid = effectiveUuid(mutation);
         Graph dataGraph = buildDataGraph(ctx, descriptor, mutation, focusUuid);
+        long start = (metricsPort != null) ? System.nanoTime() : 0L;
         ValidationReport raw = org.apache.jena.shacl.ShaclValidator.get().validate(shapes, dataGraph);
+        if (metricsPort != null) {
+            metricsPort.recordShaclValidationNanos(System.nanoTime() - start);
+        }
         if (!raw.conforms()) {
             RedactedValidationReport redacted = reportFilter.redact(raw, ctx, focusUuid);
             throw new ShaclValidationException(
