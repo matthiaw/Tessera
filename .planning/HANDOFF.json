@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-04-18T06:22:13.987Z",
+  "phase": "milestone-close",
+  "phase_name": "v1.0 milestone completion",
+  "phase_dir": ".planning",
+  "plan": 0,
+  "task": 0,
+  "total_tasks": 5,
+  "status": "paused",
+  "completed_tasks": [
+    {"id": 1, "name": "Pre-close artifact audit", "status": "done"},
+    {"id": 2, "name": "UAT audit — identify all outstanding items", "status": "done"},
+    {"id": 3, "name": "Run Docker integration tests", "status": "done", "progress": "MCP 23/23, OutboxPoller 3/3, ACL 7/7, MarkdownFolder 2/2, HashChain 6/6 passed"},
+    {"id": 4, "name": "Fix McpCrossTenantIT bug", "status": "done", "commit": "d83fc5d"}
+  ],
+  "remaining_tasks": [
+    {"id": 5, "name": "Fix Spotless PluginContainerException", "status": "not_started"},
+    {"id": 6, "name": "Run DR drill after Spotless fix", "status": "not_started"},
+    {"id": 7, "name": "Update UAT files with test results", "status": "not_started"},
+    {"id": 8, "name": "Update Phase 05 verification (gaps resolved by Phase 08/09)", "status": "not_started"},
+    {"id": 9, "name": "Re-run /gsd-complete-milestone", "status": "not_started"}
+  ],
+  "blockers": [
+    {"description": "Spotless Maven plugin PluginContainerException blocks mvn verify and DR drill script", "type": "technical", "workaround": "rm -rf ~/.m2/repository/com/diffplug/spotless then re-run, or pass -Dspotless.check.skip=true"}
+  ],
+  "human_actions_pending": [
+    {"action": "Phase 05 server-blocked UAT items (live circlead, IONOS VPS DR drill, Vault health)", "context": "Require running IONOS VPS deployment", "blocking": false},
+    {"action": "Phase 10 TDE runbook review", "context": "Manual read-through of docs/ops/tde-deployment-runbook.md", "blocking": false}
+  ],
+  "decisions": [
+    {"decision": "FindShortestPathSpikeIT errors are known AGE 1.6 limitation, not a regression", "rationale": "AGE does not support shortestPath Cypher function", "phase": "03"},
+    {"decision": "Phase 05 verification gaps (Vault + DR drill) resolved by Phases 08 and 09", "rationale": "spring-cloud-starter-vault-config added in Phase 09, DR drill fixed in Phase 08", "phase": "05"}
+  ],
+  "uncommitted_files": ["25 files with Spotless formatting changes — not test/logic changes"],
+  "next_action": "Fix Spotless: rm -rf ~/.m2/repository/com/diffplug/spotless && mvn verify -Dspotless.check.skip=true. Then run DR drill, update UAT files, and re-run /gsd-complete-milestone.",
+  "context_notes": "Milestone v1.0 has all 12 phases complete (40/40 plans). We ran the pre-close artifact audit, found 15 open items, chose to resolve them. Docker ITs are now passing after fixing McpCrossTenantIT bug. Main blocker is Spotless plugin crash preventing mvn verify and DR drill."
+}
