@@ -18,7 +18,7 @@
 - [ ] **Phase 7: SchemaChangeEvent Infrastructure** - Create and wire schema-change events to SQL views and MCP notifications (Gap Closure)
 - [ ] **Phase 8: Circlead Production Wiring & DR Drill Fix** - Wire circlead ConnectorInstance to registry and complete DR drill (Gap Closure)
 - [ ] **Phase 9: Vault Dependency & Health Indicator** - Add spring-cloud-vault compile dependency and VaultHealthIndicator (Gap Closure)
-- [ ] **Phase 10: Field-Level Access Control & Security Docs** - Per-property role ACL, row-level role filtering, TDE deployment runbook (Gap Closure)
+- [x] **Phase 10: Field-Level Access Control & Security Docs** - Per-property role ACL, row-level role filtering, TDE deployment runbook (Gap Closure) (completed 2026-04-17)
 
 ## Phase Details
 
