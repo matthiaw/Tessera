@@ -17,11 +17,16 @@ package dev.tessera.projections.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.tessera.core.graph.GraphMutation;
+import dev.tessera.core.graph.GraphService;
+import dev.tessera.core.graph.Operation;
+import dev.tessera.core.graph.SourceType;
 import dev.tessera.core.schema.AddPropertySpec;
 import dev.tessera.core.schema.CreateNodeTypeSpec;
 import dev.tessera.core.schema.SchemaRegistry;
 import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.rest.ProjectionItApplication;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -31,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.PostgreSQLContainer;
@@ -43,9 +49,8 @@ import org.testcontainers.utility.DockerImageName;
  * for each node type registered in a tenant's schema, with columns matching the
  * {@code NodeTypeDescriptor} and tombstoned entities excluded.
  */
-@SpringBootTest(
-        classes = ProjectionItApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = ProjectionItApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("projection-it")
 @Testcontainers
 class SqlViewProjectionIT {
 
@@ -53,12 +58,12 @@ class SqlViewProjectionIT {
             "apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed";
 
     @Container
-    static final PostgreSQLContainer<?> PG =
-            new PostgreSQLContainer<>(DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
-                    .withDatabaseName("tessera")
-                    .withUsername("tessera")
-                    .withPassword("tessera")
-                    .withReuse(true);
+    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>(
+                    DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName("tessera")
+            .withUsername("tessera")
+            .withPassword("tessera")
+            .withReuse(true);
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
@@ -69,6 +74,9 @@ class SqlViewProjectionIT {
 
     @Autowired
     private SchemaRegistry schemaRegistry;
+
+    @Autowired
+    private GraphService graphService;
 
     @Autowired
     private SqlViewProjection sqlViewProjection;
@@ -92,7 +100,11 @@ class SqlViewProjectionIT {
     @Test
     void viewCreatedForTenantNodeType() {
         // Register a node type in the schema registry
-        schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("employee", "Employee", "employee", "Test employee type"));
+        schemaRegistry.createNodeType(
+                ctx, new CreateNodeTypeSpec("employee", "Employee", "employee", "Test employee type"));
+
+        // Create a seed node so the AGE label table exists
+        seedNode("employee");
 
         // Trigger view generation
         sqlViewProjection.regenerateForTenant(ctx);
@@ -101,9 +113,8 @@ class SqlViewProjectionIT {
         String viewName = SqlViewNameResolver.resolve(modelId, "employee");
 
         // Query the view via plain SQL — must not throw
-        List<Map<String, Object>> rows = jdbc.queryForList(
-                "SELECT * FROM " + viewName + " LIMIT 10",
-                new MapSqlParameterSource());
+        List<Map<String, Object>> rows =
+                jdbc.queryForList("SELECT * FROM " + viewName + " LIMIT 10", new MapSqlParameterSource());
 
         // Empty is fine — no nodes inserted — but the view must exist and be queryable
         assertThat(rows).isNotNull();
@@ -115,9 +126,11 @@ class SqlViewProjectionIT {
      */
     @Test
     void viewDdlUsesAgtypeToJsonbCast() {
-        schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("contract", "Contract", "contract", "Test contract type"));
+        schemaRegistry.createNodeType(
+                ctx, new CreateNodeTypeSpec("contract", "Contract", "contract", "Test contract type"));
         schemaRegistry.addProperty(ctx, "contract", new AddPropertySpec("title", "Title", "STRING", false));
 
+        seedNode("contract");
         sqlViewProjection.regenerateForTenant(ctx);
 
         String viewName = SqlViewNameResolver.resolve(modelId, "contract");
@@ -137,8 +150,10 @@ class SqlViewProjectionIT {
      */
     @Test
     void viewDdlContainsSchemaVersionComment() {
-        schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("project", "Project", "project", "Test project type"));
+        schemaRegistry.createNodeType(
+                ctx, new CreateNodeTypeSpec("project", "Project", "project", "Test project type"));
 
+        seedNode("project");
         sqlViewProjection.regenerateForTenant(ctx);
 
         String viewName = SqlViewNameResolver.resolve(modelId, "project");
@@ -160,6 +175,7 @@ class SqlViewProjectionIT {
     @Test
     void viewIsReplacedAfterSchemaChange() {
         schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("task", "Task", "task", "Test task type"));
+        seedNode("task");
         sqlViewProjection.regenerateForTenant(ctx);
 
         String viewName = SqlViewNameResolver.resolve(modelId, "task");
@@ -188,6 +204,7 @@ class SqlViewProjectionIT {
     void viewExcludesTombstonedEntities() {
         schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("ticket", "Ticket", "ticket", "Test ticket type"));
 
+        seedNode("ticket");
         sqlViewProjection.regenerateForTenant(ctx);
 
         String viewName = SqlViewNameResolver.resolve(modelId, "ticket");
@@ -206,10 +223,12 @@ class SqlViewProjectionIT {
      */
     @Test
     void viewColumnsMatchSchemaProperties() {
-        schemaRegistry.createNodeType(ctx, new CreateNodeTypeSpec("invoice", "Invoice", "invoice", "Test invoice type"));
+        schemaRegistry.createNodeType(
+                ctx, new CreateNodeTypeSpec("invoice", "Invoice", "invoice", "Test invoice type"));
         schemaRegistry.addProperty(ctx, "invoice", new AddPropertySpec("amount", "Amount", "INTEGER", false));
         schemaRegistry.addProperty(ctx, "invoice", new AddPropertySpec("paid", "Paid", "BOOLEAN", false));
 
+        seedNode("invoice");
         sqlViewProjection.regenerateForTenant(ctx);
 
         String viewName = SqlViewNameResolver.resolve(modelId, "invoice");
@@ -225,5 +244,18 @@ class SqlViewProjectionIT {
         // System columns should also appear
         assertThat(viewDef).contains("uuid");
         assertThat(viewDef).contains("_created_at");
+    }
+
+    private void seedNode(String typeSlug) {
+        graphService.apply(GraphMutation.builder()
+                .tenantContext(ctx)
+                .operation(Operation.CREATE)
+                .type(typeSlug)
+                .payload(Map.of("name", "seed"))
+                .sourceType(SourceType.MANUAL)
+                .sourceId("sql-view-it")
+                .sourceSystem("sql-view-it")
+                .confidence(BigDecimal.ONE)
+                .build());
     }
 }

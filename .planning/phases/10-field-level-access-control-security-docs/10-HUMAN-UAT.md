@@ -22,15 +22,16 @@ result: PASSED (7/7, verified by orchestrator with Docker/Testcontainers)
 
 ### 3. TDE Runbook Review
 expected: `docs/ops/tde-deployment-runbook.md` is operationally accurate for LUKS/cryptsetup on IONOS VPS
-result: [pending]
+result: DEFERRED — requires domain expert operational review on IONOS VPS; runbook exists (801 lines) and covers LUKS/dm-crypt setup
 
 ## Summary
 
 total: 3
 passed: 2
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
+deferred: 1
 
 ## Gaps
