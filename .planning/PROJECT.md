@@ -2,7 +2,7 @@
 
 ## What This Is
 
-Tessera is a graph-based, protocol-agnostic integration layer that sits between heterogeneous systems (ERP, CRM, legacy DBs, SaaS, LLM agents) as the single source of truth. The graph holds the truth — REST, GraphQL, MCP, SQL views, and Kafka topics are all projections generated from a central meta-model. Consumers (circlead, BI tools, LLM agents, dashboards) read projections; connectors reconcile inbound data from source systems through a priority-based rule engine.
+Tessera is a graph-based, protocol-agnostic integration layer built on PostgreSQL + Apache AGE that serves as the single source of truth across heterogeneous systems. Four projection engines (REST, MCP, SQL views, Kafka) are dynamically generated from a central Schema Registry. Connectors ingest data from structured APIs and unstructured text (via LLM extraction) through a single-transaction write funnel with SHACL validation, a 4-chain rule engine, and priority-based reconciliation. circlead is the first real consumer, reading Role/Circle/Activity data via REST and MCP projections.
 
 ## Core Value
 
@@ -12,28 +12,32 @@ Tessera is a graph-based, protocol-agnostic integration layer that sits between 
 
 ### Validated
 
-(None yet — ship to validate)
+- ✓ Knowledge Graph core on PostgreSQL + Apache AGE (nodes, edges, properties, Cypher access) — v1.0
+- ✓ Event log (every mutation persisted as an event with source attribution and sequence) — v1.0
+- ✓ Schema Registry / Meta-Model layer (node types, properties, edge types, per-tenant / `model_id` scoping) — v1.0
+- ✓ SHACL-based schema validation via Apache Jena — v1.0
+- ✓ Custom Rule Engine (chain-of-responsibility, priority-based) for reconciliation, validation, routing — v1.0
+- ✓ Source Authority Matrix configurable per tenant; reconciliation conflict register — v1.0
+- ✓ Dynamic REST projection generated from schema (`/api/v1/{model}/entities/{typeSlug}`) — v1.0
+- ✓ Connector framework (polling / CDC / webhook / JDBC / file) with mapping definitions — v1.0
+- ✓ First concrete connector: generic REST polling with delta detection (ETag / last_modified) — v1.0
+- ✓ In-process event bus (Spring `ApplicationEventPublisher`) as MVP transport — v1.0
+- ✓ Multi-tenant isolation via `model_id` on every node, edge, and event — v1.0
+- ✓ MCP projection — agents query/mutate graph via MCP tools — v1.0
+- ✓ SQL view projection for BI tools (Metabase/Looker/PowerBI) — v1.0
+- ✓ Kafka projection — topics per entity type for event fan-out — v1.0
+- ✓ Circlead integration as first real consumer — v1.0
+- ✓ Encryption: TLS 1.3 in transit, Postgres TDE runbook at rest, field-level ACL for sensitive properties — v1.0
+- ✓ KMS integration (HashiCorp Vault for self-hosted) via Spring Cloud Vault Config Data API — v1.0
+- ✓ Audit-log integrity via hash chaining (optional / compliance-driven) — v1.0
+- ✓ LLM-based entity extraction from unstructured text with pgvector entity resolution — v1.0
+- ✓ SchemaChangeEvent infrastructure for live projection refresh — v1.0
+- ✓ Production observability (Prometheus/Micrometer metrics, health indicators) — v1.0
+- ✓ DR drill rehearsed end-to-end (dump/restore/replay/smoke test) — v1.0
 
 ### Active
 
-- [ ] Knowledge Graph core on PostgreSQL + Apache AGE (nodes, edges, properties, Cypher access)
-- [ ] Event log (every mutation persisted as an event with source attribution and sequence)
-- [ ] Schema Registry / Meta-Model layer (node types, properties, edge types, per-tenant / `model_id` scoping)
-- [ ] SHACL-based schema validation via Apache Jena
-- [ ] Custom Rule Engine (chain-of-responsibility, priority-based) for reconciliation, validation, routing
-- [ ] Source Authority Matrix configurable per tenant; reconciliation conflict register
-- [ ] Dynamic REST projection generated from schema (`/api/v1/{model}/entities/{typeSlug}`)
-- [ ] Connector framework (polling / CDC / webhook / JDBC / file) with mapping definitions
-- [ ] First concrete connector: generic REST polling with delta detection (ETag / last_modified)
-- [ ] In-process event bus (Spring `ApplicationEventPublisher`) as MVP transport
-- [ ] Multi-tenant isolation via `model_id` on every node, edge, and event
-- [ ] MCP projection — agents query/mutate graph via MCP tools (Phase 2)
-- [ ] SQL view projection for BI tools (Metabase/Looker/PowerBI) (Phase 2)
-- [ ] Kafka projection — topics per entity type for event fan-out (Phase 2)
-- [ ] Circlead integration as first real consumer (Phase 3)
-- [ ] Encryption: TLS 1.3 in transit, Postgres TDE at rest, field-level AES-GCM for sensitive properties
-- [ ] KMS integration (HashiCorp Vault for self-hosted) with envelope encryption and key rotation
-- [ ] Audit-log integrity via hash chaining (optional / compliance-driven)
+(Fresh for next milestone — define via `/gsd-new-milestone`)
 
 ### Out of Scope
 
@@ -74,18 +78,29 @@ Tessera is a graph-based, protocol-agnostic integration layer that sits between 
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| PostgreSQL + Apache AGE as primary store (ADR-1) | ACID over graph+relational in one transaction; native SQL views; single ops system; Apache 2.0 | — Pending |
-| SHACL for schema validation; OWL opt-in only (ADR-2) | Covers 90% of validation needs at a fraction of OWL's complexity; Apache Jena has mature Java tooling | — Pending |
-| Custom rule engine for MVP; Drools deferred (ADR-3) | Chain-of-responsibility is sufficient for initial reconciliation logic; Drools adds weight without MVP payoff | — Pending |
-| Event log in PostgreSQL; Kafka as projection (ADR-4) | Postgres is already authoritative and transactional; Kafka handles fan-out to external consumers | — Pending |
-| Schema registry co-located with graph DB (ADR-5) | Schema + data validation in one transaction; avoids distributed schema management | — Pending |
-| Circlead stays standalone, consumes via REST/MCP (ADR-6) | No big-bang migration; circlead keeps running independently during transition | — Pending |
-| Apache 2.0 license | Matches circlead ecosystem; permissive, contributor-friendly | — Pending |
-| First connector: generic REST polling | Lowest risk, no dependency on a specific live system, exercises full ingest/reconcile loop | — Pending |
-| Self-hosted on IONOS VPS | Consistent with circlead operational model; stays portable | — Pending |
-| Open to contributors from day one | Public OSS posture with CONTRIBUTING.md and issue templates from the start | — Pending |
-| Own positioning (not "Palantir alternative") | Graph-first + LLM-native angle is the story; avoid comparison marketing | — Pending |
-| MVP scope follows concept's Phase 1 as-is | Graph core + REST projection + 1 connector + custom rule engine + event log | — Pending |
+| PostgreSQL + Apache AGE as primary store (ADR-1) | ACID over graph+relational in one transaction; native SQL views; single ops system; Apache 2.0 | ✓ Good — AGE 1.6/PG16 works; SQL views bypass 15× aggregation cliff; agtype→jsonb cast required |
+| SHACL for schema validation; OWL opt-in only (ADR-2) | Covers 90% of validation needs at a fraction of OWL's complexity; Apache Jena has mature Java tooling | ✓ Good — Jena 5.x SHACL covers all validation needs; cached shapes < 2ms |
+| Custom rule engine for MVP; Drools deferred (ADR-3) | Chain-of-responsibility is sufficient for initial reconciliation logic; Drools adds weight without MVP payoff | ✓ Good — 4-chain rule engine (VALIDATE→RECONCILE→ENRICH→ROUTE) handles all MVP cases |
+| Event log in PostgreSQL; Kafka as projection (ADR-4) | Postgres is already authoritative and transactional; Kafka handles fan-out to external consumers | ✓ Good — Debezium Outbox Event Router swapped in without write-path changes |
+| Schema registry co-located with graph DB (ADR-5) | Schema + data validation in one transaction; avoids distributed schema management | ✓ Good — SchemaChangeEvent enables live projection refresh |
+| Circlead stays standalone, consumes via REST/MCP (ADR-6) | No big-bang migration; circlead keeps running independently during transition | ✓ Good — 3 mapping definitions (Role, Circle, Activity) wired with placeholder resolution |
+| Apache 2.0 license | Matches circlead ecosystem; permissive, contributor-friendly | ✓ Good |
+| First connector: generic REST polling | Lowest risk, no dependency on a specific live system, exercises full ingest/reconcile loop | ✓ Good — ETag/Last-Modified delta detection, DLQ, ShedLock scheduling all proven |
+| Self-hosted on IONOS VPS | Consistent with circlead operational model; stays portable | ✓ Good — Docker Compose deployment, DR drill rehearsed |
+| Open to contributors from day one | Public OSS posture with CONTRIBUTING.md and issue templates from the start | ✓ Good |
+| Own positioning (not "Palantir alternative") | Graph-first + LLM-native angle is the story; avoid comparison marketing | ✓ Good |
+| MVP scope expanded beyond concept Phase 1 | Added unstructured ingestion (Phase 2.5), gap-closure phases 6-10 | ✓ Good — broader MVP proves more of the architecture |
+| agtype requires explicit ::jsonb cast in SQL views | AGE agtype is NOT jsonb — SQL views must cast explicitly | ✓ Good — discovered in Phase 4, applied consistently |
+| MetricsPort SPI pattern for cross-module metrics | fabric-core defines port interface; fabric-app provides Micrometer adapter | ✓ Good — clean module boundary, no upward dependency |
+| Field-level ACL via PropertyDescriptor annotations | Per-property read/write role lists, cached in AclPropertyCache | ✓ Good — enforced in both REST and MCP projections |
+
+## Context
+
+Shipped v1.0 with ~140k LOC Java across 5 Maven modules (`fabric-core`, `fabric-rules`, `fabric-projections`, `fabric-connectors`, `fabric-app`).
+Tech stack: Java 21 + Spring Boot 3.5, PostgreSQL 16 + Apache AGE 1.6, Apache Jena 5.x SHACL, Spring AI MCP Server 1.0.x, Debezium 3.4, SpringDoc OpenAPI 2.8.x.
+29 Flyway migrations (V1-V29). Testcontainers-based integration tests with custom AGE+pgvector Docker image.
+circlead wired as first consumer with 3 mapping definitions (Role, Circle, Activity).
+DR drill rehearsed. Prometheus metrics wired into production code paths. Field-level ACL enforced in REST and MCP projections.
 
 ## Evolution
 
@@ -105,4 +120,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after Phase 8 (circlead-production-wiring-dr-drill-fix) completion — CircleadConnectorConfig resolves placeholders + registers 3 connectors in DB; DR drill script fixed with correct column names, replay verification, and smoke test*
+*Last updated: 2026-04-18 after v1.0 milestone completion*

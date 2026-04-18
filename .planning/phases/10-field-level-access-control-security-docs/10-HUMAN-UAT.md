@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 10-field-level-access-control-security-docs
 source: [10-VERIFICATION.md]
 started: 2026-04-17T22:30:00+02:00

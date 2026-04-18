@@ -1,5 +1,5 @@
 ---
-status: partial
+status: resolved
 phase: 04-sql-view-kafka-projections-hash-chained-audit
 source: [04-VERIFICATION.md]
 started: 2026-04-17T00:00:00Z
