@@ -212,7 +212,7 @@ class McpCrossTenantIT {
     @Test
     void describe_type_returns_only_tenantA_schema() {
         ToolProvider tool = findTool("describe_type");
-        ToolResponse response = tool.execute(ctxA, AGENT_ID, Map.of("type", TYPE_SLUG));
+        ToolResponse response = tool.execute(ctxA, AGENT_ID, Map.of("slug", TYPE_SLUG));
 
         assertThat(response.success()).isTrue();
         String content = response.content();
