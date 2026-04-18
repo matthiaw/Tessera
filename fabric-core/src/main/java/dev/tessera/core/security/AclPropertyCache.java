@@ -44,8 +44,7 @@ public class AclPropertyCache {
     }
 
     public Set<String> getAllowedPropertySlugs(
-            UUID modelId, String typeSlug, Set<String> callerRoles,
-            Supplier<List<PropertyDescriptor>> propertyLoader) {
+            UUID modelId, String typeSlug, Set<String> callerRoles, Supplier<List<PropertyDescriptor>> propertyLoader) {
         String canonicalRoleSet = canonicalizeRoles(callerRoles);
         return cache.get(
                 new AclCacheKey(modelId, typeSlug, canonicalRoleSet),
@@ -55,7 +54,8 @@ public class AclPropertyCache {
     private Set<String> computeAllowed(Set<String> callerRoles, List<PropertyDescriptor> properties) {
         Set<String> allowed = new LinkedHashSet<>();
         for (PropertyDescriptor property : properties) {
-            if (property.readRoles() == null || property.readRoles().isEmpty()
+            if (property.readRoles() == null
+                    || property.readRoles().isEmpty()
                     || !Collections.disjoint(callerRoles, property.readRoles())) {
                 allowed.add(property.slug());
             }

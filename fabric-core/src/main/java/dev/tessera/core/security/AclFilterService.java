@@ -55,16 +55,14 @@ public class AclFilterService {
         return !Collections.disjoint(callerRoles, new HashSet<>(descriptor.readRoles()));
     }
 
-    public void checkWriteRoles(
-            NodeTypeDescriptor descriptor, Map<String, Object> payload, Set<String> callerRoles) {
+    public void checkWriteRoles(NodeTypeDescriptor descriptor, Map<String, Object> payload, Set<String> callerRoles) {
         for (String key : payload.keySet()) {
             for (PropertyDescriptor prop : descriptor.properties()) {
                 if (prop.slug().equals(key)
                         && prop.writeRoles() != null
                         && !prop.writeRoles().isEmpty()
                         && Collections.disjoint(callerRoles, new HashSet<>(prop.writeRoles()))) {
-                    throw new AccessDeniedException(
-                            "Caller lacks write role for property '" + key + "'");
+                    throw new AccessDeniedException("Caller lacks write role for property '" + key + "'");
                 }
             }
         }

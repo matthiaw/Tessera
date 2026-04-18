@@ -182,19 +182,19 @@ public class SchemaRepository {
                     java.sql.Array writeArr = rs.getArray("write_roles");
                     List<String> writeRoles = writeArr != null ? List.of((String[]) writeArr.getArray()) : List.of();
                     return new PropertyDescriptor(
-                        rs.getString("slug"),
-                        rs.getString("name"),
-                        rs.getString("data_type"),
-                        rs.getBoolean("required"),
-                        rs.getString("default_value"),
-                        rs.getString("validation_rules"),
-                        rs.getString("enum_values"),
-                        rs.getString("reference_target"),
-                        toInstant(rs.getTimestamp("deprecated_at")),
-                        rs.getBoolean("property_encrypted"),
-                        rs.getString("property_encrypted_alg"),
-                        readRoles,
-                        writeRoles);
+                            rs.getString("slug"),
+                            rs.getString("name"),
+                            rs.getString("data_type"),
+                            rs.getBoolean("required"),
+                            rs.getString("default_value"),
+                            rs.getString("validation_rules"),
+                            rs.getString("enum_values"),
+                            rs.getString("reference_target"),
+                            toInstant(rs.getTimestamp("deprecated_at")),
+                            rs.getBoolean("property_encrypted"),
+                            rs.getString("property_encrypted_alg"),
+                            readRoles,
+                            writeRoles);
                 });
     }
 
@@ -306,16 +306,16 @@ public class SchemaRepository {
             java.sql.Array writeArr = rs.getArray("write_roles");
             List<String> writeRoles = writeArr != null ? List.of((String[]) writeArr.getArray()) : List.of();
             return new NodeTypeRow(
-                UUID.fromString(rs.getString("model_id")),
-                rs.getString("slug"),
-                rs.getString("name"),
-                rs.getString("label"),
-                rs.getString("description"),
-                toInstant(rs.getTimestamp("deprecated_at")),
-                rs.getBoolean("rest_read_enabled"),
-                rs.getBoolean("rest_write_enabled"),
-                readRoles,
-                writeRoles);
+                    UUID.fromString(rs.getString("model_id")),
+                    rs.getString("slug"),
+                    rs.getString("name"),
+                    rs.getString("label"),
+                    rs.getString("description"),
+                    toInstant(rs.getTimestamp("deprecated_at")),
+                    rs.getBoolean("rest_read_enabled"),
+                    rs.getBoolean("rest_write_enabled"),
+                    readRoles,
+                    writeRoles);
         };
     }
 

@@ -13,25 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
- * SPIKE RESULT — RESEARCH.MD ASSUMPTION A3 RESOLUTION (Wave 0, Plan 00)
- * -----------------------------------------------------------------------
- * Tests 1-2 CONFIRMED: AGE shortestPath() returns a parseable agtype path string.
- *   - `RETURN path` yields a raw agtype path object (string like [v1,e1,v2,...]).
- *   - `RETURN nodes(path)` yields an agtype array of vertex objects parseable as JSON.
- *   - Each node in nodes(path) is a JSON object: {"id":..., "label":"...", "properties":{...}}::vertex
- *   - Parsing pattern: strip ::vertex suffix, parse JSON, read "properties" map.
- * Test 3 CONFIRMED: WHERE ALL(n IN nodes(path) WHERE n.model_id = "...") correctly
- *   filters cross-tenant nodes mid-traversal. FindPathTool MUST apply this filter.
- *
- * IMPLEMENTATION RECOMMENDATION FOR PLAN 02 TASK 2 (FindPathTool):
- *   Use: MATCH path = shortestPath((a)-[*1..10]-(b))
- *        WHERE ALL(n IN nodes(path) WHERE n.model_id = "<tenant>")
- *        RETURN nodes(path)
- *   Parse each node via GraphSession.toNodeState(label, agtype) after stripping the
- *   leading/trailing array brackets and splitting on },{ boundaries (or parse as JSON array).
- *   The nodes(path) array is a standard JSON array of agtype vertex strings.
- */
 package dev.tessera.core.graph;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -113,46 +94,44 @@ class FindShortestPathSpikeIT {
      */
     private void seedGraph() {
         // A -> B -> C (all spike-tenant)
-        jdbc.execute(
-                "SELECT * FROM cypher('"
-                        + GRAPH
-                        + "', $$"
-                        + " CREATE (a:SpikeNode {model_id: \""
-                        + SPIKE_TENANT
-                        + "\", uuid: \""
-                        + UUID_A
-                        + "\", name: \"A\"})"
-                        + " -[:CONNECTS_TO]->"
-                        + " (b:SpikeNode {model_id: \""
-                        + SPIKE_TENANT
-                        + "\", uuid: \""
-                        + UUID_B
-                        + "\", name: \"B\"})"
-                        + " -[:CONNECTS_TO]->"
-                        + " (c:SpikeNode {model_id: \""
-                        + SPIKE_TENANT
-                        + "\", uuid: \""
-                        + UUID_C
-                        + "\", name: \"C\"})"
-                        + " RETURN a, b, c"
-                        + " $$) AS (a agtype, b agtype, c agtype)");
+        jdbc.execute("SELECT * FROM cypher('"
+                + GRAPH
+                + "', $$"
+                + " CREATE (a:SpikeNode {model_id: \""
+                + SPIKE_TENANT
+                + "\", uuid: \""
+                + UUID_A
+                + "\", name: \"A\"})"
+                + " -[:CONNECTS_TO]->"
+                + " (b:SpikeNode {model_id: \""
+                + SPIKE_TENANT
+                + "\", uuid: \""
+                + UUID_B
+                + "\", name: \"B\"})"
+                + " -[:CONNECTS_TO]->"
+                + " (c:SpikeNode {model_id: \""
+                + SPIKE_TENANT
+                + "\", uuid: \""
+                + UUID_C
+                + "\", name: \"C\"})"
+                + " RETURN a, b, c"
+                + " $$) AS (a agtype, b agtype, c agtype)");
 
         // D in other-tenant; B -> D cross-tenant edge
-        jdbc.execute(
-                "SELECT * FROM cypher('"
-                        + GRAPH
-                        + "', $$"
-                        + " MATCH (b:SpikeNode {uuid: \""
-                        + UUID_B
-                        + "\"})"
-                        + " CREATE (d:SpikeNode {model_id: \""
-                        + OTHER_TENANT
-                        + "\", uuid: \""
-                        + UUID_D
-                        + "\", name: \"D\"})"
-                        + " CREATE (b)-[:CONNECTS_TO]->(d)"
-                        + " RETURN d"
-                        + " $$) AS (d agtype)");
+        jdbc.execute("SELECT * FROM cypher('"
+                + GRAPH
+                + "', $$"
+                + " MATCH (b:SpikeNode {uuid: \""
+                + UUID_B
+                + "\"})"
+                + " CREATE (d:SpikeNode {model_id: \""
+                + OTHER_TENANT
+                + "\", uuid: \""
+                + UUID_D
+                + "\", name: \"D\"})"
+                + " CREATE (b)-[:CONNECTS_TO]->(d)"
+                + " RETURN d"
+                + " $$) AS (d agtype)");
 
         LOG.info("Spike graph seeded: A->B->C (spike-tenant), B->D (other-tenant cross-edge)");
     }

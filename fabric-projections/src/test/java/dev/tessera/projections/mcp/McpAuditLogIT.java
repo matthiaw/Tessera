@@ -48,9 +48,7 @@ import org.testcontainers.utility.DockerImageName;
  * {@code mcp_audit_log}. Tests both SUCCESS and ERROR outcomes, and verifies
  * the admin endpoint {@code GET /admin/mcp/audit} returns the logged entries.
  */
-@SpringBootTest(
-        classes = ProjectionItApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = ProjectionItApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("projection-it")
 @Testcontainers
 class McpAuditLogIT {
@@ -59,12 +57,12 @@ class McpAuditLogIT {
             "apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed";
 
     @Container
-    static final PostgreSQLContainer<?> PG =
-            new PostgreSQLContainer<>(DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
-                    .withDatabaseName("tessera")
-                    .withUsername("tessera")
-                    .withPassword("tessera")
-                    .withReuse(true);
+    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>(
+                    DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName("tessera")
+            .withUsername("tessera")
+            .withPassword("tessera")
+            .withReuse(true);
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {

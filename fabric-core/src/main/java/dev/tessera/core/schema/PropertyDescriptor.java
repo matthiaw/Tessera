@@ -62,9 +62,20 @@ public record PropertyDescriptor(
             Instant deprecatedAt,
             boolean encrypted,
             String encryptedAlg) {
-        this(slug, name, dataType, required, defaultValue, validationRules,
-             enumValues, referenceTarget, deprecatedAt, encrypted, encryptedAlg,
-             List.of(), List.of());
+        this(
+                slug,
+                name,
+                dataType,
+                required,
+                defaultValue,
+                validationRules,
+                enumValues,
+                referenceTarget,
+                deprecatedAt,
+                encrypted,
+                encryptedAlg,
+                List.of(),
+                List.of());
     }
 
     /**
@@ -81,8 +92,19 @@ public record PropertyDescriptor(
             String enumValues,
             String referenceTarget,
             Instant deprecatedAt) {
-        this(slug, name, dataType, required, defaultValue, validationRules,
-             enumValues, referenceTarget, deprecatedAt, false, null,
-             List.of(), List.of());
+        this(
+                slug,
+                name,
+                dataType,
+                required,
+                defaultValue,
+                validationRules,
+                enumValues,
+                referenceTarget,
+                deprecatedAt,
+                false,
+                null,
+                List.of(),
+                List.of());
     }
 }

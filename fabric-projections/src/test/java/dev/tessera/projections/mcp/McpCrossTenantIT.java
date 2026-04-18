@@ -52,9 +52,7 @@ import org.testcontainers.utility.DockerImageName;
  * <p>Creates two tenants (tenantA, tenantB), seeds each with "Person" nodes, then
  * verifies that all tool responses for tenantA context never contain tenantB data.
  */
-@SpringBootTest(
-        classes = ProjectionItApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(classes = ProjectionItApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("projection-it")
 @Testcontainers
 class McpCrossTenantIT {
@@ -63,12 +61,12 @@ class McpCrossTenantIT {
             "apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed";
 
     @Container
-    static final PostgreSQLContainer<?> PG =
-            new PostgreSQLContainer<>(DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
-                    .withDatabaseName("tessera")
-                    .withUsername("tessera")
-                    .withPassword("tessera")
-                    .withReuse(true);
+    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>(
+                    DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName("tessera")
+            .withUsername("tessera")
+            .withPassword("tessera")
+            .withReuse(true);
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
@@ -179,8 +177,7 @@ class McpCrossTenantIT {
         UUID tenantBNodeId = tenantBNodeIds.get(0);
 
         // Requesting a tenantB node UUID via tenantA context must return error/not-found
-        ToolResponse response =
-                tool.execute(ctxA, AGENT_ID, Map.of("type", TYPE_SLUG, "id", tenantBNodeId.toString()));
+        ToolResponse response = tool.execute(ctxA, AGENT_ID, Map.of("type", TYPE_SLUG, "id", tenantBNodeId.toString()));
 
         // Response must be error (not found) — tenantB node is invisible to tenantA
         String content = response.content();
@@ -199,8 +196,7 @@ class McpCrossTenantIT {
     void traverse_returns_only_tenantA_nodes() {
         ToolProvider tool = findTool("traverse");
         // Simple Cypher to return all person names in the current tenant
-        ToolResponse response =
-                tool.execute(ctxA, AGENT_ID, Map.of("cypher", "MATCH (n:Person) RETURN n LIMIT 20"));
+        ToolResponse response = tool.execute(ctxA, AGENT_ID, Map.of("cypher", "MATCH (n:Person) RETURN n LIMIT 20"));
 
         String content = response.content();
         // If traverse succeeds (AGE Cypher returns results), tenantB data must not appear

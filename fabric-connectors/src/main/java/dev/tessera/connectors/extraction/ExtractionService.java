@@ -74,8 +74,7 @@ public class ExtractionService {
     private final SchemaRegistrySchemaBuilder schemaBuilder;
     private final ExtractionConfig config;
 
-    public ExtractionService(
-            ChatModel chatModel, SchemaRegistrySchemaBuilder schemaBuilder, ExtractionConfig config) {
+    public ExtractionService(ChatModel chatModel, SchemaRegistrySchemaBuilder schemaBuilder, ExtractionConfig config) {
         this.chatModel = chatModel;
         this.schemaBuilder = schemaBuilder;
         this.config = config;
@@ -136,9 +135,7 @@ public class ExtractionService {
                 List.of(
                         new SystemPromptTemplate(SYSTEM_PROMPT).createMessage(),
                         new org.springframework.ai.chat.messages.UserMessage(
-                                USER_PROMPT_TEMPLATE
-                                        .replace("{text}", text)
-                                        .replace("{format}", formatInstructions))),
+                                USER_PROMPT_TEMPLATE.replace("{text}", text).replace("{format}", formatInstructions))),
                 options);
 
         ChatResponse response = chatModel.call(prompt);

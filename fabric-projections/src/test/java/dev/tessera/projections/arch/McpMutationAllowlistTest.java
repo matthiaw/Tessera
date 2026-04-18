@@ -19,7 +19,6 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaCall;
-import com.tngtech.archunit.core.domain.JavaMethod;
 import com.tngtech.archunit.core.importer.ImportOption;
 import com.tngtech.archunit.junit.AnalyzeClasses;
 import com.tngtech.archunit.junit.ArchTest;
@@ -50,30 +49,30 @@ public class McpMutationAllowlistTest {
      * belt-and-suspenders enforcement.
      */
     @ArchTest
-    static final ArchRule mcp_tools_must_not_call_schema_mutations =
-            noClasses()
-                    .that()
-                    .resideInAPackage("dev.tessera.projections.mcp.tools..")
-                    .should()
-                    .callMethodWhere(
-                            new DescribedPredicate<JavaCall<?>>( // ArchUnit 1.3.x generic form
-                                    "a schema mutation method on SchemaRegistry") {
-                                @Override
-                                public boolean test(JavaCall<?> call) {
-                                    if (!(call.getTarget().getOwner().isEquivalentTo(
-                                            dev.tessera.core.schema.SchemaRegistry.class))) {
-                                        return false;
-                                    }
-                                    String name = call.getName();
-                                    return name.startsWith("create")
-                                            || name.startsWith("update")
-                                            || name.startsWith("delete")
-                                            || name.startsWith("deprecate")
-                                            || name.startsWith("rename")
-                                            || name.startsWith("remove")
-                                            || name.startsWith("addProperty");
-                                }
-                            });
+    static final ArchRule mcp_tools_must_not_call_schema_mutations = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.projections.mcp.tools..")
+            .should()
+            .callMethodWhere(
+                    new DescribedPredicate<JavaCall<?>>( // ArchUnit 1.3.x generic form
+                            "a schema mutation method on SchemaRegistry") {
+                        @Override
+                        public boolean test(JavaCall<?> call) {
+                            if (!(call.getTarget()
+                                    .getOwner()
+                                    .isEquivalentTo(dev.tessera.core.schema.SchemaRegistry.class))) {
+                                return false;
+                            }
+                            String name = call.getName();
+                            return name.startsWith("create")
+                                    || name.startsWith("update")
+                                    || name.startsWith("delete")
+                                    || name.startsWith("deprecate")
+                                    || name.startsWith("rename")
+                                    || name.startsWith("remove")
+                                    || name.startsWith("addProperty");
+                        }
+                    });
 
     /**
      * D-D1: No MCP tool class may call {@link
@@ -84,14 +83,12 @@ public class McpMutationAllowlistTest {
      * that class of bug and ensures the prompt injection defence (SEC-08) is applied exactly once.
      */
     @ArchTest
-    static final ArchRule mcp_tools_must_not_call_wrapper =
-            noClasses()
-                    .that()
-                    .resideInAPackage("dev.tessera.projections.mcp.tools..")
-                    .should()
-                    .dependOnClassesThat()
-                    .haveFullyQualifiedName(
-                            "dev.tessera.projections.mcp.interceptor.ToolResponseWrapper");
+    static final ArchRule mcp_tools_must_not_call_wrapper = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.projections.mcp.tools..")
+            .should()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("dev.tessera.projections.mcp.interceptor.ToolResponseWrapper");
 
     /**
      * D-A2: No MCP tool class may import Spring AI or MCP SDK types. All Spring AI coupling is
@@ -101,15 +98,14 @@ public class McpMutationAllowlistTest {
      * {@code McpIsolationArchTest}, duplicated here for completeness in the arch package.
      */
     @ArchTest
-    static final ArchRule mcp_tools_must_not_import_spring_ai =
-            noClasses()
-                    .that()
-                    .resideInAPackage("dev.tessera.projections.mcp.tools..")
-                    .should()
-                    .dependOnClassesThat()
-                    .resideInAnyPackage(
-                            "io.modelcontextprotocol..",
-                            "org.springframework.ai..",
-                            "io.modelcontextprotocol.server..",
-                            "io.modelcontextprotocol.spec..");
+    static final ArchRule mcp_tools_must_not_import_spring_ai = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.projections.mcp.tools..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAnyPackage(
+                    "io.modelcontextprotocol..",
+                    "org.springframework.ai..",
+                    "io.modelcontextprotocol.server..",
+                    "io.modelcontextprotocol.spec..");
 }

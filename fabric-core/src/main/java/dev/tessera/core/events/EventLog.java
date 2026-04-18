@@ -36,7 +36,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 
 /**
@@ -91,9 +90,8 @@ public final class EventLog {
     private static final String HASH_CHAIN_CONFIG_SQL =
             "SELECT hash_chain_enabled FROM model_config WHERE model_id = :mid::uuid";
 
-    private static final String PREDECESSOR_HASH_SQL =
-            "SELECT prev_hash FROM graph_events WHERE model_id = :mid::uuid "
-                    + "ORDER BY sequence_nr DESC LIMIT 1 FOR UPDATE";
+    private static final String PREDECESSOR_HASH_SQL = "SELECT prev_hash FROM graph_events WHERE model_id = :mid::uuid "
+            + "ORDER BY sequence_nr DESC LIMIT 1 FOR UPDATE";
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
@@ -316,8 +314,7 @@ public final class EventLog {
      * <p>For multi-instance deployments, replace the JVM lock with a distributed lock
      * (e.g., {@code pg_advisory_lock} session-scoped) before Phase 5.
      */
-    private Appended appendWithHashChain(
-            UUID modelId, String payloadJson, MapSqlParameterSource p, long seq) {
+    private Appended appendWithHashChain(UUID modelId, String payloadJson, MapSqlParameterSource p, long seq) {
         boolean enabled = hashChainEnabledCache.computeIfAbsent(modelId, mid -> {
             MapSqlParameterSource cp = new MapSqlParameterSource("mid", mid.toString());
             List<Boolean> rows = jdbc.queryForList(HASH_CHAIN_CONFIG_SQL, cp, Boolean.class);

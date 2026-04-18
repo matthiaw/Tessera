@@ -61,6 +61,7 @@ class FuzzyNameMatcherTest {
     @Test
     void matches_returns_true_above_threshold() {
         assertThat(matcher.matches("Jon Smith", "John Smith", 0.85)).isTrue();
-        assertThat(matcher.matches("IBM", "International Business Machines", 0.85)).isFalse();
+        assertThat(matcher.matches("IBM", "International Business Machines", 0.85))
+                .isFalse();
     }
 }

@@ -102,7 +102,6 @@ class DynamicSchemaOutputConverterTest {
     @Test
     void convert_throwsOnInvalidJson() {
         var converter = new DynamicSchemaOutputConverter(SAMPLE_SCHEMA);
-        assertThatThrownBy(() -> converter.convert("this is not json"))
-                .isInstanceOf(RuntimeException.class);
+        assertThatThrownBy(() -> converter.convert("this is not json")).isInstanceOf(RuntimeException.class);
     }
 }

@@ -80,8 +80,7 @@ public class AgentQuotaService {
 
         int limit = loadQuotaLimit(ctx, agentId);
         if (limit <= 0) {
-            throw new QuotaExceededException(
-                    "Agent '" + agentId + "' has no write quota for model " + ctx.modelId());
+            throw new QuotaExceededException("Agent '" + agentId + "' has no write quota for model " + ctx.modelId());
         }
 
         Instant now = Instant.now();

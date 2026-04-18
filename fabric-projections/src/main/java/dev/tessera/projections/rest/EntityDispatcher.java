@@ -48,8 +48,11 @@ public class EntityDispatcher {
     private final GraphService graphService;
     private final AclFilterService aclFilterService;
 
-    public EntityDispatcher(SchemaRegistry schemaRegistry, GraphRepository graphRepository,
-            GraphService graphService, AclFilterService aclFilterService) {
+    public EntityDispatcher(
+            SchemaRegistry schemaRegistry,
+            GraphRepository graphRepository,
+            GraphService graphService,
+            AclFilterService aclFilterService) {
         this.schemaRegistry = schemaRegistry;
         this.graphRepository = graphRepository;
         this.graphService = graphService;
@@ -60,22 +63,20 @@ public class EntityDispatcher {
      * List entities with cursor pagination. Returns up to {@code limit}
      * nodes after {@code afterSeq}, ordered by {@code _seq}.
      */
-    public List<NodeState> list(TenantContext ctx, String typeSlug, long afterSeq, int limit,
-            Set<String> callerRoles) {
+    public List<NodeState> list(TenantContext ctx, String typeSlug, long afterSeq, int limit, Set<String> callerRoles) {
         requireReadEnabled(ctx, typeSlug, callerRoles);
         return graphRepository.queryAllAfter(ctx, typeSlug, afterSeq, limit);
     }
 
     /** Get a single entity by UUID. */
-    public Optional<NodeState> getById(TenantContext ctx, String typeSlug, UUID nodeId,
-            Set<String> callerRoles) {
+    public Optional<NodeState> getById(TenantContext ctx, String typeSlug, UUID nodeId, Set<String> callerRoles) {
         requireReadEnabled(ctx, typeSlug, callerRoles);
         return graphRepository.queryById(ctx, typeSlug, nodeId);
     }
 
     /** Create a new entity. Returns the committed outcome. */
-    public GraphMutationOutcome create(TenantContext ctx, String typeSlug, Map<String, Object> payload,
-            Set<String> callerRoles) {
+    public GraphMutationOutcome create(
+            TenantContext ctx, String typeSlug, Map<String, Object> payload, Set<String> callerRoles) {
         NodeTypeDescriptor desc = requireWriteEnabled(ctx, typeSlug, callerRoles);
         aclFilterService.checkWriteRoles(desc, payload, callerRoles);
         GraphMutation mutation = GraphMutation.builder()
@@ -92,8 +93,8 @@ public class EntityDispatcher {
     }
 
     /** Update an existing entity. Returns the committed outcome. */
-    public GraphMutationOutcome update(TenantContext ctx, String typeSlug, UUID nodeId,
-            Map<String, Object> payload, Set<String> callerRoles) {
+    public GraphMutationOutcome update(
+            TenantContext ctx, String typeSlug, UUID nodeId, Map<String, Object> payload, Set<String> callerRoles) {
         NodeTypeDescriptor desc = requireWriteEnabled(ctx, typeSlug, callerRoles);
         aclFilterService.checkWriteRoles(desc, payload, callerRoles);
         GraphMutation mutation = GraphMutation.builder()
@@ -111,8 +112,7 @@ public class EntityDispatcher {
     }
 
     /** Tombstone (soft-delete) an entity. Returns the committed outcome. */
-    public GraphMutationOutcome delete(TenantContext ctx, String typeSlug, UUID nodeId,
-            Set<String> callerRoles) {
+    public GraphMutationOutcome delete(TenantContext ctx, String typeSlug, UUID nodeId, Set<String> callerRoles) {
         requireWriteEnabled(ctx, typeSlug, callerRoles);
         GraphMutation mutation = GraphMutation.builder()
                 .tenantContext(ctx)
@@ -137,8 +137,7 @@ public class EntityDispatcher {
         return schemaRegistry.loadFor(ctx, typeSlug);
     }
 
-    private NodeTypeDescriptor requireReadEnabled(TenantContext ctx, String typeSlug,
-            Set<String> callerRoles) {
+    private NodeTypeDescriptor requireReadEnabled(TenantContext ctx, String typeSlug, Set<String> callerRoles) {
         NodeTypeDescriptor desc = loadOrThrow(ctx, typeSlug);
         if (!desc.restReadEnabled()) {
             throw new NotFoundException("Type '" + typeSlug + "' is not exposed for read");
@@ -149,8 +148,7 @@ public class EntityDispatcher {
         return desc;
     }
 
-    private NodeTypeDescriptor requireWriteEnabled(TenantContext ctx, String typeSlug,
-            Set<String> callerRoles) {
+    private NodeTypeDescriptor requireWriteEnabled(TenantContext ctx, String typeSlug, Set<String> callerRoles) {
         NodeTypeDescriptor desc = loadOrThrow(ctx, typeSlug);
         if (!desc.restWriteEnabled()) {
             throw new NotFoundException("Type '" + typeSlug + "' is not exposed for write");

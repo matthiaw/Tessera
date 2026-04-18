@@ -19,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -65,8 +64,8 @@ class EntityResolutionServiceTest {
     @Test
     void exact_name_type_match_returns_match_tier_exact() {
         UUID existingUuid = UUID.randomUUID();
-        NodeState existing = new NodeState(
-                existingUuid, "Person", Map.of("name", "Jane Smith"), Instant.now(), Instant.now());
+        NodeState existing =
+                new NodeState(existingUuid, "Person", Map.of("name", "Jane Smith"), Instant.now(), Instant.now());
 
         when(graphRepository.queryAll(tenant, "Person")).thenReturn(List.of(existing));
 
@@ -98,8 +97,7 @@ class EntityResolutionServiceTest {
                 existingUuid, "Organization", Map.of("name", "ACME Corporation"), Instant.now(), Instant.now());
         when(graphRepository.findNode(tenant, "Organization", existingUuid)).thenReturn(Optional.of(node));
 
-        ResolutionCandidate candidate =
-                new ResolutionCandidate("Organization", "Acme Corp", Map.of(), BigDecimal.ONE);
+        ResolutionCandidate candidate = new ResolutionCandidate("Organization", "Acme Corp", Map.of(), BigDecimal.ONE);
         ResolutionResult result = service.resolve(candidate, tenant, threshold, true, embeddingModel);
 
         assertThat(result).isInstanceOf(ResolutionResult.Match.class);
@@ -112,8 +110,8 @@ class EntityResolutionServiceTest {
     @Test
     void no_exact_no_embedding_fuzzy_match_above_threshold_returns_fuzzy_tier() {
         UUID existingUuid = UUID.randomUUID();
-        NodeState existing = new NodeState(
-                existingUuid, "Person", Map.of("name", "John Smith"), Instant.now(), Instant.now());
+        NodeState existing =
+                new NodeState(existingUuid, "Person", Map.of("name", "John Smith"), Instant.now(), Instant.now());
 
         when(graphRepository.queryAll(tenant, "Person")).thenReturn(List.of(existing));
 
@@ -157,8 +155,8 @@ class EntityResolutionServiceTest {
     @Test
     void determinism_same_inputs_same_result_twice() {
         UUID existingUuid = UUID.randomUUID();
-        NodeState existing = new NodeState(
-                existingUuid, "Person", Map.of("name", "Jane Smith"), Instant.now(), Instant.now());
+        NodeState existing =
+                new NodeState(existingUuid, "Person", Map.of("name", "Jane Smith"), Instant.now(), Instant.now());
 
         when(graphRepository.queryAll(tenant, "Person")).thenReturn(List.of(existing));
 
@@ -173,8 +171,8 @@ class EntityResolutionServiceTest {
     @Test
     void embedding_disabled_skips_tier_2_goes_to_tier_3() {
         UUID existingUuid = UUID.randomUUID();
-        NodeState existing = new NodeState(
-                existingUuid, "Person", Map.of("name", "John Smith"), Instant.now(), Instant.now());
+        NodeState existing =
+                new NodeState(existingUuid, "Person", Map.of("name", "John Smith"), Instant.now(), Instant.now());
 
         when(graphRepository.queryAll(tenant, "Person")).thenReturn(List.of(existing));
 

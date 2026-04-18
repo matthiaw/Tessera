@@ -64,7 +64,8 @@ public class GetStateAtTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"entity_id":{"type":"string","description":"UUID of the entity"},"timestamp":{"type":"string","description":"ISO-8601 instant, e.g. 2026-01-15T10:30:00Z"}},"required":["entity_id","timestamp"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override
@@ -90,8 +91,7 @@ public class GetStateAtTool implements ToolProvider {
         try {
             at = Instant.parse(timestampStr);
         } catch (DateTimeParseException e) {
-            return ToolResponse.error(
-                    "Invalid timestamp format. Use ISO-8601 format, e.g. 2026-01-15T10:30:00Z");
+            return ToolResponse.error("Invalid timestamp format. Use ISO-8601 format, e.g. 2026-01-15T10:30:00Z");
         }
 
         Optional<Map<String, Object>> maybeState = eventLog.replayToState(tenant, entityId, at);

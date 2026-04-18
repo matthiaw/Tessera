@@ -114,8 +114,7 @@ public class McpAuditController {
      */
     @GetMapping("/quotas")
     public ResponseEntity<Map<String, Object>> getQuotas(
-            @RequestParam("model_id") UUID modelId,
-            @AuthenticationPrincipal Jwt jwt) {
+            @RequestParam("model_id") UUID modelId, @AuthenticationPrincipal Jwt jwt) {
 
         if (!isTenantMatch(jwt, modelId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

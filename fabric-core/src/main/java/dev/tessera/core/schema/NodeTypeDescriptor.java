@@ -62,9 +62,19 @@ public record NodeTypeDescriptor(
             Instant deprecatedAt,
             boolean restReadEnabled,
             boolean restWriteEnabled) {
-        this(modelId, slug, name, label, description, schemaVersion,
-             properties, deprecatedAt, restReadEnabled, restWriteEnabled,
-             List.of(), List.of());
+        this(
+                modelId,
+                slug,
+                name,
+                label,
+                description,
+                schemaVersion,
+                properties,
+                deprecatedAt,
+                restReadEnabled,
+                restWriteEnabled,
+                List.of(),
+                List.of());
     }
 
     /**
@@ -80,7 +90,18 @@ public record NodeTypeDescriptor(
             long schemaVersion,
             List<PropertyDescriptor> properties,
             Instant deprecatedAt) {
-        this(modelId, slug, name, label, description, schemaVersion,
-             properties, deprecatedAt, false, false, List.of(), List.of());
+        this(
+                modelId,
+                slug,
+                name,
+                label,
+                description,
+                schemaVersion,
+                properties,
+                deprecatedAt,
+                false,
+                false,
+                List.of(),
+                List.of());
     }
 }

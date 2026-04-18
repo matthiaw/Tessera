@@ -23,11 +23,7 @@ import java.util.Map;
  * to avoid a circular dependency on fabric-connectors. The connector layer
  * constructs this from {@code ExtractionCandidate} before calling resolution.
  */
-public record ResolutionCandidate(
-        String typeSlug,
-        String name,
-        Map<String, Object> properties,
-        BigDecimal confidence) {
+public record ResolutionCandidate(String typeSlug, String name, Map<String, Object> properties, BigDecimal confidence) {
 
     public ResolutionCandidate {
         if (typeSlug == null || typeSlug.isBlank()) {

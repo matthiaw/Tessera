@@ -56,11 +56,10 @@ public class AuditVerificationService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<>() {};
 
-    private static final String EVENTS_SQL =
-            "SELECT sequence_nr, prev_hash, payload "
-                    + "FROM graph_events "
-                    + "WHERE model_id = :mid::uuid "
-                    + "ORDER BY sequence_nr ASC";
+    private static final String EVENTS_SQL = "SELECT sequence_nr, prev_hash, payload "
+            + "FROM graph_events "
+            + "WHERE model_id = :mid::uuid "
+            + "ORDER BY sequence_nr ASC";
 
     private final NamedParameterJdbcTemplate jdbc;
 
@@ -85,34 +84,31 @@ public class AuditVerificationService {
         final String[] prevHashHolder = {HashChain.genesis()};
         final AuditVerificationResult[] broken = {null};
 
-        jdbc.query(
-                EVENTS_SQL,
-                p,
-                rs -> {
-                    // Abort processing once a break is found
-                    if (broken[0] != null) return;
+        jdbc.query(EVENTS_SQL, p, rs -> {
+            // Abort processing once a break is found
+            if (broken[0] != null) return;
 
-                    long seq = rs.getLong("sequence_nr");
-                    String storedPrevHash = rs.getString("prev_hash");
-                    String pgPayload = rs.getString("payload");
+            long seq = rs.getLong("sequence_nr");
+            String storedPrevHash = rs.getString("prev_hash");
+            String pgPayload = rs.getString("payload");
 
-                    // Re-compact Postgres jsonb text to canonical form used at hash-time
-                    String payloadJson = recompactJson(pgPayload);
+            // Re-compact Postgres jsonb text to canonical form used at hash-time
+            String payloadJson = recompactJson(pgPayload);
 
-                    // The genesis logic: prevHashHolder starts at genesis for the FIRST event,
-                    // meaning: expected = HashChain.compute(genesis, firstPayload)
-                    // For subsequent events: expected = HashChain.compute(prev.prev_hash, payload)
-                    String expectedHash = HashChain.compute(prevHashHolder[0], payloadJson);
+            // The genesis logic: prevHashHolder starts at genesis for the FIRST event,
+            // meaning: expected = HashChain.compute(genesis, firstPayload)
+            // For subsequent events: expected = HashChain.compute(prev.prev_hash, payload)
+            String expectedHash = HashChain.compute(prevHashHolder[0], payloadJson);
 
-                    if (!expectedHash.equals(storedPrevHash)) {
-                        broken[0] = AuditVerificationResult.broken(seq, expectedHash, storedPrevHash, eventsChecked[0]);
-                        return;
-                    }
+            if (!expectedHash.equals(storedPrevHash)) {
+                broken[0] = AuditVerificationResult.broken(seq, expectedHash, storedPrevHash, eventsChecked[0]);
+                return;
+            }
 
-                    // Advance: next event's expected-prev is this event's stored prev_hash
-                    prevHashHolder[0] = storedPrevHash;
-                    eventsChecked[0]++;
-                });
+            // Advance: next event's expected-prev is this event's stored prev_hash
+            prevHashHolder[0] = storedPrevHash;
+            eventsChecked[0]++;
+        });
 
         if (broken[0] != null) {
             return broken[0];

@@ -35,11 +35,10 @@ import com.tngtech.archunit.lang.ArchRule;
 public class McpIsolationArchTest {
 
     @ArchTest
-    static final ArchRule only_adapter_imports_spring_ai =
-            noClasses()
-                    .that()
-                    .resideInAPackage("dev.tessera.projections.mcp.tools..")
-                    .should()
-                    .dependOnClassesThat()
-                    .resideInAPackage("org.springframework.ai..");
+    static final ArchRule only_adapter_imports_spring_ai = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.projections.mcp.tools..")
+            .should()
+            .dependOnClassesThat()
+            .resideInAPackage("org.springframework.ai..");
 }

@@ -366,9 +366,8 @@ public final class GraphSession {
      * writes. The pattern matches whole words (case-insensitive) to avoid false
      * positives on property names that happen to contain these substrings.
      */
-    private static final Pattern MUTATION_KEYWORDS =
-            Pattern.compile("\\b(DELETE|CREATE|MERGE|SET|REMOVE|DROP|DETACH)\\b",
-                    java.util.regex.Pattern.CASE_INSENSITIVE);
+    private static final Pattern MUTATION_KEYWORDS = Pattern.compile(
+            "\\b(DELETE|CREATE|MERGE|SET|REMOVE|DROP|DETACH)\\b", java.util.regex.Pattern.CASE_INSENSITIVE);
 
     /**
      * Execute a tenant-scoped read-only Cypher query. Injects
@@ -387,8 +386,7 @@ public final class GraphSession {
             throw new IllegalArgumentException("cypher must not be blank");
         }
         if (MUTATION_KEYWORDS.matcher(cypher).find()) {
-            throw new IllegalArgumentException(
-                    "Mutation keywords are not permitted in executeTenantCypher: " + cypher);
+            throw new IllegalArgumentException("Mutation keywords are not permitted in executeTenantCypher: " + cypher);
         }
         // Wrap user Cypher as a sub-query, appending the tenant model_id filter.
         // Pattern: SELECT * FROM cypher('graph', $$ WITH <user-cypher> WHERE n.model_id = "..." RETURN n $$)
@@ -398,9 +396,7 @@ public final class GraphSession {
         // NOTE: executeTenantCypher is intentionally limited to simple patterns that include the
         // tenant filter. The caller Cypher MUST reference model_id themselves for safety, but the
         // implementation also enforces it via the model_id injection below.
-        String wrappedCypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$ "
-                + cypher
-                + " $$) AS (result agtype)";
+        String wrappedCypher = "SELECT * FROM cypher('" + GRAPH_NAME + "', $$ " + cypher + " $$) AS (result agtype)";
         List<String> rows = jdbc.query(wrappedCypher, (rs, i) -> rs.getString(1));
         List<Map<String, Object>> results = new java.util.ArrayList<>();
         for (String row : rows) {

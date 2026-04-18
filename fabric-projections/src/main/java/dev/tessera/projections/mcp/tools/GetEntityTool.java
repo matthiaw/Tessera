@@ -50,8 +50,11 @@ public class GetEntityTool implements ToolProvider {
     private final AclFilterService aclFilterService;
     private final SchemaRegistry schemaRegistry;
 
-    public GetEntityTool(GraphRepository graphRepository, ObjectMapper objectMapper,
-            AclFilterService aclFilterService, SchemaRegistry schemaRegistry) {
+    public GetEntityTool(
+            GraphRepository graphRepository,
+            ObjectMapper objectMapper,
+            AclFilterService aclFilterService,
+            SchemaRegistry schemaRegistry) {
         this.graphRepository = graphRepository;
         this.objectMapper = objectMapper;
         this.aclFilterService = aclFilterService;
@@ -73,7 +76,8 @@ public class GetEntityTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"type":{"type":"string","description":"Entity type slug"},"id":{"type":"string","description":"Entity UUID"},"depth":{"type":"integer","description":"Neighbor expansion depth (0-3, default 1)","default":1,"minimum":0,"maximum":3}},"required":["type","id"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override
@@ -121,15 +125,16 @@ public class GetEntityTool implements ToolProvider {
         Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
         Optional<NodeTypeDescriptor> maybeDesc = schemaRegistry.loadFor(tenant, type);
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("entity", maybeDesc.isPresent()
-                ? ToolNodeSerializer.toMap(entity, aclFilterService, maybeDesc.get(), callerRoles)
-                : ToolNodeSerializer.toMap(entity));
+        result.put(
+                "entity",
+                maybeDesc.isPresent()
+                        ? ToolNodeSerializer.toMap(entity, aclFilterService, maybeDesc.get(), callerRoles)
+                        : ToolNodeSerializer.toMap(entity));
 
         if (depth > 0) {
             // Expand neighbors via tenant-scoped Cypher (model_id injected by GraphRepositoryImpl)
-            String cypher = String.format(
-                    "MATCH path = (n {uuid: \"%s\"})-[*0..%d]-(m) RETURN DISTINCT m",
-                    entityId, depth);
+            String cypher =
+                    String.format("MATCH path = (n {uuid: \"%s\"})-[*0..%d]-(m) RETURN DISTINCT m", entityId, depth);
             try {
                 List<Map<String, Object>> neighborRows = graphRepository.executeTenantCypher(tenant, cypher);
                 // Filter out the entity itself from neighbors

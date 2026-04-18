@@ -56,8 +56,8 @@ final class ToolNodeSerializer {
      * ACL-aware variant: filters properties through {@link AclFilterService} before
      * serialization. Used by MCP tools that need field-level access control.
      */
-    static Map<String, Object> toMap(NodeState node, AclFilterService aclFilterService,
-            NodeTypeDescriptor descriptor, Set<String> callerRoles) {
+    static Map<String, Object> toMap(
+            NodeState node, AclFilterService aclFilterService, NodeTypeDescriptor descriptor, Set<String> callerRoles) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("uuid", node.uuid() != null ? node.uuid().toString() : null);
         m.put("type", node.typeSlug());

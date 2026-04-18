@@ -16,8 +16,8 @@
 package dev.tessera.projections.rest;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 
 import dev.tessera.core.schema.AddPropertySpec;
 import dev.tessera.core.schema.CreateNodeTypeSpec;

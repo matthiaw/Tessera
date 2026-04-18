@@ -88,9 +88,8 @@ public class EmbeddingService {
                 LIMIT :limit
                 """,
                 params,
-                (rs, rowNum) -> new SimilarEntity(
-                        UUID.fromString(rs.getString("node_uuid")),
-                        rs.getDouble("similarity")));
+                (rs, rowNum) ->
+                        new SimilarEntity(UUID.fromString(rs.getString("node_uuid")), rs.getDouble("similarity")));
     }
 
     /**

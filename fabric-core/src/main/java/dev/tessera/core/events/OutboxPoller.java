@@ -74,10 +74,7 @@ import org.springframework.transaction.annotation.Transactional;
  * we chose polling so the write path stays ignorant of delivery and so Phase 4
  * can swap this poller for Debezium without touching {@code GraphServiceImpl}.
  */
-@ConditionalOnProperty(
-        name = "tessera.kafka.enabled",
-        havingValue = "false",
-        matchIfMissing = true)
+@ConditionalOnProperty(name = "tessera.kafka.enabled", havingValue = "false", matchIfMissing = true)
 @Component
 public class OutboxPoller {
 

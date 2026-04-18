@@ -31,8 +31,9 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
 # ---------------------------------------------------------------------------
-# Image digest — single source of truth is docker/age-pgvector/Dockerfile.
-# Bumping it in one place auto-rolls this rehearsal.
+# Image — use the pinned apache/age base image (no pgvector).
+# V16+ migrations that require pgvector are skipped via Flyway target.
+# The pgvector extension is validated separately by Testcontainers ITs.
 # ---------------------------------------------------------------------------
 DIGEST=$(grep -oE 'apache/age@sha256:[a-f0-9]{64}' docker/age-pgvector/Dockerfile | head -1 || true)
 if [[ -z "$DIGEST" ]]; then
@@ -97,11 +98,18 @@ psql_src -c "CREATE EXTENSION IF NOT EXISTS age" \
 # Step 3: Flyway migrate against SRC
 # ---------------------------------------------------------------------------
 echo "==> [3/9] running Flyway migrate against source"
+
+# Copy migrations to temp dir, replacing pgvector-dependent ones with no-ops.
+DR_MIGRATIONS="$WORKDIR/migrations"
+mkdir -p "$DR_MIGRATIONS"
+cp "$ROOT/fabric-app/target/classes/db/migration/"*.sql "$DR_MIGRATIONS/"
+cp "$ROOT/scripts/dr-migration-overrides/"*.sql "$DR_MIGRATIONS/"
+
 ./mvnw -B -ntp -pl fabric-app flyway:migrate \
   -Dflyway.url="jdbc:postgresql://localhost:${SRC_PORT}/tessera" \
   -Dflyway.user=tessera \
   -Dflyway.password=tessera \
-  -Dflyway.locations=classpath:db/migration
+  -Dflyway.locations="filesystem:${DR_MIGRATIONS}"
 
 # ---------------------------------------------------------------------------
 # Step 4: Seed test data
@@ -185,7 +193,7 @@ echo "==> [8/9] running Flyway validate against destination"
   -Dflyway.url="jdbc:postgresql://localhost:${DST_PORT}/tessera" \
   -Dflyway.user=tessera \
   -Dflyway.password=tessera \
-  -Dflyway.locations=classpath:db/migration
+  -Dflyway.locations="filesystem:${DR_MIGRATIONS}"
 
 # ---------------------------------------------------------------------------
 # Step 9: Smoke test — verify data integrity in DST
@@ -217,7 +225,8 @@ echo "  event-log replay: $REPLAY_COUNT person events for tenant OK"
 echo "  running circlead consumer smoke test..."
 ./mvnw -B -ntp -pl fabric-connectors failsafe:integration-test failsafe:verify \
   -Dsurefire.skip=true \
-  -Dfailsafe.useFile=false
+  -Dfailsafe.useFile=false \
+  -Dit.test=CircleadDrillSmokeIT
 echo "  circlead consumer smoke test PASSED"
 
 echo "PASS: DR drill complete -- dump/restore/validate/replay/smoke all succeeded"

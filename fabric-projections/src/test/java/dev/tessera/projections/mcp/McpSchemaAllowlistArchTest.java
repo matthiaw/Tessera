@@ -35,12 +35,10 @@ import com.tngtech.archunit.lang.ArchRule;
 public class McpSchemaAllowlistArchTest {
 
     @ArchTest
-    static final ArchRule mcp_tools_must_not_call_wrapper =
-            noClasses()
-                    .that()
-                    .resideInAPackage("dev.tessera.projections.mcp.tools..")
-                    .should()
-                    .dependOnClassesThat()
-                    .haveFullyQualifiedName(
-                            "dev.tessera.projections.mcp.interceptor.ToolResponseWrapper");
+    static final ArchRule mcp_tools_must_not_call_wrapper = noClasses()
+            .that()
+            .resideInAPackage("dev.tessera.projections.mcp.tools..")
+            .should()
+            .dependOnClassesThat()
+            .haveFullyQualifiedName("dev.tessera.projections.mcp.interceptor.ToolResponseWrapper");
 }

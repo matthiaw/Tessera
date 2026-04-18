@@ -26,11 +26,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @param maxRetries maximum retry attempts on malformed JSON output (default: 3)
  */
 @ConfigurationProperties(prefix = "tessera.extraction")
-public record ExtractionConfig(
-        String model,
-        Integer maxTokens,
-        Double temperature,
-        Integer maxRetries) {
+public record ExtractionConfig(String model, Integer maxTokens, Double temperature, Integer maxRetries) {
 
     /** Default values applied when properties are not set. */
     public ExtractionConfig {

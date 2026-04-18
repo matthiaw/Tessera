@@ -120,7 +120,10 @@ class DebeziumSlotHealthIndicatorTest {
     // -----------------------------------------------------------------------
 
     private void stubLagQuery(Long returnValue) {
-        when(jdbc.queryForObject(anyString(), any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class), eq(Long.class)))
+        when(jdbc.queryForObject(
+                        anyString(),
+                        any(org.springframework.jdbc.core.namedparam.MapSqlParameterSource.class),
+                        eq(Long.class)))
                 .thenReturn(returnValue);
     }
 }

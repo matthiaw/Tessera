@@ -28,7 +28,6 @@ import dev.tessera.projections.mcp.quota.AgentQuotaService;
 import dev.tessera.projections.mcp.quota.QuotaExceededException;
 import dev.tessera.projections.rest.ProjectionItApplication;
 import io.modelcontextprotocol.spec.McpSchema;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -38,7 +37,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -62,9 +60,7 @@ import org.testcontainers.utility.DockerImageName;
  * {@link QuotaExceededException} from {@code AgentQuotaService}. Since all 7 Phase 3 tools have
  * {@code isWriteTool()=false}, a mock write tool is injected to trigger this path.
  */
-@SpringBootTest(
-        classes = ProjectionItApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(classes = ProjectionItApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ActiveProfiles("projection-it")
 @Testcontainers
 class McpQuotaEnforcementIT {
@@ -73,12 +69,12 @@ class McpQuotaEnforcementIT {
             "apache/age@sha256:16aa423d20a31aed36a3313244bf7aa00731325862f20ed584510e381f2feaed";
 
     @Container
-    static final PostgreSQLContainer<?> PG =
-            new PostgreSQLContainer<>(DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
-                    .withDatabaseName("tessera")
-                    .withUsername("tessera")
-                    .withPassword("tessera")
-                    .withReuse(true);
+    static final PostgreSQLContainer<?> PG = new PostgreSQLContainer<>(
+                    DockerImageName.parse(AGE_IMAGE).asCompatibleSubstituteFor("postgres"))
+            .withDatabaseName("tessera")
+            .withUsername("tessera")
+            .withPassword("tessera")
+            .withReuse(true);
 
     @DynamicPropertySource
     static void props(DynamicPropertyRegistry r) {
@@ -289,13 +285,7 @@ class McpQuotaEnforcementIT {
                     agentQuotaService.checkWriteQuota(tenantCtx, extractedAgentId);
                 } catch (QuotaExceededException qex) {
                     long durationMs = (System.nanoTime() - start) / 1_000_000;
-                    auditLog.record(
-                            tenantCtx,
-                            extractedAgentId,
-                            tool.toolName(),
-                            params,
-                            "QUOTA_EXCEEDED",
-                            durationMs);
+                    auditLog.record(tenantCtx, extractedAgentId, tool.toolName(), params, "QUOTA_EXCEEDED", durationMs);
                     String wrapped = ToolResponseWrapper.wrap("Write quota exceeded: " + qex.getMessage());
                     return new McpSchema.CallToolResult(List.of(new McpSchema.TextContent(wrapped)), true);
                 }
@@ -348,8 +338,8 @@ class McpQuotaEnforcementIT {
                 .issuedAt(java.time.Instant.now())
                 .build();
 
-        JwtAuthenticationToken auth = new JwtAuthenticationToken(
-                jwt, List.of(new SimpleGrantedAuthority("ROLE_AGENT")), tenantId);
+        JwtAuthenticationToken auth =
+                new JwtAuthenticationToken(jwt, List.of(new SimpleGrantedAuthority("ROLE_AGENT")), tenantId);
         SecurityContextHolder.getContext().setAuthentication(auth);
     }
 

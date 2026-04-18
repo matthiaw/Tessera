@@ -113,8 +113,7 @@ public class ExtractionReviewController {
         } else if (outcome instanceof GraphMutationOutcome.Rejected rejected) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(ProblemDetail.forStatusAndDetail(
-                            HttpStatus.UNPROCESSABLE_ENTITY,
-                            "Graph mutation rejected: " + rejected.reason()));
+                            HttpStatus.UNPROCESSABLE_ENTITY, "Graph mutation rejected: " + rejected.reason()));
         }
         return ResponseEntity.internalServerError().build();
     }
@@ -186,8 +185,7 @@ public class ExtractionReviewController {
         } else if (outcome instanceof GraphMutationOutcome.Rejected rejected) {
             return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                     .body(ProblemDetail.forStatusAndDetail(
-                            HttpStatus.UNPROCESSABLE_ENTITY,
-                            "Graph mutation rejected: " + rejected.reason()));
+                            HttpStatus.UNPROCESSABLE_ENTITY, "Graph mutation rejected: " + rejected.reason()));
         }
         return ResponseEntity.internalServerError().build();
     }

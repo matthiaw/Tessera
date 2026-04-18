@@ -44,8 +44,8 @@ public class DescribeTypeTool implements ToolProvider {
     private final ObjectMapper objectMapper;
     private final AclFilterService aclFilterService;
 
-    public DescribeTypeTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper,
-            AclFilterService aclFilterService) {
+    public DescribeTypeTool(
+            SchemaRegistry schemaRegistry, ObjectMapper objectMapper, AclFilterService aclFilterService) {
         this.schemaRegistry = schemaRegistry;
         this.objectMapper = objectMapper;
         this.aclFilterService = aclFilterService;
@@ -66,7 +66,8 @@ public class DescribeTypeTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"slug":{"type":"string","description":"The type slug to describe"}},"required":["slug"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override
@@ -94,9 +95,8 @@ public class DescribeTypeTool implements ToolProvider {
         result.put("schema_version", type.schemaVersion());
         result.put("deprecated", type.deprecatedAt() != null);
 
-        List<Map<String, Object>> properties = type.properties().stream()
-                .map(p -> toPropertyMap(p))
-                .toList();
+        List<Map<String, Object>> properties =
+                type.properties().stream().map(p -> toPropertyMap(p)).toList();
         result.put("properties", properties);
 
         // Edge types: list all types and find edges where this type is source or target

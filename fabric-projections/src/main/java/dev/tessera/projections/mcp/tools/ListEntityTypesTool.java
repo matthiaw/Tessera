@@ -43,8 +43,8 @@ public class ListEntityTypesTool implements ToolProvider {
     private final ObjectMapper objectMapper;
     private final AclFilterService aclFilterService;
 
-    public ListEntityTypesTool(SchemaRegistry schemaRegistry, ObjectMapper objectMapper,
-            AclFilterService aclFilterService) {
+    public ListEntityTypesTool(
+            SchemaRegistry schemaRegistry, ObjectMapper objectMapper, AclFilterService aclFilterService) {
         this.schemaRegistry = schemaRegistry;
         this.objectMapper = objectMapper;
         this.aclFilterService = aclFilterService;

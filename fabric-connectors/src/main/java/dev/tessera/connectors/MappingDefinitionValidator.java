@@ -87,8 +87,7 @@ public final class MappingDefinitionValidator {
         return errors;
     }
 
-    private static List<String> validateRest(
-            MappingDefinition mapping, String authType, int pollIntervalSeconds) {
+    private static List<String> validateRest(MappingDefinition mapping, String authType, int pollIntervalSeconds) {
         List<String> errors = new ArrayList<>();
 
         // Auth type: only BEARER in Phase 2

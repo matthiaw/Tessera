@@ -64,7 +64,8 @@ public class TraverseTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"query":{"type":"string","description":"Cypher query to execute (read-only)"}},"required":["query"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override

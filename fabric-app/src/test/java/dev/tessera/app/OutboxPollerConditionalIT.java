@@ -60,8 +60,8 @@ class OutboxPollerConditionalIT {
     }
 
     // withUserConfiguration — NOT withBean — so @ConditionalOnProperty is evaluated.
-    private final ApplicationContextRunner runner = new ApplicationContextRunner()
-            .withUserConfiguration(MinimalConfig.class, OutboxPoller.class);
+    private final ApplicationContextRunner runner =
+            new ApplicationContextRunner().withUserConfiguration(MinimalConfig.class, OutboxPoller.class);
 
     /**
      * KAFKA-02: With the default configuration ({@code tessera.kafka.enabled} absent or
@@ -79,8 +79,7 @@ class OutboxPollerConditionalIT {
      */
     @Test
     void pollerExistsWhenKafkaExplicitlyFalse() {
-        runner
-                .withPropertyValues("tessera.kafka.enabled=false")
+        runner.withPropertyValues("tessera.kafka.enabled=false")
                 .run(ctx -> assertThat(ctx).hasSingleBean(OutboxPoller.class));
     }
 
@@ -91,8 +90,7 @@ class OutboxPollerConditionalIT {
      */
     @Test
     void pollerAbsentWhenKafkaEnabled() {
-        runner
-                .withPropertyValues("tessera.kafka.enabled=true")
+        runner.withPropertyValues("tessera.kafka.enabled=true")
                 .run(ctx -> assertThat(ctx).doesNotHaveBean(OutboxPoller.class));
     }
 }

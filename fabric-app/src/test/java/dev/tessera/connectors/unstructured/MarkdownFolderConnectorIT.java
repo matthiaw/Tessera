@@ -19,10 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.tessera.connectors.CandidateMutation;
-import dev.tessera.connectors.Connector;
-import dev.tessera.connectors.ConnectorCapabilities;
 import dev.tessera.connectors.ConnectorInstance;
 import dev.tessera.connectors.ConnectorState;
 import dev.tessera.connectors.MappingDefinition;
@@ -218,7 +215,12 @@ class MarkdownFolderConnectorIT {
 
         // 2. Build the connector instance with mapping pointing at temp folder
         MappingDefinition mapping = new MappingDefinition(
-                null, null, null, List.of(), List.of(), null,
+                null,
+                null,
+                null,
+                List.of(),
+                List.of(),
+                null,
                 tempFolder.toAbsolutePath().toString(),
                 "**/*.md",
                 "paragraph",
@@ -256,9 +258,7 @@ class MarkdownFolderConnectorIT {
             assertThat(candidate.extractorVersion())
                     .as("extractorVersion must be non-null")
                     .isNotNull();
-            assertThat(candidate.llmModelId())
-                    .as("llmModelId must be non-null")
-                    .isNotNull();
+            assertThat(candidate.llmModelId()).as("llmModelId must be non-null").isNotNull();
             assertThat(candidate.extractionConfidence())
                     .as("extractionConfidence must be non-null")
                     .isNotNull();
@@ -284,9 +284,7 @@ class MarkdownFolderConnectorIT {
     void connector_runner_routes_review_queue_for_below_threshold_candidates() throws IOException {
         // Create a markdown file
         Files.writeString(
-                tempFolder.resolve("test.md"),
-                "Alice Johnson is an engineer at TechCorp.",
-                StandardCharsets.UTF_8);
+                tempFolder.resolve("test.md"), "Alice Johnson is an engineer at TechCorp.", StandardCharsets.UTF_8);
 
         // Register connector in the DB
         jdbc.update(
@@ -303,7 +301,12 @@ class MarkdownFolderConnectorIT {
                         + "\"provider\":\"anthropic\"}");
 
         MappingDefinition mapping = new MappingDefinition(
-                null, null, null, List.of(), List.of(), null,
+                null,
+                null,
+                null,
+                List.of(),
+                List.of(),
+                null,
                 tempFolder.toAbsolutePath().toString(),
                 "**/*.md",
                 "paragraph",
@@ -313,14 +316,8 @@ class MarkdownFolderConnectorIT {
 
         // Build connector instance
         MarkdownFolderConnector connector = TestApp.lastConnector;
-        ConnectorInstance instance = new ConnectorInstance(
-                connectorId,
-                TenantContext.of(tenantId),
-                connector,
-                mapping,
-                null,
-                60,
-                true);
+        ConnectorInstance instance =
+                new ConnectorInstance(connectorId, TenantContext.of(tenantId), connector, mapping, null, 60, true);
 
         // Run through ConnectorRunner
         connectorRunner.runOnce(instance);
@@ -330,7 +327,8 @@ class MarkdownFolderConnectorIT {
                 "SELECT COUNT(*) FROM extraction_review_queue WHERE model_id = ?::uuid",
                 Integer.class,
                 tenantId.toString());
-        assertThat(reviewCount).as("Review queue should have entries for below-threshold candidates")
+        assertThat(reviewCount)
+                .as("Review queue should have entries for below-threshold candidates")
                 .isGreaterThan(0);
     }
 
@@ -338,19 +336,20 @@ class MarkdownFolderConnectorIT {
     @EnableAutoConfiguration(
             exclude = FlywayAutoConfiguration.class,
             excludeName = {
-                    "org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration",
-                    "org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration",
-                    "org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration"
+                "org.springframework.ai.model.anthropic.autoconfigure.AnthropicChatAutoConfiguration",
+                "org.springframework.ai.model.ollama.autoconfigure.OllamaChatAutoConfiguration",
+                "org.springframework.ai.model.ollama.autoconfigure.OllamaEmbeddingAutoConfiguration"
             })
     @EnableScheduling
     @ComponentScan(
             basePackages = {"dev.tessera.connectors"},
-            excludeFilters = @ComponentScan.Filter(
-                    type = org.springframework.context.annotation.FilterType.REGEX,
-                    pattern = {
-                            "dev\\.tessera\\.connectors\\.extraction\\..*",
-                            "dev\\.tessera\\.connectors\\.unstructured\\..*"
-                    }))
+            excludeFilters =
+                    @ComponentScan.Filter(
+                            type = org.springframework.context.annotation.FilterType.REGEX,
+                            pattern = {
+                                "dev\\.tessera\\.connectors\\.extraction\\..*",
+                                "dev\\.tessera\\.connectors\\.unstructured\\..*"
+                            }))
     static class TestApp {
 
         static volatile MarkdownFolderConnector lastConnector;

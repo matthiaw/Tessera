@@ -52,8 +52,11 @@ public class QueryEntitiesTool implements ToolProvider {
     private final AclFilterService aclFilterService;
     private final SchemaRegistry schemaRegistry;
 
-    public QueryEntitiesTool(GraphRepository graphRepository, ObjectMapper objectMapper,
-            AclFilterService aclFilterService, SchemaRegistry schemaRegistry) {
+    public QueryEntitiesTool(
+            GraphRepository graphRepository,
+            ObjectMapper objectMapper,
+            AclFilterService aclFilterService,
+            SchemaRegistry schemaRegistry) {
         this.graphRepository = graphRepository;
         this.objectMapper = objectMapper;
         this.aclFilterService = aclFilterService;
@@ -75,7 +78,8 @@ public class QueryEntitiesTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"type":{"type":"string","description":"Entity type slug"},"filter":{"type":"object","description":"Property key-value pairs to filter on"},"cursor":{"type":"string","description":"Opaque pagination cursor from a previous response"},"limit":{"type":"integer","description":"Number of results per page (default 20, max 100)","default":20,"minimum":1,"maximum":100}},"required":["type"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override
@@ -147,11 +151,13 @@ public class QueryEntitiesTool implements ToolProvider {
         Optional<NodeTypeDescriptor> maybeDesc = schemaRegistry.loadFor(tenant, type);
 
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("entities", filtered.stream()
-                .map(n -> maybeDesc.isPresent()
-                        ? ToolNodeSerializer.toMap(n, aclFilterService, maybeDesc.get(), callerRoles)
-                        : ToolNodeSerializer.toMap(n))
-                .toList());
+        result.put(
+                "entities",
+                filtered.stream()
+                        .map(n -> maybeDesc.isPresent()
+                                ? ToolNodeSerializer.toMap(n, aclFilterService, maybeDesc.get(), callerRoles)
+                                : ToolNodeSerializer.toMap(n))
+                        .toList());
         result.put("next_cursor", nextCursor);
 
         try {

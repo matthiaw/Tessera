@@ -50,8 +50,11 @@ public class FindPathTool implements ToolProvider {
     private final AclFilterService aclFilterService;
     private final SchemaRegistry schemaRegistry;
 
-    public FindPathTool(GraphRepository graphRepository, ObjectMapper objectMapper,
-            AclFilterService aclFilterService, SchemaRegistry schemaRegistry) {
+    public FindPathTool(
+            GraphRepository graphRepository,
+            ObjectMapper objectMapper,
+            AclFilterService aclFilterService,
+            SchemaRegistry schemaRegistry) {
         this.graphRepository = graphRepository;
         this.objectMapper = objectMapper;
         this.aclFilterService = aclFilterService;
@@ -74,7 +77,8 @@ public class FindPathTool implements ToolProvider {
     public String inputSchemaJson() {
         return """
                 {"type":"object","properties":{"from":{"type":"string","description":"UUID of the starting entity"},"to":{"type":"string","description":"UUID of the destination entity"}},"required":["from","to"]}
-                """.strip();
+                """
+                .strip();
     }
 
     @Override
@@ -111,12 +115,14 @@ public class FindPathTool implements ToolProvider {
         }
 
         Set<String> callerRoles = ToolNodeSerializer.extractCallerRoles();
-        List<Map<String, Object>> nodes = path.stream().map(n -> {
-            Optional<NodeTypeDescriptor> desc = schemaRegistry.loadFor(tenant, n.typeSlug());
-            return desc.isPresent()
-                    ? ToolNodeSerializer.toMap(n, aclFilterService, desc.get(), callerRoles)
-                    : ToolNodeSerializer.toMap(n);
-        }).toList();
+        List<Map<String, Object>> nodes = path.stream()
+                .map(n -> {
+                    Optional<NodeTypeDescriptor> desc = schemaRegistry.loadFor(tenant, n.typeSlug());
+                    return desc.isPresent()
+                            ? ToolNodeSerializer.toMap(n, aclFilterService, desc.get(), callerRoles)
+                            : ToolNodeSerializer.toMap(n);
+                })
+                .toList();
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("path", nodes);
         result.put("length", nodes.size() - 1);

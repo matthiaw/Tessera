@@ -214,8 +214,7 @@ public class GenericEntityController {
         }
     }
 
-    private Map<String, Object> nodeToMap(NodeState node, NodeTypeDescriptor descriptor,
-            Set<String> callerRoles) {
+    private Map<String, Object> nodeToMap(NodeState node, NodeTypeDescriptor descriptor, Set<String> callerRoles) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("uuid", node.uuid().toString());
         map.put("type", node.typeSlug());

@@ -29,8 +29,7 @@ import org.junit.jupiter.api.Test;
  */
 class SqlViewNameResolverTest {
 
-    private static final UUID MODEL_ID =
-            UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
+    private static final UUID MODEL_ID = UUID.fromString("550e8400-e29b-41d4-a716-446655440000");
 
     /**
      * Basic case: resolve("550e8400-...", "person") returns "v_550e8400_person".

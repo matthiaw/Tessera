@@ -17,11 +17,11 @@ package dev.tessera.core.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import dev.tessera.core.events.EventLog;
 import dev.tessera.core.graph.GraphMutation;
 import dev.tessera.core.graph.GraphService;
 import dev.tessera.core.graph.Operation;
 import dev.tessera.core.graph.SourceType;
-import dev.tessera.core.events.EventLog;
 import dev.tessera.core.support.AgePostgresContainer;
 import dev.tessera.core.support.FlywayItApplication;
 import dev.tessera.core.tenant.TenantContext;

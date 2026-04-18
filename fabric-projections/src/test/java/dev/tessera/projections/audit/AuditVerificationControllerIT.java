@@ -28,7 +28,6 @@ import dev.tessera.core.tenant.TenantContext;
 import dev.tessera.projections.rest.JwtTestHelper;
 import dev.tessera.projections.rest.ProjectionItApplication;
 import java.math.BigDecimal;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -51,9 +50,7 @@ import org.testcontainers.utility.DockerImageName;
  * <p>Verifies that the POST /admin/audit/verify endpoint returns correct JSON
  * for valid/tampered chains, and enforces JWT tenant isolation (403 on mismatch).
  */
-@SpringBootTest(
-        classes = ProjectionItApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(classes = ProjectionItApplication.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("projection-it")
 @Testcontainers
 class AuditVerificationControllerIT {
@@ -99,8 +96,7 @@ class AuditVerificationControllerIT {
             graphService.apply(buildCreate(ctx, "Event-" + i));
         }
 
-        given()
-                .port(port)
+        given().port(port)
                 .header("Authorization", "Bearer " + JwtTestHelper.mintAdmin(modelId.toString()))
                 .when()
                 .post("/admin/audit/verify?model_id=" + modelId)
@@ -115,8 +111,7 @@ class AuditVerificationControllerIT {
         UUID modelId = UUID.randomUUID();
         UUID otherTenant = UUID.randomUUID();
 
-        given()
-                .port(port)
+        given().port(port)
                 .header("Authorization", "Bearer " + JwtTestHelper.mintAdmin(otherTenant.toString()))
                 .when()
                 .post("/admin/audit/verify?model_id=" + modelId)
@@ -149,8 +144,7 @@ class AuditVerificationControllerIT {
                         + "WHERE model_id = :mid::uuid AND sequence_nr = :seq",
                 new MapSqlParameterSource("mid", modelId.toString()).addValue("seq", tamperedSeq));
 
-        given()
-                .port(port)
+        given().port(port)
                 .header("Authorization", "Bearer " + JwtTestHelper.mintAdmin(modelId.toString()))
                 .when()
                 .post("/admin/audit/verify?model_id=" + modelId)

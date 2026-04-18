@@ -33,7 +33,6 @@ import dev.tessera.connectors.extraction.TextChunk;
 import dev.tessera.connectors.extraction.TextChunker;
 import dev.tessera.core.tenant.TenantContext;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitResult;
@@ -51,7 +50,6 @@ import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -179,8 +177,7 @@ public class MarkdownFolderConnector implements Connector {
                     try {
                         List<ExtractionCandidate> extracted = extractionService.extract(chunk, tenant);
                         for (ExtractionCandidate ec : extracted) {
-                            String changeId = sha256(
-                                    sourceDocumentId + ":" + ec.typeSlug() + ":" + ec.name());
+                            String changeId = sha256(sourceDocumentId + ":" + ec.typeSlug() + ":" + ec.name());
                             String sourceChunkRange = chunk.charOffset() + ":" + chunk.charLength();
 
                             Map<String, Object> properties = new LinkedHashMap<>();
@@ -203,7 +200,10 @@ public class MarkdownFolderConnector implements Connector {
                                     ec.confidence()));
                         }
                     } catch (ExtractionException e) {
-                        LOG.warn("Extraction failed for chunk {} of {}: {}", chunk.chunkIndex(), relativePath,
+                        LOG.warn(
+                                "Extraction failed for chunk {} of {}: {}",
+                                chunk.chunkIndex(),
+                                relativePath,
                                 e.getMessage());
                         dlq.add(new DlqEntry(
                                 "EXTRACTION_ERROR",
@@ -215,9 +215,7 @@ public class MarkdownFolderConnector implements Connector {
             } catch (IOException e) {
                 LOG.warn("Failed to read file {}: {}", file, e.getMessage());
                 dlq.add(new DlqEntry(
-                        "IO_ERROR",
-                        "Failed to read file: " + e.getMessage(),
-                        Map.of("path", file.toString())));
+                        "IO_ERROR", "Failed to read file: " + e.getMessage(), Map.of("path", file.toString())));
             }
         }
 
@@ -238,8 +236,7 @@ public class MarkdownFolderConnector implements Connector {
         }
         nextCustomState.put("file_hashes", newHashes);
 
-        ConnectorState nextState = new ConnectorState(
-                null, null, null, state.lastSequence(), nextCustomState);
+        ConnectorState nextState = new ConnectorState(null, null, null, state.lastSequence(), nextCustomState);
 
         return new PollResult(candidates, nextState, outcome, dlq);
     }
@@ -257,9 +254,7 @@ public class MarkdownFolderConnector implements Connector {
         // glob:**/*.md does not match "file.md" at root level (no directory component),
         // so we also check the filename-only portion of the pattern (e.g., *.md).
         PathMatcher matcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
-        String rootGlob = globPattern.startsWith("**/")
-                ? globPattern.substring(3)
-                : globPattern;
+        String rootGlob = globPattern.startsWith("**/") ? globPattern.substring(3) : globPattern;
         PathMatcher rootMatcher = FileSystems.getDefault().getPathMatcher("glob:" + rootGlob);
         List<Path> result = new ArrayList<>();
         try {

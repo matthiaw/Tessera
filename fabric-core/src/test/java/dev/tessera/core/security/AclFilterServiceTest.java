@@ -44,14 +44,13 @@ class AclFilterServiceTest {
     }
 
     private PropertyDescriptor prop(String slug, List<String> readRoles, List<String> writeRoles) {
-        return new PropertyDescriptor(slug, slug, "STRING", false, null, null, null, null, null,
-                false, null, readRoles, writeRoles);
+        return new PropertyDescriptor(
+                slug, slug, "STRING", false, null, null, null, null, null, false, null, readRoles, writeRoles);
     }
 
-    private NodeTypeDescriptor type(List<PropertyDescriptor> props,
-            List<String> readRoles, List<String> writeRoles) {
-        return new NodeTypeDescriptor(modelId, "Person", "Person", "Person", null, 1L,
-                props, null, true, true, readRoles, writeRoles);
+    private NodeTypeDescriptor type(List<PropertyDescriptor> props, List<String> readRoles, List<String> writeRoles) {
+        return new NodeTypeDescriptor(
+                modelId, "Person", "Person", "Person", null, 1L, props, null, true, true, readRoles, writeRoles);
     }
 
     private NodeState node(Map<String, Object> properties) {
@@ -93,9 +92,7 @@ class AclFilterServiceTest {
 
     @Test
     void filterProperties_allFiltered_returnsEmptyMap() {
-        var props = List.of(
-                prop("salary", List.of("ADMIN"), List.of()),
-                prop("ssn", List.of("ADMIN"), List.of()));
+        var props = List.of(prop("salary", List.of("ADMIN"), List.of()), prop("ssn", List.of("ADMIN"), List.of()));
         var descriptor = type(props, List.of(), List.of());
         var state = node(Map.of("salary", 100000, "ssn", "123-45"));
 
@@ -106,8 +103,8 @@ class AclFilterServiceTest {
 
     @Test
     void filterProperties_nullReadRoles_treatedAsUnrestricted() {
-        var props = List.of(new PropertyDescriptor("name", "name", "STRING", false,
-                null, null, null, null, null, false, null));
+        var props = List.of(
+                new PropertyDescriptor("name", "name", "STRING", false, null, null, null, null, null, false, null));
         var descriptor = type(props, List.of(), List.of());
         var state = node(Map.of("name", "Alice"));
 
@@ -156,8 +153,7 @@ class AclFilterServiceTest {
         var props = List.of(prop("salary", List.of(), List.of("ADMIN")));
         var descriptor = type(props, List.of(), List.of());
 
-        assertThatThrownBy(() ->
-                service.checkWriteRoles(descriptor, Map.of("salary", 50000), Set.of("AGENT")))
+        assertThatThrownBy(() -> service.checkWriteRoles(descriptor, Map.of("salary", 50000), Set.of("AGENT")))
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("salary");
     }

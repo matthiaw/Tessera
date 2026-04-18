@@ -140,8 +140,7 @@ class HashChainAppendIT {
         }
 
         List<Object> prevHashes = jdbc.queryForList(
-                "SELECT prev_hash FROM graph_events "
-                        + "WHERE model_id = :mid::uuid ORDER BY sequence_nr ASC",
+                "SELECT prev_hash FROM graph_events " + "WHERE model_id = :mid::uuid ORDER BY sequence_nr ASC",
                 new MapSqlParameterSource("mid", ctx.modelId().toString()),
                 Object.class);
 
@@ -209,7 +208,8 @@ class HashChainAppendIT {
             Map<String, Object> event = events.get(i);
             String storedPrevHash = asString(event.get("prev_hash"));
             assertThat(storedPrevHash)
-                    .as("Event at position %d (seq=%s) must have non-null prev_hash under concurrent load",
+                    .as(
+                            "Event at position %d (seq=%s) must have non-null prev_hash under concurrent load",
                             i, event.get("sequence_nr"))
                     .isNotNull();
         }

@@ -57,7 +57,9 @@ public class DynamicSchemaOutputConverter implements StructuredOutputConverter<L
         String cleaned = text.strip();
         // Strip markdown code fences that LLMs often wrap around JSON output
         if (cleaned.startsWith("```")) {
-            cleaned = cleaned.replaceAll("^```json?\\n?", "").replaceAll("```\\s*$", "").strip();
+            cleaned = cleaned.replaceAll("^```json?\\n?", "")
+                    .replaceAll("```\\s*$", "")
+                    .strip();
         }
         try {
             return objectMapper.readValue(cleaned, TYPE_REF);

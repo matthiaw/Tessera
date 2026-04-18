@@ -68,8 +68,7 @@ public class DebeziumSlotHealthIndicator extends AbstractHealthIndicator {
 
     @Override
     protected void doHealthCheck(Health.Builder builder) {
-        Long lagBytes = jdbc.queryForObject(
-                LAG_QUERY, new MapSqlParameterSource("slot", SLOT_NAME), Long.class);
+        Long lagBytes = jdbc.queryForObject(LAG_QUERY, new MapSqlParameterSource("slot", SLOT_NAME), Long.class);
 
         if (lagBytes == null) {
             builder.down()

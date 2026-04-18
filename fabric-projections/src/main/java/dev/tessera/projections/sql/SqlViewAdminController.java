@@ -53,8 +53,7 @@ public class SqlViewAdminController {
      */
     @GetMapping("/views")
     public ResponseEntity<Map<String, Object>> listViews(
-            @RequestParam("model_id") UUID modelId,
-            @AuthenticationPrincipal Jwt jwt) {
+            @RequestParam("model_id") UUID modelId, @AuthenticationPrincipal Jwt jwt) {
 
         if (!isTenantMatch(jwt, modelId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)

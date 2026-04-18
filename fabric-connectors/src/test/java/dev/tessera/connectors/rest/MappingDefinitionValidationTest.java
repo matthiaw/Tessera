@@ -36,7 +36,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", "lowercase", false)),
                 List.of("name"),
                 "http://example.com/api/customers",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
     }
 
     @Test
@@ -72,7 +77,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("rootPath is not a valid JSONPath"));
     }
@@ -86,7 +96,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("rootPath must not be blank"));
     }
@@ -100,7 +115,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "invalid[[[path", null, false)),
                 List.of("name"),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("sourcePath is not a valid JSONPath"));
     }
@@ -114,7 +134,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", "bazinga", false)),
                 List.of("name"),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("transform is unknown: bazinga"));
     }
@@ -130,7 +155,12 @@ class MappingDefinitionValidationTest {
                     List.of(new FieldMapping("name", "$.name", t, false)),
                     List.of("name"),
                     "http://example.com/api",
-                null, null, null, null, null, null);
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null);
             List<String> errors = MappingDefinitionValidator.validate(def, "BEARER", 30);
             assertThat(errors).as("transform '%s' should be valid", t).isEmpty();
         }
@@ -145,7 +175,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of(),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("identityFields must not be empty"));
     }
@@ -153,8 +188,18 @@ class MappingDefinitionValidationTest {
     @Test
     void rejects_empty_fields() {
         MappingDefinition bad = new MappingDefinition(
-                "customer", "Customer", "$.data[*]", List.of(), List.of("name"), "http://example.com/api",
-                null, null, null, null, null, null);
+                "customer",
+                "Customer",
+                "$.data[*]",
+                List.of(),
+                List.of("name"),
+                "http://example.com/api",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("fields must not be empty"));
     }
@@ -168,7 +213,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
                 "http://example.com/api",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("targetNodeTypeSlug must not be blank"));
     }
@@ -188,7 +238,12 @@ class MappingDefinitionValidationTest {
                 List.of(new FieldMapping("name", "$.name", null, false)),
                 List.of("name"),
                 "",
-                null, null, null, null, null, null);
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
         List<String> errors = MappingDefinitionValidator.validate(bad, "BEARER", 30);
         assertThat(errors).anyMatch(e -> e.contains("sourceUrl must not be blank"));
     }

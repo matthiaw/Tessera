@@ -25,7 +25,8 @@ import java.util.UUID;
  *   <li>{@link NeedsReview} — below confidence threshold, route to operator review</li>
  * </ul>
  */
-public sealed interface ResolutionResult permits ResolutionResult.Match, ResolutionResult.Create, ResolutionResult.NeedsReview {
+public sealed interface ResolutionResult
+        permits ResolutionResult.Match, ResolutionResult.Create, ResolutionResult.NeedsReview {
 
     record Match(UUID existingNodeUuid, String tier, double score) implements ResolutionResult {}
 

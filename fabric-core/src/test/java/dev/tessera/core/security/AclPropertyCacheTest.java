@@ -36,8 +36,8 @@ class AclPropertyCacheTest {
     }
 
     private PropertyDescriptor prop(String slug, List<String> readRoles) {
-        return new PropertyDescriptor(slug, slug, "STRING", false, null, null, null, null, null,
-                false, null, readRoles, List.of());
+        return new PropertyDescriptor(
+                slug, slug, "STRING", false, null, null, null, null, null, false, null, readRoles, List.of());
     }
 
     @Test
@@ -89,8 +89,7 @@ class AclPropertyCacheTest {
 
     @Test
     void canonicalizeRoles_sortedAndJoined() {
-        assertThat(AclPropertyCache.canonicalizeRoles(Set.of("AGENT", "ADMIN")))
-                .isEqualTo("ADMIN,AGENT");
+        assertThat(AclPropertyCache.canonicalizeRoles(Set.of("AGENT", "ADMIN"))).isEqualTo("ADMIN,AGENT");
     }
 
     @Test

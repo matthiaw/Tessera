@@ -19,7 +19,6 @@ import dev.tessera.core.graph.GraphRepository;
 import dev.tessera.core.graph.NodeState;
 import dev.tessera.core.tenant.TenantContext;
 import java.util.List;
-import java.util.Map;
 import org.springframework.stereotype.Service;
 
 /**
@@ -43,9 +42,7 @@ public class EntityResolutionService {
     private final FuzzyNameMatcher fuzzyNameMatcher;
 
     public EntityResolutionService(
-            GraphRepository graphRepository,
-            EmbeddingService embeddingService,
-            FuzzyNameMatcher fuzzyNameMatcher) {
+            GraphRepository graphRepository, EmbeddingService embeddingService, FuzzyNameMatcher fuzzyNameMatcher) {
         this.graphRepository = graphRepository;
         this.embeddingService = embeddingService;
         this.fuzzyNameMatcher = fuzzyNameMatcher;
