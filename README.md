@@ -4,7 +4,7 @@
 
 Tessera is a graph-based, protocol-agnostic integration layer that sits between heterogeneous systems (ERP, CRM, legacy DBs, SaaS tools, LLM agents) as the single source of truth. A REST endpoint is a projection of the graph. A SQL view is a projection. A Kafka topic is a projection. An MCP tool is a projection. Applications consume projections — the graph is the source.
 
-**Status:** Early development (Milestone 1 — MVP through first real consumer)
+**Status:** v1.0 MVP shipped (2026-04-18)
 **License:** Apache 2.0
 **Language:** Java 21 + Spring Boot 3.5
 
@@ -229,16 +229,16 @@ Module dependencies are strictly upward from `fabric-core`, enforced by Maven en
 
 ## Roadmap
 
-Milestone 1 is planned as six phases (see `.planning/ROADMAP.md` for full details):
+**v1.0 MVP — Shipped 2026-04-18** (12 phases, 38 plans, 98 requirements):
+- Graph core with single-TX write funnel, SHACL validation, 4-chain rule engine
+- Four projection engines: REST (dynamic), MCP (7 agent tools), SQL views (BI), Kafka/Debezium (CDC)
+- Structured (REST polling) and unstructured (LLM extraction + pgvector) connectors
+- circlead as first consumer with production wiring
+- Observability, DR drill, Vault secrets, field-level ACL
 
-- **Phase 0 — Foundations & Risk Burndown** — Maven scaffold, pinned Postgres+AGE environment, benchmark harness, `pg_dump`/`pg_restore` rehearsal, tenant primitives
-- **Phase 1 — Graph Core, Schema Registry, Validation, Rules** — the two spines (Schema Registry + Event Log/Outbox), SHACL, custom rule engine, single-transaction write funnel
-- **Phase 2 — REST Projection, Connector Framework, First Connector, Security Baseline** — runtime-routed REST, generic REST poller, Vault, TLS, RBAC, fail-closed defaults, field-level encryption decision
-- **Phase 3 — MCP Projection (flagship)** — schema-driven MCP tools, read-only agents, injection-hardened, full audit
-- **Phase 4 — SQL View + Kafka Projections, Hash-Chained Audit** — aggregation escape hatch, Debezium outbox swap, optional compliance audit chain
-- **Phase 5 — Circlead Integration & Production Hardening** — first real consumer, Prometheus/OpenTelemetry observability, per-tenant snapshots, rehearsed DR drill
+**v2+ (planned):** GraphQL projection, LLM-assisted ontology evolution, visual schema designer, OWL reasoning, Drools migration, write-back connectors, additional connectors (SAP, Salesforce, Jira, JDBC), Neo4j read-replica.
 
-Later milestones (v2+): GraphQL projection, LLM-assisted ontology evolution, visual schema designer, OWL reasoning, Drools migration, write-back connectors, additional connectors (SAP, Salesforce, Jira, JDBC), Neo4j read-replica.
+See `.planning/ROADMAP.md` for details.
 
 ## Architecture Decisions (ADRs)
 
@@ -251,20 +251,90 @@ Later milestones (v2+): GraphQL projection, LLM-assisted ontology evolution, vis
 | ADR-5 | Schema Registry co-located with graph DB | Schema change and data validation in one transaction |
 | ADR-6 | circlead stays standalone, consumes via REST/MCP | No big-bang migration; parallel operation during transition |
 
-## Quick start
+## Quick Start
 
 Prerequisites: Docker (Compose v2), JDK 21.
+
+### Start
 
 ```bash
 git clone https://github.com/matthiaw/Tessera.git
 cd Tessera
-docker compose up -d        # Starts Postgres 16 + Apache AGE 1.6
-./mvnw -B verify            # Builds all 5 modules (fabric-core, fabric-rules,
-                            # fabric-projections, fabric-connectors, fabric-app)
-                            # and runs tests
+
+# 1. Start infrastructure (Postgres 16 + AGE 1.6 + pgvector, Ollama for embeddings)
+docker compose up -d
+
+# 2. Build all modules
+./mvnw -B clean install -DskipTests -Dspotless.check.skip=true
+
+# 3. Run the application
+java -jar fabric-app/target/fabric-app-*.jar
 ```
 
-Status: **Phase 0 — Foundations & Risk Burndown** (pre-alpha). See `.planning/ROADMAP.md` for the milestone plan.
+The app starts on `http://localhost:8080` with:
+- REST API: `/api/v1/{model}/entities/{typeSlug}`
+- OpenAPI docs: `/v3/api-docs`, Swagger UI: `/swagger-ui.html`
+- MCP SSE endpoint: `/mcp/sse`
+- Actuator health: `/actuator/health`
+- Prometheus metrics: `/actuator/prometheus`
+
+**With Kafka/Debezium (optional):**
+
+```bash
+docker compose --profile kafka up -d
+```
+
+Then set `tessera.kafka.enabled=true` in `application.yml` or via env var `TESSERA_KAFKA_ENABLED=true`.
+
+**Environment variables:**
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `TESSERA_JWT_SIGNING_KEY` | (empty) | HMAC key for JWT token signing |
+| `TESSERA_BOOTSTRAP_TOKEN` | (empty) | Initial admin token for `/api/v1/admin/tokens/issue` |
+| `ANTHROPIC_API_KEY` | `placeholder` | API key for LLM-based entity extraction |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama endpoint for embeddings |
+| `TESSERA_CIRCLEAD_BASE_URL` | `http://localhost:8080` | circlead REST API base URL |
+
+### Stop
+
+```bash
+# Stop the application
+# Ctrl+C in the terminal running the jar, or kill the process
+
+# Stop infrastructure (preserves data volumes)
+docker compose down
+
+# Stop infrastructure AND delete data volumes (clean slate)
+docker compose down -v
+
+# Stop Kafka stack too (if started with --profile kafka)
+docker compose --profile kafka down -v
+```
+
+### Test
+
+```bash
+# Run all tests (unit + integration via Testcontainers — requires Docker running)
+./mvnw -B verify -Dspotless.check.skip=true
+
+# Run tests for a single module
+./mvnw -B test -pl fabric-core -Dspotless.check.skip=true
+./mvnw -B test -pl fabric-rules -Dspotless.check.skip=true
+./mvnw -B test -pl fabric-connectors -Dspotless.check.skip=true
+./mvnw -B test -pl fabric-projections -Dspotless.check.skip=true
+
+# Run a single test class
+./mvnw -B test -pl fabric-core -Dtest=GraphServiceImplTest -Dspotless.check.skip=true
+
+# Run integration tests only (Testcontainers — *IT.java)
+./mvnw -B verify -pl fabric-app -Dspotless.check.skip=true
+
+# Run benchmarks (JMH)
+./mvnw -B test -pl fabric-core -Dtest=JmhRunner -Dspotless.check.skip=true
+```
+
+**Note:** Tests use Testcontainers with a custom AGE+pgvector Docker image — Docker must be running. The image is built automatically on first test run. Add `-Dspotless.check.skip=true` if running JDK 23 (spotless 2.44.1 is incompatible).
 
 ## Image pinning
 
@@ -295,12 +365,18 @@ docker image inspect --format '{{index .RepoDigests 0}}' apache/age:release_PG16
 
 ```
 .
-├── .planning/            ← GSD project memory (PROJECT, REQUIREMENTS, ROADMAP, research)
+├── fabric-core/          ← Graph core, event log, schema registry, SHACL, tenant isolation
+├── fabric-rules/         ← Rule engine, entity resolution, reconciliation
+├── fabric-connectors/    ← Connector framework, REST poller, LLM extraction, mappings
+├── fabric-projections/   ← REST, MCP, SQL view, Kafka projections
+├── fabric-app/           ← Spring Boot executable, config, Flyway migrations
+├── docker/               ← Custom AGE+pgvector Dockerfile, Debezium config
+├── scripts/              ← DR drill, benchmarks
+├── .planning/            ← GSD project memory (milestones, roadmap, retrospective)
+├── docker-compose.yml    ← Local dev stack
 ├── LICENSE               ← Apache 2.0
-└── README.md             ← You are here
+└── pom.xml               ← Parent POM (Maven multi-module)
 ```
-
-Source code lands in Phase 0.
 
 ## Contributing
 
