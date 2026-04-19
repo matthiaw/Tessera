@@ -52,11 +52,21 @@
 
 ## Code Property Graph / Joern Integration (CPG)
 
-- **CPG-01**: Joern connector that imports Code Property Graph exports (JSON) into Tessera via the connector framework
-- **CPG-02**: Schema types for code entities: `Method`, `Class`, `File`, `Package`, `CallSite`, `Vulnerability` with edge types `CALLS` (with `count` property), `CONTAINS`, `IMPORTS`, `EXTENDS`, `REACHES`
+Joern erzeugt einen **Code Property Graph (CPG)**, der vier Graph-Repräsentationen von Code in einer einzigen Struktur vereint:
+
+| Layer | Beschreibung | Tessera-Nutzen |
+|-------|-------------|----------------|
+| **Abstract Syntax Tree (AST)** | Syntaktische Struktur des Codes (Ausdrücke, Anweisungen, Deklarationen) | Entities: `AstNode`, `Expression`, `Declaration` |
+| **Control Flow Graph (CFG)** | Ausführungsreihenfolge innerhalb einer Methode (Branches, Loops, Returns) | Edges: `CFG_NEXT`, `CFG_TRUE`, `CFG_FALSE` |
+| **Program Dependence Graph (PDG)** | Daten- und Kontrollabhängigkeiten zwischen Anweisungen | Edges: `DATA_DEPENDS_ON`, `CONTROL_DEPENDS_ON` |
+| **Call Graph** | Welche Methode ruft welche andere auf (und wie oft) | Edges: `CALLS` (mit `count`-Property) |
+
+- **CPG-01**: Joern connector that imports the full Code Property Graph (AST + CFG + PDG + Call Graph) from Joern exports (JSON/CSV) into Tessera via the connector framework
+- **CPG-02**: Schema types covering all four CPG layers — Nodes: `Method`, `Class`, `File`, `Package`, `AstNode`, `CallSite`, `Vulnerability`, `Parameter`, `Local`, `Return` — Edges: `CALLS` (with `count`), `CONTAINS`, `IMPORTS`, `EXTENDS`, `REACHES`, `CFG_NEXT`, `DATA_DEPENDS_ON`, `CONTROL_DEPENDS_ON`, `AST_CHILD`, `ARGUMENT`
 - **CPG-03**: Multi-repo support — multiple repositories in a single graph, scoped per `model_id` or tagged per repo
-- **CPG-04**: Temporal code analysis — "Was this vulnerability present on date X?" via event-log replay
+- **CPG-04**: Temporal code analysis — "Was this vulnerability present on date X?", "Which data flows changed between releases?" via event-log replay
 - **CPG-05**: Reconciliation of multiple analysis sources (Joern, SonarQube, custom) in the same graph using the Source Authority Matrix
+- **CPG-06**: Cross-layer graph queries via MCP/REST — e.g. "Show all data flows from user input to SQL query" (taint analysis via PDG), "Which methods have cyclomatic complexity > 10?" (via CFG), "What changed in the call graph between v1.0 and v1.1?" (temporal + Call Graph)
 
 ---
 
@@ -72,9 +82,9 @@
 | Write-Back Connectors | WRITE-01..02 | Conflict register battle-tested in production |
 | Advanced Connectors | ACON-01..05 | Connector framework + mapping definitions (v1.0 shipped) |
 | Neo4j Read Replica | N4J-01..02 | Event log (v1.0 shipped) |
-| Code Property Graph / Joern | CPG-01..05 | Connector framework (v1.0 shipped) + [Joern](https://github.com/joernio/joern) |
+| Code Property Graph / Joern | CPG-01..06 | Connector framework (v1.0 shipped) + [Joern](https://github.com/joernio/joern) |
 
-**Total: 9 groups, 25 requirements**
+**Total: 9 groups, 26 requirements**
 
 ---
 *Restored from git history (commit 2b07593, 2026-04-13) on 2026-04-18*
