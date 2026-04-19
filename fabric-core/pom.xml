@@ -164,6 +164,7 @@
                                     <executable>java</executable>
                                     <classpathScope>test</classpathScope>
                                     <arguments>
+                                        <argument>-Xmx4g</argument>
                                         <argument>-Djmh.dataset=${jmh.dataset}</argument>
                                         <argument>-classpath</argument>
                                         <classpath/>

@@ -55,12 +55,12 @@ ROOT=$(cd "$(dirname "$0")/.." && pwd)
 cd "$ROOT"
 
 # ---------------------------------------------------------------------------
-# D-09: single source of truth for the AGE image digest — docker-compose.yml.
+# D-09: single source of truth for the AGE image digest — docker/age-pgvector/Dockerfile.
 # Bumping it in one place auto-rolls this rehearsal. No hardcoded digest here.
 # ---------------------------------------------------------------------------
-DIGEST=$(grep -oE 'apache/age@sha256:[a-f0-9]{64}' docker-compose.yml | head -1 || true)
+DIGEST=$(grep -oE 'apache/age@sha256:[a-f0-9]{64}' docker/age-pgvector/Dockerfile | head -1 || true)
 if [[ -z "$DIGEST" ]]; then
-  echo "FAIL: could not extract apache/age sha256 digest from docker-compose.yml" >&2
+  echo "FAIL: could not extract apache/age sha256 digest from docker/age-pgvector/Dockerfile" >&2
   exit 1
 fi
 echo "dump_restore_rehearsal: using image $DIGEST"

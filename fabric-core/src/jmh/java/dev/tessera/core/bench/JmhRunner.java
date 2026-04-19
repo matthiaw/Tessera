@@ -57,7 +57,7 @@ public final class JmhRunner {
                         .include("dev\\.tessera\\.core\\.bench\\..*Bench")
                         .resultFormat(ResultFormatType.JSON)
                         .result(outFile.toString())
-                        .jvmArgsAppend("-Djmh.dataset=" + dataset)
+                        .jvmArgsAppend("-Xmx4g", "-Djmh.dataset=" + dataset)
                         .shouldFailOnError(true)
                         .build())
                 .run();
