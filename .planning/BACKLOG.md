@@ -50,6 +50,14 @@
 - **N4J-01**: Optional Neo4j read-replica fed from the event log for graph-intensive traversals
 - **N4J-02**: Event-bus-driven synchronization between Postgres primary and Neo4j replica
 
+## Code Property Graph / Joern Integration (CPG)
+
+- **CPG-01**: Joern connector that imports Code Property Graph exports (JSON) into Tessera via the connector framework
+- **CPG-02**: Schema types for code entities: `Method`, `Class`, `File`, `Package`, `CallSite`, `Vulnerability` with edge types `CALLS` (with `count` property), `CONTAINS`, `IMPORTS`, `EXTENDS`, `REACHES`
+- **CPG-03**: Multi-repo support — multiple repositories in a single graph, scoped per `model_id` or tagged per repo
+- **CPG-04**: Temporal code analysis — "Was this vulnerability present on date X?" via event-log replay
+- **CPG-05**: Reconciliation of multiple analysis sources (Joern, SonarQube, custom) in the same graph using the Source Authority Matrix
+
 ---
 
 ## Summary
@@ -64,8 +72,10 @@
 | Write-Back Connectors | WRITE-01..02 | Conflict register battle-tested in production |
 | Advanced Connectors | ACON-01..05 | Connector framework + mapping definitions (v1.0 shipped) |
 | Neo4j Read Replica | N4J-01..02 | Event log (v1.0 shipped) |
+| Code Property Graph / Joern | CPG-01..05 | Connector framework (v1.0 shipped) + [Joern](https://github.com/joernio/joern) |
 
-**Total: 8 groups, 20 requirements**
+**Total: 9 groups, 25 requirements**
 
 ---
 *Restored from git history (commit 2b07593, 2026-04-13) on 2026-04-18*
+*CPG/Joern integration added: 2026-04-19*
